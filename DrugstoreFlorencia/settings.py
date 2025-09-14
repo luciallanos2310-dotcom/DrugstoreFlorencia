@@ -76,7 +76,7 @@ WSGI_APPLICATION = 'DrugstoreFlorencia.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME':'drugstoreflorencia',
+        'NAME':'drugstore_florencia',
         'USER': 'root',
         'PASSWORD': '123456',
         'HOST': 'localhost',
