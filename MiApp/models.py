@@ -1,6 +1,17 @@
 from django.db import models
 
+class Empleado(models.Model):
+    nombre_emp = models.CharField(max_length=50)
+    apellido_emp = models.CharField(max_length=50)
+    dni_emp = models.IntegerField(unique= True)
+    telefono_emp = models.IntegerField(null=True, blank=True)
+    domicilio_emp = models.CharField(max_length=100)
+
+    def __str__(self):
+        return f"{self.nombre_emp} {self.apellido_emp}"
+
 class Caja(models.Model):
+    empleado = models.ForeignKey(Empleado, on_delete=models.CASCADE, null=True, blank=True)
     fecha_hs_apertura = models.DateTimeField()
     fecha_hs_cierre = models.DateTimeField(null=True, blank=True)
     saldo_inicial = models.DecimalField(max_digits=10, decimal_places=2)
@@ -10,16 +21,6 @@ class Caja(models.Model):
     def __str__(self):
         return f"Caja {self.id} - {self.fecha_hs_apertura.date()}"
 
-class Empleado(models.Model):
-    caja = models.ForeignKey(Caja, on_delete=models.CASCADE)
-    nombre_emp = models.CharField(max_length=50)
-    apellido_emp = models.CharField(max_length=50)
-    dni_emp = models.IntegerField(unique= True)
-    telefono_emp = models.IntegerField(null=True, blank=True)
-    domicilio_emp = models.CharField(max_length=50)
-
-    def __str__(self):
-        return f"{self.nombre_emp} {self.apellido_emp}"
     
 class Proveedor(models.Model):
     nombre_prov = models.CharField(max_length=50)

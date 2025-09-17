@@ -78,7 +78,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME':'drugstore_florencia',
         'USER': 'root',
-        'PASSWORD': '123456',
+        'PASSWORD': '12345678',
         'HOST': 'localhost',
         'PORT': ''
     }
