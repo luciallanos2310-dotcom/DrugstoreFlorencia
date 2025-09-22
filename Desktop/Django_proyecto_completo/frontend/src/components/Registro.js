@@ -1,3 +1,4 @@
+// Registro.js
 import React, { useState } from "react";
 import "./Registro.css";
 
@@ -8,7 +9,7 @@ function Registro({ onBack }) {
 
   const manejarEnvio = async (e) => {
     e.preventDefault();
-    
+
     if (password !== confirmarPassword) {
       alert("Las contraseñas no coinciden");
       return;
@@ -29,61 +30,60 @@ function Registro({ onBack }) {
   };
 
   return (
-    <div className="contenedor-registro">
-      <div className="tarjeta-registro">
-        <div className="encabezado-registro">
-          <h1>Crear Cuenta</h1>
-          <div className="nombre-tienda">florencia DRUGSTORE</div>
+    <div className="registro-page">
+      {/* Columna izquierda */}
+      <div className="registro-left">
+        <h1>florencia</h1>
+        <h2>DRUGSTORE</h2>
+      </div>
+
+      {/* Columna derecha */}
+      <div className="registro-right">
+        <div className="registro-card">
+          <h2>Crear Cuenta</h2>
+
+          <form onSubmit={manejarEnvio}>
+            <div className="input-group">
+              <span>📧</span>
+              <input
+                type="email"
+                placeholder="usuario@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="input-group">
+              <span>🔒</span>
+              <input
+                type="password"
+                placeholder="Crea una contraseña segura"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="input-group">
+              <span>🔒</span>
+              <input
+                type="password"
+                placeholder="Repite tu contraseña"
+                value={confirmarPassword}
+                onChange={(e) => setConfirmarPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            <button type="submit" className="registro-btn">Crear Cuenta</button>
+            <button type="button" onClick={onBack} className="volver-btn">Volver</button>
+          </form>
         </div>
-
-        <div className="divisor"></div>
-
-        <form className="formulario-registro" onSubmit={manejarEnvio}>
-          <div className="grupo-formulario">
-            <label>Usuario</label>
-            <input
-              type="email"
-              placeholder="usuario@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="grupo-formulario">
-            <label>Contraseña</label>
-            <input
-              type="password"
-              placeholder="crea una contraseña segura"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="grupo-formulario">
-            <label>Confirmar Contraseña</label>
-            <input
-              type="password"
-              placeholder="repite tu contraseña"
-              value={confirmarPassword}
-              onChange={(e) => setConfirmarPassword(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="grupo-botones">
-            <button type="submit" className="boton-registrar">
-              Crear Cuenta
-            </button>
-            <button type="button" onClick={onBack} className="boton-volver">
-              Volver
-            </button>
-          </div>
-        </form>
       </div>
     </div>
   );
 }
 
 export default Registro;
+

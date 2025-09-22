@@ -1,119 +1,105 @@
-.contenedor-registro {
-  min-height: 100vh;
+.registro-page {
+  display: flex;
+  height: 100vh;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Columna izquierda */
+.registro-left {
+  flex: 1;
+  background: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  flex-direction: column;
 }
 
-.tarjeta-registro {
-  background: white;
-  padding: 50px;
-  border-radius: 20px;
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
-  width: 100%;
-  max-width: 450px;
-  text-align: center;
+.registro-left h1 {
+  font-size: 40px;
+  color: #087182;
+  margin: 0;
 }
 
-.encabezado-registro h1 {
-  color: #333;
-  font-size: 32px;
-  margin-bottom: 10px;
-  font-weight: 300;
+.registro-left h2 {
+  font-size: 16px;
+  color: #FF900A;
+  letter-spacing: 3px;
+  margin-top: 8px;
 }
 
-.nombre-tienda {
-  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+/* Columna derecha */
+.registro-right {
+  flex: 1;
+  background: #087182;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
   color: white;
-  padding: 10px 20px;
-  border-radius: 25px;
-  font-weight: bold;
-  font-size: 20px;
-  display: inline-block;
-  margin-bottom: 30px;
 }
 
-.divisor {
-  height: 2px;
-  background: linear-gradient(to right, transparent, #ddd, transparent);
-  margin: 30px 0;
+.registro-card {
+  width: 100%;
+  max-width: 400px;
 }
 
-.formulario-registro h2 {
-  color: #333;
-  font-size: 24px;
-  margin-bottom: 30px;
-  font-weight: 600;
+.registro-card h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 22px;
 }
 
-.grupo-formulario {
-  margin-bottom: 25px;
-  text-align: left;
+/* Inputs */
+.input-group {
+  position: relative;
+  margin-bottom: 20px;
 }
 
-.grupo-formulario label {
-  display: block;
-  margin-bottom: 8px;
-  color: #555;
-  font-weight: 600;
+.input-group input {
+  width: 100%;
+  padding: 12px 40px;
+  border: none;
+  border-radius: 6px;
   font-size: 14px;
 }
 
-.grupo-formulario input {
+.input-group span {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  font-size: 18px;
+  color: #888;
+}
+
+/* Botones */
+.registro-btn {
   width: 100%;
-  padding: 15px;
-  border: 2px solid #e9ecef;
-  border-radius: 10px;
-  font-size: 16px;
-  transition: all 0.3s;
-}
-
-.grupo-formulario input:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.boton-registrar {
-  width: 48%;
-  padding: 15px;
-  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-  color: white;
+  padding: 12px;
+  background: #FF900A;
   border: none;
-  border-radius: 10px;
-  font-size: 16px;
-  font-weight: 600;
+  border-radius: 6px;
+  color: white;
+  font-weight: bold;
   cursor: pointer;
-  transition: all 0.3s;
+  margin-bottom: 10px;
 }
 
-.boton-registrar:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(40, 167, 69, 0.4);
+.registro-btn:hover {
+  background: #e07f0a;
 }
 
-.boton-volver {
-  width: 48%;
-  padding: 15px;
+.volver-btn {
+  width: 100%;
+  padding: 12px;
   background: #6c757d;
-  color: white;
   border: none;
-  border-radius: 10px;
-  font-size: 16px;
-  font-weight: 600;
+  border-radius: 6px;
+  color: white;
+  font-weight: bold;
   cursor: pointer;
-  transition: all 0.3s;
 }
 
-.boton-volver:hover {
+.volver-btn:hover {
   background: #5a6268;
-}
-
-.grupo-botones {
-  display: flex;
-  justify-content: space-between;
-  gap: 15px;
-  margin-top: 20px;
 }

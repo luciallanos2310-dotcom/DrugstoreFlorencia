@@ -1,11 +1,10 @@
+// Login.js
 import React, { useState } from "react";
-import Register from "./Registro.js";
-import "./Login.css";
+import "./Login.css"; 
 
-function Login({ onLogin }) {
+function Login({ onLogin, onRegistro }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showRegister, setShowRegister] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -24,65 +23,53 @@ function Login({ onLogin }) {
     }
   };
 
-  const handleCancel = () => {
-    setEmail("");
-    setPassword("");
-  };
-
-  if (showRegister) {
-    return <Register onBack={() => setShowRegister(false)} />;
-  }
-
+  // FLORENCIA DRUGSTORE IZQUIERDA
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <div className="welcome-header">
-          <h1>¡Bienvenido!</h1>
-          <p>Es bueno verte otra vez</p>
-          <div className="store-name">florencia DRUGSTORE</div>
-        </div>
+    <div className="login-page">
+      {/* Columna izquierda */}
+      <div className="login-left">
+        <h1>florencia</h1>
+        <h2>DRUGSTORE</h2>
+      </div>
 
-        <div className="divider"></div>
+      {/* Columna derecha */}
+      <div className="login-right">
+        <div className="login-card">
+          <h2>Iniciar Sesión</h2>
 
-        <h2>Iniciar sesión</h2>
-        
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Usuario</label>
-            <input
-              type="email"
-              placeholder="usuario@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+          <form onSubmit={handleSubmit}>
+            <div className="input-group">
+              <span>📧</span>
+              <input
+                type="email"
+                placeholder="usuario@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="input-group">
+              <span>🔒</span>
+              <input
+                type="password"
+                placeholder="Contraseña"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            <button type="submit" className="login-btn">Ingresar</button>
+          </form>
+
+          <div className="login-links">
+            <a href="#forgot">¿Olvidaste tu contraseña?</a>
+            <br />
+            <a href="#register" onClick={onRegistro}>
+              ¿No estás registrado? Crear cuenta
+            </a>
           </div>
-
-          <div className="form-group">
-            <label>Contraseña</label>
-            <input
-              type="password"
-              placeholder="contraseña"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="forgot-password">
-            <a href="#forgot">¿Olvidaste la contraseña?</a>
-          </div>
-
-          <button type="submit" className="login-btn">Ingresar</button>
-          <button type="button" onClick={handleCancel} className="cancel-btn">
-            Cancelar
-          </button>
-        </form>
-
-        <div className="register-link">
-          <a href="#register" onClick={() => setShowRegister(true)}>
-            ¿No tenes una cuenta? Registrate
-          </a>
         </div>
       </div>
     </div>
