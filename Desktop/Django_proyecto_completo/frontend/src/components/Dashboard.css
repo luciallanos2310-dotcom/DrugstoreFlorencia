@@ -1,0 +1,447 @@
+.dashboard-container {
+  display: flex;
+  min-height: 100vh;
+  font-family: 'Arial', sans-serif;
+  overflow: hidden;
+}
+
+/* Barra lateral */
+.barra-lateral {
+  width: 220px;
+  background: #065a68;
+  color: white;
+  padding: 20px 15px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 1000;
+}
+
+.logo h1 {
+  font-size: 16px;
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+.logo h2 {
+  font-size: 12px;
+  margin: 3px 0 0 0;
+  font-weight: 400;
+  text-align: center;
+  color: #FF900A;
+}
+
+.menu {
+  margin-top: 30px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: white;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 10px 12px;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.menu-item:hover,
+.menu-item.activo {
+  background: #087182;
+  transform: translateX(3px);
+}
+
+.menu-item svg {
+  font-size: 14px;
+  width: 16px;
+}
+
+.logout-btn {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 10px 12px;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  margin-top: 15px;
+}
+
+.logout-btn:hover {
+  background: #dc3545;
+}
+
+/* Contenido principal */
+.contenido-principal {
+  margin-left: 220px;
+  flex: 1;
+  padding: 20px;
+  background: #f8fafc;
+  min-height: 100vh;
+  overflow-y: auto;
+}
+
+/* Header de bienvenida */
+.bienvenida-header {
+  background: white;
+  padding: 15px 20px;
+  border-radius: 10px;
+  margin-bottom: 15px;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.05);
+  border-left: 3px solid #087182;
+}
+
+.bienvenida-header h1 {
+  margin: 0 0 5px 0;
+  color: #2c3e50;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.fecha {
+  color: #666;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Acciones rápidas - Más compactas */
+.acciones-rapidas {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.accion-item {
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.05);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-left: 3px solid #087182;
+  height: 60px;
+}
+
+.accion-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+}
+
+.accion-item.nueva-venta {
+  border-left-color: #28a745;
+}
+
+.accion-item.nuevo-producto {
+  border-left-color: #007bff;
+}
+
+.accion-item.reporte-rapido {
+  border-left-color: #6f42c1;
+}
+
+.icono-accion {
+  font-size: 18px;
+  color: #087182;
+}
+
+.accion-item.nueva-venta .icono-accion {
+  color: #28a745;
+}
+
+.accion-item.nuevo-producto .icono-accion {
+  color: #007bff;
+}
+
+.accion-item.reporte-rapido .icono-accion {
+  color: #6f42c1;
+}
+
+.accion-item span {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+}
+
+/* Grid principal más compacto */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 15px;
+  height: 200px;
+}
+
+.columna {
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.05);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Productos más vendidos */
+.productos-vendidos-section h3,
+.productos-reponer-section h3 {
+  margin: 0 0 12px 0;
+  color: #087182;
+  font-size: 16px;
+  font-weight: 600;
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 8px;
+}
+
+.lista-productos-vendidos,
+.lista-productos-reponer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  justify-content: space-around;
+}
+
+.producto-vendido-item,
+.producto-reponer-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  min-height: 40px;
+}
+
+.producto-vendido-item:hover,
+.producto-reponer-item:hover {
+  background: #e9ecef;
+}
+
+.nombre-producto {
+  font-weight: 500;
+  color: #333;
+  flex: 1;
+  font-size: 13px;
+}
+
+.stats-producto {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ventas-count {
+  font-size: 12px;
+  color: #666;
+}
+
+.tendencia {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 8px;
+}
+
+.tendencia.positiva {
+  background: #d4edda;
+  color: #155724;
+}
+
+.tendencia.negativa {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+/* Productos por reponer */
+.stock-info {
+  background: #dc3545;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* Calendario más compacto */
+.calendario-section {
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.05);
+  margin-bottom: 15px;
+  height: 180px;
+}
+
+.calendario-section h3 {
+  margin: 0 0 12px 0;
+  color: #087182;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.calendario-grid {
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  overflow: hidden;
+  height: 120px;
+}
+
+.dias-semana {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: #087182;
+  color: white;
+  height: 30px;
+}
+
+.dia-semana {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.dias-mes {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  height: 90px;
+}
+
+.dia-mes {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e9ecef;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.dia-mes:hover {
+  background: #f8f9fa;
+}
+
+.dia-mes.dia-actual {
+  background: #087182;
+  color: white;
+  font-weight: 600;
+}
+
+/* Ventas semanales compacto */
+.ventas-semana-section {
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.05);
+  height: 150px;
+}
+
+.ventas-semana-section h3 {
+  margin: 0 0 12px 0;
+  color: #087182;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.grafico-barras {
+  display: flex;
+  justify-content: space-around;
+  align-items: end;
+  height: 80px;
+  padding: 10px 0;
+  border-top: 1px solid #e9ecef;
+}
+
+.barra-dia {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  flex: 1;
+}
+
+.barra {
+  width: 20px;
+  background: linear-gradient(to top, #087182, #065a68);
+  border-radius: 3px 3px 0 0;
+  min-height: 5px;
+  transition: all 0.3s ease;
+}
+
+.etiqueta-dia {
+  font-size: 10px;
+  color: #666;
+  font-weight: 500;
+}
+
+/* Asegurar que todo quepa en una pantalla */
+.dashboard-container {
+  height: 100vh;
+}
+
+.contenido-principal {
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Layout principal compacto */
+.dashboard-content {
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  gap: 15px;
+  height: calc(100vh - 40px);
+}
+
+/* Responsive para pantallas más pequeñas */
+@media (max-width: 1400px) {
+  .barra-lateral {
+    width: 200px;
+  }
+  
+  .contenido-principal {
+    margin-left: 200px;
+    padding: 15px;
+  }
+  
+  .accion-item span {
+    font-size: 12px;
+  }
+  
+  .main-grid {
+    height: 180px;
+  }
+  
+  .calendario-section {
+    height: 160px;
+  }
+  
+  .ventas-semana-section {
+    height: 140px;
+  }
+}

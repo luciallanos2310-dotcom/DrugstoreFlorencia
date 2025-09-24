@@ -1,88 +1,210 @@
 import React, { useState } from "react";
-import Register from "./Registro.js";
+import { FaEnvelope, FaLock, FaArrowLeft } from "react-icons/fa";
 import "./Login.css";
 
-function Login({ onLogin }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showRegister, setShowRegister] = useState(false);
+function Login({ rolSeleccionado, onLoginExitoso, onVolverARol, onIrARegistro }) {
+  const [formData, setFormData] = useState({
+    email: "",
+    password: ""
+  });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  // Comentado por el momento
+  // const [mostrarRecuperacion, setMostrarRecuperacion] = useState(false);
+  // const [emailRecuperacion, setEmailRecuperacion] = useState("");
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const response = await fetch("http://127.0.0.1:8000/api/login/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: email, password }),
-    });
+    setError("");
+    setLoading(true);
 
-    if (response.ok) {
-      const data = await response.json();
-      localStorage.setItem("token", data.token);
-      onLogin();
-    } else {
-      alert("Credenciales inválidas");
+    try {
+      const respuesta = await fetch("http://127.0.0.1:8000/api/login/", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password
+        }),
+      });
+
+      console.log("Status de respuesta:", respuesta.status);
+
+      const datos = await respuesta.json();
+
+      if (respuesta.ok) {
+        onLoginExitoso({
+          nombre: datos.nombre,
+          email: datos.email,
+          tipo_usuario: datos.tipo_usuario,
+          token: datos.token
+        });
+      } else {
+        setError(datos.error || "Error al iniciar sesión");
+      }
+    } catch (error) {
+      setError(`Error de conexión: ${error.message}. Verifica que la URL sea correcta.`);
+      console.error("Error detallado:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleCancel = () => {
-    setEmail("");
-    setPassword("");
-  };
+  // Comentado por el momento - Funcionalidad de recuperación
+  /*
+  const handleRecuperarContrasena = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
-  if (showRegister) {
-    return <Register onBack={() => setShowRegister(false)} />;
-  }
+    try {
+      // Aquí iría la llamada a tu API para recuperar contraseña
+      const respuesta = await fetch("http://127.0.0.1:8000/api/recuperar-contrasena/", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: emailRecuperacion
+        }),
+      });
+
+      if (respuesta.ok) {
+        setError("Se ha enviado un enlace de recuperación a tu correo electrónico.");
+        setMostrarRecuperacion(false);
+        setEmailRecuperacion("");
+      } else {
+        setError("Error al enviar el enlace de recuperación. Verifica tu email.");
+      }
+    } catch (error) {
+      setError("Error de conexión. Intenta nuevamente.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  */
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <div className="welcome-header">
-          <h1>¡Bienvenido!</h1>
-          <p>Es bueno verte otra vez</p>
-          <div className="store-name">florencia DRUGSTORE</div>
-        </div>
+    <div className="login-page">
+      {/* Botón para volver a selección de rol */}
+      <button onClick={onVolverARol} className="btn-volver">
+        <FaArrowLeft /> Volver a selección de rol
+      </button>
 
-        <div className="divider"></div>
+      <div className="login-left">
+        <h1>florencia</h1>
+        <h2>DRUGSTORE</h2>
+      </div>
 
-        <h2>Iniciar sesión</h2>
-        
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Usuario</label>
-            <input
-              type="email"
-              placeholder="usuario@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+      <div className="login-right">
+        <div className="login-card">
+          <h2>Iniciar Sesión - {rolSeleccionado === 'empleado' ? 'Empleado' : 'Dueño'}</h2>
+          
+          {error && <div className="error-mensaje">{error}</div>}
+
+          {/* Siempre mostrar formulario de login (sin recuperación por ahora) */}
+          <form onSubmit={handleSubmit}>
+            <div className="input-group">
+              <FaEnvelope className="input-icon" />
+              <input
+                type="email"
+                name="email"
+                placeholder="usuario@email.com"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                disabled={loading}
+              />
+            </div>
+
+            <div className="input-group">
+              <FaLock className="input-icon" />
+              <input
+                type="password"
+                name="password"
+                placeholder="Contraseña"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                disabled={loading}
+              />
+            </div>
+
+            <div className="olvido-contrasena">
+              <button 
+                type="button" 
+                className="link-btn olvido-btn"
+                
+                // Comentado: onClick={() => setMostrarRecuperacion(true)}
+              >
+                ¿Olvidaste tu contraseña?
+              </button>
+            </div>
+
+            <button type="submit" className="login-btn" disabled={loading}>
+              {loading ? "Conectando..." : "Iniciar Sesión"}
+            </button>
+          </form>
+
+          {/* Comentado: Formulario de recuperación */}
+          {/*
+          {mostrarRecuperacion ? (
+            <form onSubmit={handleRecuperarContrasena}>
+              <div className="recuperacion-info">
+                <p>Ingresa tu email y te enviaremos un enlace para restablecer tu contraseña.</p>
+              </div>
+
+              <div className="input-group">
+                <FaEnvelope className="input-icon" />
+                <input
+                  type="email"
+                  placeholder="usuario@email.com"
+                  value={emailRecuperacion}
+                  onChange={(e) => setEmailRecuperacion(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="botones-recuperacion">
+                <button 
+                  type="button" 
+                  className="volver-login-btn"
+                  onClick={() => {
+                    setMostrarRecuperacion(false);
+                    setError("");
+                  }}
+                  disabled={loading}
+                >
+                  Volver al Login
+                </button>
+                <button type="submit" className="enviar-btn" disabled={loading}>
+                  {loading ? "Enviando..." : "Enviar Enlace"}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={handleSubmit}>
+              {/* ... formulario de login ... *//*}
+            </form>
+          )}
+          */}
+
+          <div className="registro-link">
+            <p>¿No tienes una cuenta?</p>
+            <button type="button" onClick={onIrARegistro} className="link-btn">
+              Crear cuenta
+            </button>
           </div>
-
-          <div className="form-group">
-            <label>Contraseña</label>
-            <input
-              type="password"
-              placeholder="contraseña"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="forgot-password">
-            <a href="#forgot">¿Olvidaste la contraseña?</a>
-          </div>
-
-          <button type="submit" className="login-btn">Ingresar</button>
-          <button type="button" onClick={handleCancel} className="cancel-btn">
-            Cancelar
-          </button>
-        </form>
-
-        <div className="register-link">
-          <a href="#register" onClick={() => setShowRegister(true)}>
-            ¿No tenes una cuenta? Registrate
-          </a>
         </div>
       </div>
     </div>

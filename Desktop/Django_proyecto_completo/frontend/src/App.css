@@ -1,13 +1,61 @@
-.contenedor-principal {
-  display: flex;
-  min-height: 100vh;
+.App {
+  text-align: center;
+  font-family: 'Poppins', sans-serif;
 }
 
-.contenido-derecho {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: #f5f5f5;
+}
+
+/* Estilos globales para botones volver */
+.btn-volver {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid #087182;
+  color: #087182;
+  padding: 10px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 600;
+  z-index: 100;
+  transition: all 0.3s ease;
+}
+
+.btn-volver:hover {
+  background: #087182;
+  color: white;
+  transform: translateX(-5px);
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: #667eea;
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: 14px;
+}
+
+.btn-link:hover {
+  color: #764ba2;
+}
+
+/* Responsive global */
+@media (max-width: 768px) {
+  .btn-volver {
+    top: 10px;
+    left: 10px;
+    font-size: 14px;
+    padding: 8px 12px;
+  }
+}
+
