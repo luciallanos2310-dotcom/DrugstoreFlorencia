@@ -1,0 +1,164 @@
+/* src/components/Empleados/FormularioEmpleado.css */
+.formulario-empleado-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  background-color: white;
+}
+
+.formulario-empleado-card {
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.formulario-header {
+  margin-bottom: 30px;
+  text-align: left;
+}
+
+.formulario-header h1 {
+  color: #333;
+  margin-bottom: 10px;
+  font-size: 24px;
+}
+
+.formulario-header p {
+  color: #666;
+  margin: 0;
+}
+
+.formulario-empleado {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-columnas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+}
+
+.columna-izquierda,
+.columna-derecha {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.campo-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.campo-grupo-full {
+  grid-column: 1 / -1;
+}
+
+.campo-grupo label {
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+.campo-grupo input,
+.campo-grupo select,
+.campo-grupo textarea {
+  padding: 7px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.3s;
+}
+
+.campo-grupo input:focus,
+.campo-grupo select:focus,
+.campo-grupo textarea:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.campo-grupo input.error,
+.campo-grupo select.error,
+.campo-grupo textarea.error {
+  border-color: #dc3545;
+}
+
+.mensaje-error {
+  color: #dc3545;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.password-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-container input {
+  flex: 1;
+  padding-right: 40px;
+}
+
+.btn-mostrar-password {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+}
+
+.formulario-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-top: 10px;
+  border-top: 1px solid #eee;
+}
+
+.btn-cancelar,
+.btn-guardar {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s;
+}
+
+.btn-cancelar {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-cancelar:hover {
+  background: #545b62;
+}
+
+.btn-guardar {
+  background: #28a745;
+  color: white;
+}
+
+.btn-guardar:hover {
+  background: #218838;
+}
+
+@media (max-width: 768px) {
+  .form-columnas {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .formulario-acciones {
+    flex-direction: column;
+  }
+}

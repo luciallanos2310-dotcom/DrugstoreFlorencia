@@ -1,0 +1,293 @@
+.login-page {
+  display: flex;
+  height: 100vh;
+  font-family: 'Poppins', sans-serif;
+  position: relative;
+}
+
+/* Botón volver */
+.btn-volver {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  color: #087182;
+  padding: 10px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 600;
+  z-index: 100;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-volver:hover {
+  background: #087182;
+  color: white;
+  transform: translateX(-5px);
+}
+
+/* Columna izquierda */
+.login-left {
+  flex: 1;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 40px;
+}
+
+.login-left h1 {
+  font-size: 60px;
+  color: #087182;
+  margin: 0;
+  font-weight: 700;
+}
+
+.login-left h2 {
+  font-size: 20px;
+  color: #FF900A;
+  letter-spacing: 3px;
+  margin-top: 8px;
+  font-weight: 600;
+}
+
+/* Columna derecha */
+.login-right {
+  flex: 1;
+  background: #087182;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: white;
+}
+
+.login-card {
+  background: transparent;
+  width: 100%;
+  max-width: 400px;
+}
+
+.login-card h2 {
+  text-align: center;
+  margin-bottom: 30px;
+  font-size: 28px;
+  font-weight: 600;
+  color: white;
+}
+
+/* Inputs con iconos React */
+.input-group {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 15px 45px 15px 45px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  background: white;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.input-group input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 144, 10, 0.3);
+}
+
+.input-icon {
+  position: absolute;
+  top: 50%;
+  left: 15px;
+  transform: translateY(-50%);
+  font-size: 18px;
+  color: #888;
+}
+
+/* Olvidó contraseña */
+.olvido-contrasena {
+  text-align: right;
+  margin-bottom: 20px;
+}
+
+.olvido-btn {
+  background: none;
+  border: none;
+  color: #FF900A;
+  cursor: pointer;
+  font-size: 14px;
+  text-decoration: underline;
+  transition: all 0.3s ease;
+}
+
+.olvido-btn:hover {
+  color: #e07f0a;
+}
+
+/* Información de recuperación */
+.recuperacion-info {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.recuperacion-info p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* Botones de recuperación */
+.botones-recuperacion {
+  display: flex;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.volver-login-btn {
+  flex: 1;
+  padding: 12px;
+  background: #6c757d;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.volver-login-btn:hover:not(:disabled) {
+  background: #5a6268;
+}
+
+.enviar-btn {
+  flex: 2;
+  padding: 12px;
+  background: #28a745;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.enviar-btn:hover:not(:disabled) {
+  background: #218838;
+}
+
+/* Botón principal de login */
+.login-btn {
+  width: 100%;
+  padding: 15px;
+  background: #FF900A;
+  border: none;
+  border-radius: 8px;
+  color: #552C08;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 10px;
+  font-size: 16px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.login-btn:hover:not(:disabled) {
+  background: #e07f0a;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+}
+
+.login-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Registro link */
+.registro-link {
+  margin-top: 25px;
+  text-align: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  padding-top: 20px;
+}
+
+.registro-link p {
+  color: white;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: #FF900A;
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: 16px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.link-btn:hover {
+  color: #e07f0a;
+}
+
+/* Mensaje de error */
+.error-mensaje {
+  background: #ff6b6b;
+  color: white;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .login-page {
+    flex-direction: column;
+  }
+  
+  .login-left {
+    min-height: 30vh;
+    padding: 20px;
+  }
+  
+  .login-left h1 {
+    font-size: 40px;
+  }
+  
+  .login-left h2 {
+    font-size: 16px;
+  }
+  
+  .login-right {
+    min-height: 70vh;
+    padding: 20px;
+  }
+  
+  .btn-volver {
+    top: 10px;
+    left: 10px;
+    font-size: 14px;
+    padding: 8px 12px;
+  }
+  
+  .botones-recuperacion {
+    flex-direction: column;
+  }
+}

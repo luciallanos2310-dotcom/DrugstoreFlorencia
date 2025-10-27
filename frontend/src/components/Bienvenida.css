@@ -1,0 +1,81 @@
+/* ====== CONTENEDOR GENERAL ====== */
+.bienvenida-page {
+  display: flex;
+  justify-content: flex-end; /* Alinear a la DERECHA */
+  align-items: flex-end; /* Alinear al fondo */
+  height: 100vh;
+  background: #fff;
+  font-family: 'Poppins', sans-serif;
+  overflow: hidden;
+  width: 100%; 
+  position: relative;
+  padding-right: 100px; /* Espacio desde la DERECHA */
+  padding-bottom: 100px; /* Espacio desde abajo */
+}
+
+/* Imagen de fondo que ocupa toda la pantalla */
+.imagen-fondo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+}
+
+/* ====== FIGURAS DECORATIVAS - OCULTAS ====== */
+.decoraciones {
+  display: none;
+}
+
+/* Contenedor del botón - POSICIÓN DERECHA */
+.contenedor-boton {
+  position: relative;
+  z-index: 10;
+  text-align: right; /* Alinear texto a la DERECHA */
+  padding-right: 220px;
+  padding-bottom: 40px;
+}
+
+/* Botón */
+.btn-iniciar {
+  background-color: #006f79;
+  color: white;
+  border: none;
+  padding: 12px 40px;
+  border-radius: 25px;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: 0px 4px 12px rgba(0, 111, 121, 0.4);
+  transition: all 0.3s ease;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  min-width: 160px;
+}
+
+.btn-iniciar:hover {
+  background-color: #015b63;
+  transform: translateY(-2px);
+  box-shadow: 0px 6px 15px rgba(0, 111, 121, 0.5);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .bienvenida-page {
+    padding-right: 50px;
+    padding-bottom: 80px;
+  }
+}
+
+@media (max-width: 480px) {
+  .bienvenida-page {
+    padding-right: 30px;
+    padding-bottom: 60px;
+  }
+  
+  .btn-iniciar {
+    padding: 10px 30px;
+    font-size: 0.9rem;
+  }
+}

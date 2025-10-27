@@ -1,0 +1,511 @@
+/* src/components/Proveedores/Proveedores.css */
+.proveedores-container {
+  background-color: #fff;
+  padding: 1.5rem;
+  border-radius: 16px;
+  width: 100%;
+  min-height: calc(100vh - 40px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.header-proveedores {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.header-proveedores h2 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #2c2c2c;
+  margin: 0;
+}
+
+/* BUSCADOR */
+.buscador-proveedores {
+  margin-bottom: 2rem;
+}
+
+.input-busqueda-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  max-width: 500px;
+}
+
+.icono-lupa {
+  position: absolute;
+  left: 15px;
+  z-index: 2;
+  font-size: 1rem;
+  color: #666;
+}
+
+.input-busqueda {
+  width: 100%;
+  padding: 0.8rem 1rem 0.8rem 2.5rem;
+  border: 1.5px solid #ddd;
+  border-radius: 12px;
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.input-busqueda:focus {
+  border-color: #007e7e;
+  box-shadow: 0 0 4px rgba(0,126,126,0.2);
+}
+
+.mensaje-busqueda {
+  color: #666;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+  font-style: italic;
+}
+
+/* ESTADOS */
+.sin-busqueda, .sin-resultados, .estado-carga {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: #666;
+}
+
+.mensaje-inicial {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.mensaje-inicial h3 {
+  color: #2c2c2c;
+  margin-bottom: 1rem;
+}
+
+.ejemplo-busqueda {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+/* TABLA */
+.tabla-contenedor {
+  overflow-x: auto;
+  margin-top: 1rem;
+}
+
+.tabla-proveedores {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.tabla-proveedores th {
+  background-color: #f3f0e9;
+  color: #3a3a3a;
+  text-align: left;
+  padding: 0.8rem 1rem;
+  font-weight: 600;
+  border-bottom: 2px solid #e0e0e0;
+  
+}
+
+.tabla-proveedores td {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid #f0f0f0;
+  color: #333;
+}
+
+.tabla-proveedores tr:hover {
+  background-color: #f8f8f8;
+}
+
+/* Celdas específicas */
+.id-proveedor {
+  font-weight: 600;
+  color: #007e7e;
+}
+
+.nombre-proveedor {
+  font-weight: 500;
+}
+
+.rubro-proveedor {
+  color: #666;
+}
+
+.email-proveedor, .telefono-proveedor, .direccion-proveedor {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* FORMULARIO */
+.formulario-proveedor {
+  margin-top: 1.5rem;
+}
+
+.formulario-proveedor label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.formulario-proveedor input,
+.formulario-proveedor select,
+.formulario-proveedor textarea {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  outline: none;
+  transition: border 0.2s ease;
+}
+
+.formulario-proveedor input:focus,
+.formulario-proveedor select:focus,
+.formulario-proveedor textarea:focus {
+  border-color: #007e7e;
+  box-shadow: 0 0 4px rgba(0,126,126,0.2);
+}
+
+.formulario-proveedor select {
+  background: white;
+  cursor: pointer;
+}
+
+/* BOTONES */
+.btn-agregar {
+  background-color: #007e7e;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.8rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.btn-agregar:hover {
+  background-color: #005f5f;
+}
+
+.acciones-proveedor {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-icon {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 0.3rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+  transform: scale(1.1);
+  background: rgba(0,0,0,0.1);
+}
+
+.btn-icon.eliminar {
+  color: #c0392b;
+}
+
+.btn-icon.editar {
+  color: #34495e;
+}
+
+.botones-form {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.btn-guardar,
+.btn-cancelar {
+  border: none;
+  border-radius: 8px;
+  padding: 0.8rem 1.8rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  min-width: 140px;
+}
+
+.btn-guardar {
+  background-color: #007e7e;
+  color: #fff;
+}
+
+.btn-guardar:hover {
+  background-color: #005f5f;
+}
+
+.btn-cancelar {
+  background-color: #95a5a6;
+  color: #fff;
+}
+
+.btn-cancelar:hover {
+  background-color: #7f8c8d;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.modal-contenedor {
+  background: #fff;
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+  width: 350px;
+  text-align: center;
+}
+
+.modal-header h3 {
+  font-size: 1.4rem;
+  color: #222;
+  margin-bottom: 1rem;
+}
+
+.modal-body p {
+  color: #555;
+  margin-bottom: 1.5rem;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.modal-footer .btn-confirmar {
+  background-color: #007e7e;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 0.6rem 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  flex: 1;
+}
+
+.modal-footer .btn-confirmar:hover {
+  background-color: #005f5f;
+}
+
+.modal-footer .btn-cancelar {
+  background-color: #c0392b;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 0.6rem 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  flex: 1;
+}
+
+.modal-footer .btn-cancelar:hover {
+  background-color: #a93226;
+}
+
+/* Agregar estos estilos */
+/* Agregar estos estilos */
+
+.filtros-container {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+}
+
+.buscador-proveedores {
+  flex: 1;
+  min-width: 280px;
+  margin-bottom: 0;
+}
+
+.filtro-rubro {
+  min-width: 200px;
+}
+
+.filtro-rubro label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.select-filtro {
+  width: 100%;
+  padding: 0.7rem;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  background-color: white;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.select-filtro:focus {
+  outline: none;
+  border-color: #008b8b;
+  box-shadow: 0 0 4px rgba(0,139,139,0.3);
+}
+
+.btn-limpiar {
+  background-color: #95a5a6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  white-space: nowrap;
+  height: fit-content;
+}
+
+.btn-limpiar:hover {
+  background-color: #7f8c8d;
+}
+
+.ayuda-busqueda {
+  font-size: 0.8rem;
+  color: #666;
+  margin-top: 0.5rem;
+  font-style: italic;
+}
+
+.tip-busqueda {
+  margin-top: 1rem;
+  padding: 0.8rem;
+  background-color: #e8f4f4;
+  border-radius: 8px;
+  border-left: 4px solid #007e7e;
+}
+
+.tip-busqueda em {
+  color: #007e7e;
+  font-size: 0.9rem;
+}
+
+.sin-busqueda {
+  text-align: center;
+  padding: 3rem;
+  color: #666;
+}
+
+.mensaje-inicial {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.mensaje-inicial h3 {
+  color: #2c2c2c;
+  margin-bottom: 1rem;
+}
+
+.ejemplo-busqueda {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: #f8f8f8;
+  border-radius: 8px;
+  color: #555;
+  text-align: left;
+  line-height: 1.5;
+}
+
+.sin-resultados {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.sin-resultados .btn-limpiar {
+  margin-top: 1rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .filtros-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .buscador-proveedores,
+  .filtro-rubro {
+    min-width: auto;
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .filtros-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .buscador-proveedores,
+  .filtro-rubro {
+    min-width: auto;
+  }
+}
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .proveedores-container {
+    padding: 1rem;
+  }
+  
+  .header-proveedores {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+  
+  .tabla-proveedores {
+    font-size: 0.9rem;
+  }
+  
+  .tabla-proveedores th,
+  .tabla-proveedores td {
+    padding: 0.6rem;
+  }
+  
+  .botones-form {
+    flex-direction: column;
+  }
+  
+  .btn-guardar,
+  .btn-cancelar {
+    min-width: auto;
+  }
+}

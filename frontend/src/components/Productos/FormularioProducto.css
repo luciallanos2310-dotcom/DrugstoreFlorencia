@@ -1,0 +1,413 @@
+/* FORMULARIO PRODUCTOS - COMPACTO Y ALINEADO A IZQUIERDA */
+.formulario-productos-container {
+  background-color: #fff;
+  padding: 1.5rem;
+  width: 100%;
+  min-height: 100vh;
+}
+
+.formulario-header {
+  margin-bottom: 1.5rem;
+  max-width: 800px;
+}
+
+.formulario-header h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #2c2c2c;
+  margin: 0 0 0.3rem 0;
+}
+
+.formulario-header p {
+  color: #666;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.formulario-content {
+  background: white;
+  max-width: 800px;
+}
+
+.formulario-producto {
+  margin: 0;
+}
+
+/* GRID COMPACTO */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.campo-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.campo-completo {
+  grid-column: 1 / -1;
+}
+
+.campo-form label {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-weight: 600;
+  color: #333;
+  font-size: 0.85rem;
+}
+
+.campo-form input,
+.campo-form select,
+.campo-form textarea {
+  width: 100%;
+  padding: 0.6rem;
+  border: 1.5px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border 0.2s ease;
+  background: white;
+  box-sizing: border-box;
+}
+
+.campo-form input:focus,
+.campo-form select:focus,
+.campo-form textarea:focus {
+  border-color: #007e7e;
+  box-shadow: 0 0 3px rgba(0,126,126,0.2);
+}
+
+.campo-form input.error,
+.campo-form select.error {
+  border-color: #c0392b;
+  box-shadow: 0 0 3px rgba(192,57,43,0.2);
+}
+
+.mensaje-error {
+  color: #c0392b;
+  font-size: 0.75rem;
+  margin-top: 0.3rem;
+  font-weight: 500;
+}
+
+/* INPUT PRECIO COMPACTO */
+.input-precio {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.simbolo-peso {
+  position: absolute;
+  left: 10px;
+  color: #666;
+  font-weight: 500;
+  z-index: 1;
+  font-size: 0.9rem;
+}
+
+.input-precio input {
+  padding-left: 25px;
+}
+
+/* BUSCADOR DE PROVEEDORES COMPACTO */
+/* Asegurar que el contenedor del buscador también esté alineado a la izquierda */
+.buscador-proveedores-container {
+  position: relative;
+  margin-bottom: 1rem;
+  text-align: left; /* Forzar alineación izquierda */
+}
+
+.buscador-proveedores-container label {
+  text-align: left;
+  display: block;
+}
+
+/* Asegurar que los elementos dentro del contenedor estén alineados a la izquierda */
+.proveedores-seleccionados > * {
+  align-self: flex-start;
+}
+
+.input-busqueda-container {
+  position: relative;
+  display: flex;
+  align-items: left;
+}
+
+.input-busqueda {
+  width: 100%;
+  padding: 0.6rem 0.8rem 0.6rem 2.2rem;
+  border: 1.5px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  outline: none;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.input-busqueda:focus {
+  border-color: #007e7e;
+  box-shadow: 0 0 3px rgba(0,126,126,0.2);
+}
+
+/* DROPDOWN COMPACTO */
+.dropdown-proveedores {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1.5px solid #ddd;
+  border-radius: 6px;
+  margin-top: 3px;
+  max-height: 150px;
+  overflow-y: auto;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  z-index: 1000;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.8rem;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.2s;
+}
+
+.dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.dropdown-item:hover {
+  background-color: #f8f9fa;
+}
+
+.dropdown-item.selected {
+  background-color: #e8f4f4;
+  border-left: 2px solid #007e7e;
+}
+
+.checkbox-dropdown {
+  margin-right: 8px;
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+.proveedor-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.proveedor-nombre {
+  font-weight: 500;
+  font-size: 0.8rem;
+  color: #333;
+}
+
+.proveedor-rubro {
+  font-size: 0.75rem;
+  color: #666;
+  margin-top: 1px;
+}
+
+.no-results {
+  color: #666;
+  font-style: italic;
+  text-align: center;
+  padding: 0.8rem;
+  font-size: 0.8rem;
+}
+
+/* PROVEEDORES SELECCIONADOS COMPACTO */
+.proveedores-seleccionados {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+  min-height: 35px;
+  align-items: flex-start; /* Cambiado a flex-start para alinear arriba */
+  padding: 0.6rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  justify-content: flex-start; /* Asegura que todo empiece desde la izquierda */
+}
+
+.tag-proveedor {
+  display: inline-flex;
+  align-items: center;
+  background-color: #e8f4f4;
+  padding: 0.3rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  border: 1px solid #007e7e;
+  color: #007e7e;
+  font-weight: 500;
+  margin: 0; /* Eliminar cualquier margen extra */
+}
+
+.btn-quitar {
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-left: 0.3rem;
+  font-size: 0.8rem;
+  color: #666;
+  padding: 0;
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.btn-quitar:hover {
+  color: #c0392b;
+  background-color: rgba(192,57,43,0.1);
+}
+
+.sin-proveedores {
+  color: #666;
+  font-style: italic;
+  font-size: 0.8rem;
+  text-align: left; /* Asegurar que el texto esté a la izquierda */
+  width: 100%; /* Ocupar todo el ancho */
+}
+
+/* TEXTAREA DESCRIPCIÓN COMPACTA */
+.campo-form textarea {
+  resize: vertical;
+  min-height: 60px;
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
+/* BOTONES COMPACTOS Y ALINEADOS A IZQUIERDA */
+.botones-form {
+  display: flex;
+  justify-content: flex-start;
+  gap: 0.8rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.btn-guardar,
+.btn-cancelar {
+  border: none;
+  border-radius: 6px;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+}
+
+.btn-guardar {
+  background-color: #007e7e;
+  color: #fff;
+}
+
+.btn-guardar:hover:not(:disabled) {
+  background-color: #005f5f;
+  transform: translateY(-1px);
+}
+
+.btn-guardar:disabled {
+  background-color: #95a5a6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-cancelar {
+  background-color: #95a5a6;
+  color: #fff;
+}
+
+.btn-cancelar:hover {
+  background-color: #7f8c8d;
+  transform: translateY(-1px);
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .formulario-productos-container {
+    padding: 1rem;
+  }
+  
+  .formulario-header {
+    margin-bottom: 1rem;
+  }
+  
+  .formulario-header h2 {
+    font-size: 1.3rem;
+  }
+  
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 0.8rem;
+  }
+  
+  .botones-form {
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  
+  .btn-guardar,
+  .btn-cancelar {
+    min-width: auto;
+    width: 100%;
+  }
+  
+  .dropdown-proveedores {
+    max-height: 120px;
+  }
+}
+
+@media (max-width: 480px) {
+  .formulario-productos-container {
+    padding: 0.8rem;
+  }
+  
+  .formulario-header h2 {
+    font-size: 1.2rem;
+  }
+  
+  .campo-form input,
+  .campo-form select,
+  .campo-form textarea {
+    padding: 0.5rem;
+    font-size: 0.85rem;
+  }
+  
+  .botones-form {
+    margin-top: 1rem;
+    padding-top: 1rem;
+  }
+}
+
+/* ELIMINAR CUALQUIER FONDO GRIS */
+body {
+  background: white !important;
+}
+
+html {
+  background: white !important;
+}
+
+/* ASEGURAR QUE TODO SEA BLANCO */
+* {
+  box-sizing: border-box;
+}
+
+/* REMOVER CUALQUIER MARGEN O PADDING EXTRA */
+.formulario-productos-container > * {
+  margin: 0;
+  padding: 0;
+}

@@ -1,0 +1,108 @@
+.confirmacion-page {
+  display: flex;
+  height: 100vh;
+  font-family: 'Poppins', sans-serif;
+}
+
+/* Columna izquierda */
+.confirmacion-left {
+  flex: 1;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 40px;
+}
+
+.confirmacion-left h1 {
+  font-size: 60px;
+  color: #087182;
+  margin: 0;
+  font-weight: 700;
+}
+
+.confirmacion-left h2 {
+  font-size: 20px;
+  color: #FF900A;
+  letter-spacing: 3px;
+  margin-top: 8px;
+  font-weight: 600;
+}
+
+/* Columna derecha */
+.confirmacion-right {
+  flex: 1;
+  background: #087182;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: white;
+}
+
+.confirmacion-card {
+  width: 100%;
+  max-width: 450px;
+  text-align: center;
+}
+
+.icono-exito {
+  font-size: 80px;
+  margin-bottom: 20px;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.confirmacion-card h2 {
+  font-size: 32px;
+  margin-bottom: 20px;
+  font-weight: 600;
+}
+
+.mensaje-confirmacion {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 25px;
+  border-radius: 10px;
+  margin-bottom: 30px;
+}
+
+.mensaje-confirmacion p {
+  margin: 10px 0;
+  font-size: 16px;
+}
+
+.email-confirmado {
+  font-weight: bold;
+  font-size: 18px;
+  color: #552C08;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 10px;
+  border-radius: 5px;
+  margin: 15px 0;
+}
+
+.continuar-btn {
+  width: 100%;
+  padding: 15px;
+  background: #FF900A;
+  border: none;
+  border-radius: 8px;
+  color: #552C08;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 16px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.continuar-btn:hover {
+  background: #e07f0a;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+}

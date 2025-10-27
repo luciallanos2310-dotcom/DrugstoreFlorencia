@@ -1,0 +1,151 @@
+.barra-lateral {
+  width: 200px;
+  height: 95vh;
+  background:  #004858;
+  color: white;
+  position: fixed;
+  left: 20px;
+  top: 18px;
+  padding: 20px 15px;
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+  border-radius: 15px;
+  overflow: hidden;
+  font-family: 'poppins', sans-serif;
+}
+
+.encabezado-barra {
+  display: flex;
+  text-align: center;
+  margin-top: 5px;
+  margin-bottom: 13px;
+  justify-content: center;
+}
+
+.drugstore-info {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.imagen-drugstore {
+  width: 38px;
+  height: 38px;
+  border-radius: 100%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 6px;
+}
+
+.imagen-drugstore img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.titulo-barra {
+  display: flex;
+  flex-direction: column;
+}
+
+.nombre-barra {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: #FFAB32; 
+  line-height: 1;
+}
+
+.nombre-drugstore {
+  font-size: 14px;
+  font-weight: 800;
+  color: #FFD68A;
+  letter-spacing: 2px;
+}
+
+.info-caja-lateral {
+  background: #57828C;
+  padding: 8px;
+  border-radius: 28px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.estado-caja-lateral {
+  font-size: 13px;
+}
+
+.cajera-info, .turno-info {
+  font-size: 13px;
+}
+
+.menu-lateral {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-height: 0;
+}
+
+.opcion-menu {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 13px;
+}
+
+.opcion-menu.activa {
+  background: #FF900A;
+  transform: translateX(3px);
+  border-radius: 18px;
+}
+
+.icono-menu {
+  font-size: 13px;
+  width: 18px;
+  text-align: center;
+}
+
+.cerrar-sesion {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+}
+
+/* --- Estilos para Módulos Restringidos (Empleada) --- */
+.opcion-menu.restringido {
+    cursor: not-allowed;
+    opacity: 0.5; /* Lo vuelve gris */
+    position: relative;
+    pointer-events: none; /* Deshabilita el click completamente */
+}
+
+/* Restablece el color del texto para que no sea blanco puro si quieres un gris más oscuro */
+.opcion-menu.restringido span,
+.opcion-menu.restringido .icono-menu {
+    color: #cccccc; 
+}
+
+/* Icono de candado */
+.icono-candado {
+    position: absolute;
+    right: 15px;
+    font-size: 10px;
+}
+
+/* Asegura que el color activo no se aplique a los restringidos */
+.opcion-menu.restringido.activa {
+    background: none;
+    transform: none;
+}

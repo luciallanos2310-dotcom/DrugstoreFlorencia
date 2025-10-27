@@ -1,0 +1,398 @@
+/* RESET Y ESTILOS GLOBALES */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #f0f2f5;
+  font-family: 'Arial', sans-serif;
+  overflow: hidden;
+  font-size: 12px; /* Tamaño base más pequeño */
+}
+
+.dashboard-container {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background-color: white;
+}
+
+/* CONTENIDO PRINCIPAL */
+.contenido-principal {
+  flex: 1;
+  background: white;
+  height: 100%;
+  padding: 15px;
+  margin-left: 230px;
+  overflow: hidden;
+}
+
+.dashboard-content {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* VISTA DE INICIO EXACTA - LAYOUT NUEVO */
+.inicio-exacto {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0;
+}
+
+/* HEADER BIENVENIDA - OCUPA TODO EL ANCHO */
+.header-bienvenida-exacto {
+  background: white;
+  padding: 15px;
+  text-align: left;
+  height: fit-content;
+}
+
+.header-bienvenida-exacto h1 {
+  font-size: 1.4rem;
+  color: #17212b;
+  margin-bottom: 4px;
+  font-weight: 700;
+}
+
+.fecha-exacta {
+  font-size: 0.9rem;
+  color: #7f8c8d;
+  font-weight: 500;
+}
+
+/* COLUMNA IZQUIERDA - NOVEDADES Y PRODUCTOS */
+.columna-izquierda {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* NOVEDADES COMPACTAS */
+.novedades-exacto {
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  height: fit-content;
+  text-align: left;
+}
+
+.novedades-exacto h2 {
+  color: #2c3e50;
+  margin-bottom: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: left;
+}
+
+.botones-novedades {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.btn-nueva-venta, .btn-nuevo-producto {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  height: 35px; /* Misma altura fija */
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-nueva-venta {
+  background: #e67e22;
+  color: white;
+}
+
+
+.btn-nuevo-producto {
+  background: #3498db;
+  color: white;
+}
+
+/* PRODUCTOS MÁS VENDIDOS Y POR REPONER - LADO A LADO */
+/* LISTA DE PRODUCTOS - FORMATO VERTICAL */
+.lista-productos {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.grid-productos {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* Dos columnas iguales */
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.columna-izquierda {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.item-lista {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+.item-lista:last-child {
+  border-bottom: none;
+}
+
+.nombre-producto-lista {
+  color: #2c3e50;
+  font-weight: 500;
+  font-size: 0.8rem;
+  flex: 1;
+}
+
+.estadistica-lista {
+  color: #27ae60;
+  background: rgba(39, 174, 96, 0.1);
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.stock-bajo-lista {
+  color: #e74c3c;
+  background: rgba(231, 76, 60, 0.1);
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.stock-normal-lista {
+  color: #f39c12;
+  background: rgba(243, 156, 18, 0.1);
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+/* AJUSTES PARA EL LAYOUT */
+.grid-productos {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* Dos columnas iguales */
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.columna-izquierda {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.columna-derecha {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* CARDS DE PRODUCTOS */
+.card-productos {
+  background: #E1EEF0;
+  padding: 8px;
+  border-radius: 10px;
+  height: fit-content;
+}
+
+.titulo-card {
+  color: #2c3e50;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  text-align: left; /* Títulos a la izquierda */
+  padding-bottom: 4px;
+  border-bottom: 1px solid #ecf0f1;
+}
+/* COLUMNA DERECHA - CALENDARIO */
+.columna-derecha {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* CALENDARIO COMPACTO */
+.calendario-exacto {
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  height: fit-content;
+}
+
+.titulo-calendario {
+  color: #2c3e50;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.grid-calendario {
+  border: 1px solid #ecf0f1;
+  border-radius: 6px;
+  overflow: hidden;
+  background: white;
+}
+
+.dias-semana-calendario {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: #3498db;
+  color: white;
+}
+
+.dia-semana {
+  padding: 6px 2px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.7rem;
+  border-right: 1px solid #2980b9;
+}
+
+.dia-semana:last-child {
+  border-right: none;
+}
+
+.semanas-mes {
+  display: flex;
+  flex-direction: column;
+}
+
+.semana {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-bottom: 1px solid #ecf0f1;
+}
+
+.semana:last-child {
+  border-bottom: none;
+}
+
+.dia-mes {
+  padding: 8px 2px;
+  text-align: center;
+  border-right: 1px solid #ecf0f1;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #2c3e50;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dia-mes:hover {
+  background: #3498db;
+  color: white;
+}
+
+.dia-mes:last-child {
+  border-right: none;
+}
+
+.dia-mes.vacio {
+  background: #f8f9fa;
+  color: #bdc3c7;
+  cursor: default;
+}
+
+.dia-mes.vacio:hover {
+  background: #f8f9fa;
+  color: #bdc3c7;
+}
+
+/* SECCIÓN VENTAS COMPACTA */
+.ventas-exacto {
+  background: white;
+  padding: 12px;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  height: fit-content;
+}
+
+.ventas-exacto h3 {
+  color: #2c3e50;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.grafico-ventas {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  height: 60px;
+  padding: 5px 0;
+}
+
+.barra-venta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex: 1;
+}
+
+.barra {
+  width: 12px;
+  background: linear-gradient(to top, #3498db, #2980b9);
+  border-radius: 2px 2px 0 0;
+  min-height: 5px;
+}
+
+.etiqueta-dia {
+  font-size: 0.6rem;
+  color: #666;
+  font-weight: 500;
+}
+
+/* RESPONSIVE */
+@media (max-width: 1024px) {
+  .contenido-principal {
+    margin-left: 240px;
+    padding: 10px;
+  }
+  
+  .inicio-exacto {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .contenido-principal {
+    margin-left: 0;
+  }
+  
+  .grid-productos {
+    grid-template-columns: 1fr;
+  }
+  
+  .botones-novedades {
+    grid-template-columns: 1fr;
+  }
+}
