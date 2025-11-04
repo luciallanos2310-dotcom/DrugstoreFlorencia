@@ -1,7 +1,8 @@
+// src/components/Empleados/Empleados.js
 import React, { useState, useEffect } from 'react';
-import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
-import FormularioEmpleado from './FormularioEmpleado';
-import ConfirmacionModal from '../Empleados/ModalConfirmacion';
+import { FaPlus, FaEdit, FaTrash, FaSearch, FaEye, FaEyeSlash } from 'react-icons/fa';
+import FormularioEmpleado from '../Empleados/FormularioEmpleado';
+import ModalConfirmacion from '../Empleados/ModalConfirmacion';
 import './Empleados.css';
 
 function Empleados({ usuario }) {
@@ -10,6 +11,8 @@ function Empleados({ usuario }) {
   const [modoFormulario, setModoFormulario] = useState('crear');
   const [empleadoEditando, setEmpleadoEditando] = useState(null);
   const [mostrarTodos, setMostrarTodos] = useState(false);
+  const [busqueda, setBusqueda] = useState('');
+  const [empleadosExpandidos, setEmpleadosExpandidos] = useState({});
   const [modalConfirmacion, setModalConfirmacion] = useState({
     mostrar: false,
     tipo: '',
@@ -17,17 +20,8 @@ function Empleados({ usuario }) {
     mensaje: ''
   });
 
-  // CLAVE: Obtener el rol del usuario
-  const esJefa = usuario?.tipo_usuario === 'jefa';
-
   // Cargar empleados desde la API
   const cargarEmpleados = async () => {
-    // Si no es jefa, no intenta cargar la lista completa
-    if (!esJefa) {
-        setEmpleados([]); 
-        return;
-    }
-
     try {
       const token = localStorage.getItem('token');
       const response = await fetch('/api/empleados/', {
@@ -41,46 +35,66 @@ function Empleados({ usuario }) {
         const data = await response.json();
         setEmpleados(data);
       } else {
-        const errorData = await response.json();
-        console.error('Error cargando empleados:', errorData.error);
-        // Si el backend devuelve 403 (Permiso Denegado), se muestra el error.
-        if (response.status === 403) {
-             // Esto puede suceder si el backend no pudo verificar el rol por un problema de la DB
-             alert(`Error de permisos del backend: ${errorData.error}. Por favor, revise su perfil de usuario.`);
-        }
+        console.error('Error cargando empleados:', response.status);
       }
     } catch (error) {
-      console.error('Error de conexión al cargar empleados:', error);
+      console.error('Error cargando empleados:', error);
     }
   };
 
   useEffect(() => {
-    // Cuando el rol de usuario cambia, intenta cargar
     cargarEmpleados();
-  }, [esJefa]);
+  }, []);
 
-  // Las funciones de gestión solo deben ser llamadas si es Jefa (aunque el backend lo controla)
+  // Filtrar empleados basado en la búsqueda
+  const empleadosFiltrados = empleados.filter(empleado => {
+    const nombreCompleto = `${empleado.nombre_emp} ${empleado.apellido_emp}`.toLowerCase();
+    const terminoBusqueda = busqueda.toLowerCase();
+    return nombreCompleto.includes(terminoBusqueda) ||
+           empleado.dni_emp.toString().includes(busqueda) ||
+           empleado.email?.toLowerCase().includes(terminoBusqueda);
+  });
+
+  // Determinar qué empleados mostrar
+  const mostrarEmpleados = busqueda || mostrarTodos;
+  const empleadosAMostrar = mostrarEmpleados ? empleadosFiltrados : [];
+
+  // Función para expandir/contraer información de un empleado
+  const toggleExpandirEmpleado = (empleadoId) => {
+    setEmpleadosExpandidos(prev => ({
+      ...prev,
+      [empleadoId]: !prev[empleadoId]
+    }));
+  };
+
+  // Obtener email del empleado - FIX para el problema del email
+  const obtenerEmail = (empleado) => {
+    return empleado.email || empleado.user?.email || 'No especificado';
+  };
+
+  // Obtener observaciones del empleado
+  const obtenerObservaciones = (empleado) => {
+    return empleado.observaciones || empleado.info_adicional || 'No hay observaciones';
+  };
+
   const handleCrearEmpleado = () => {
-    if (!esJefa) return; 
     setModoFormulario('crear');
     setEmpleadoEditando(null);
     setMostrarFormulario(true);
   };
 
   const handleEditarEmpleado = (empleado) => {
-    if (!esJefa) return;
     setModoFormulario('editar');
     setEmpleadoEditando(empleado);
     setMostrarFormulario(true);
   };
 
   const handleEliminarEmpleado = (empleado) => {
-    if (!esJefa) return;
     setModalConfirmacion({
       mostrar: true,
       tipo: 'eliminar',
       empleado: empleado,
-      mensaje: `¿Está seguro que desea eliminar al empleado ${empleado.nombre_emp} ${empleado.apellido_emp}?`
+      mensaje: `¿Está seguro que desea eliminar al empleado ${empleado.nombre_emp} ${empleado.apellido_emp}? Esta acción no se puede deshacer.`
     });
   };
 
@@ -96,40 +110,116 @@ function Empleados({ usuario }) {
       });
 
       if (response.ok) {
-        cargarEmpleados();
-        setModalConfirmacion({ mostrar: false, tipo: '', empleado: null, mensaje: '' });
-        alert('Empleado eliminado exitosamente');
+        await cargarEmpleados();
+        setModalConfirmacion({
+          mostrar: true,
+          tipo: 'exito',
+          empleado: null,
+          mensaje: 'Empleado eliminado exitosamente'
+        });
       } else {
         const errorData = await response.json();
-        alert(`Error al eliminar empleado: ${errorData.error}`);
+        setModalConfirmacion({
+          mostrar: true,
+          tipo: 'error',
+          empleado: null,
+          mensaje: `Error al eliminar empleado: ${errorData.error}`
+        });
       }
     } catch (error) {
       console.error('Error eliminando empleado:', error);
-      alert('Error de conexión al eliminar empleado');
+      setModalConfirmacion({
+        mostrar: true,
+        tipo: 'error',
+        empleado: null,
+        mensaje: 'Error de conexión al eliminar empleado'
+      });
     }
   };
 
   const handleGuardarEmpleado = async (datosEmpleado) => {
-     // Lógica de guardar (ya protegida por el backend)
-     // ... (mantén tu lógica original aquí)
+    try {
+      const token = localStorage.getItem('token');
+      const url = modoFormulario === 'crear' 
+        ? '/api/empleados/' 
+        : `/api/empleados/${empleadoEditando.id}/`;
+      
+      const method = modoFormulario === 'crear' ? 'POST' : 'PUT';
+      
+      const datosParaEnviar = {
+        nombre_emp: datosEmpleado.nombre_emp,
+        apellido_emp: datosEmpleado.apellido_emp,
+        dni_emp: parseInt(datosEmpleado.dni_emp),
+        telefono_emp: datosEmpleado.telefono_emp,
+        domicilio_emp: datosEmpleado.domicilio_emp,
+        tipo_usuario: datosEmpleado.tipo_usuario,
+        email: datosEmpleado.email,
+        observaciones: datosEmpleado.observaciones,
+        ...(modoFormulario === 'crear' && { password: datosEmpleado.password })
+      };
+
+      const response = await fetch(url, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Token ${token}`
+        },
+        body: JSON.stringify(datosParaEnviar)
+      });
+
+      const responseData = await response.json();
+
+      if (response.ok) {
+        setMostrarFormulario(false);
+        await cargarEmpleados();
+        setModalConfirmacion({
+          mostrar: true,
+          tipo: 'exito',
+          empleado: null,
+          mensaje: modoFormulario === 'crear' 
+            ? 'Empleado creado exitosamente' 
+            : 'Empleado actualizado exitosamente'
+        });
+      } else {
+        const errorMsg = responseData.error || 'Error al guardar empleado';
+        setModalConfirmacion({
+          mostrar: true,
+          tipo: 'error',
+          empleado: null,
+          mensaje: `Error: ${errorMsg}`
+        });
+      }
+    } catch (error) {
+      console.error('Error guardando empleado:', error);
+      setModalConfirmacion({
+        mostrar: true,
+        tipo: 'error',
+        empleado: null,
+        mensaje: 'Error de conexión al guardar empleado'
+      });
+    }
   };
 
-  const empleadosAMostrar = mostrarTodos ? empleados : empleados.slice(0, 3);
+  const cerrarModal = () => {
+    setModalConfirmacion({ 
+      mostrar: false, 
+      tipo: '', 
+      empleado: null, 
+      mensaje: '' 
+    });
+  };
 
-  // CLAVE: Bloquea el renderizado principal si no es Jefa
-  if (!esJefa) {
-    return (
-        <div className="empleados-container">
-            <h1>Empleados</h1>
-            <div className="acceso-denegado-banner">
-                <p>⚠️ **ACCESO DENEGADO**. Solo la Jefa/Encargada puede gestionar el módulo de empleados.</p>
-                <p>Si eres la Jefa, verifica que tu perfil esté configurado correctamente en el sistema (rol 'jefa').</p>
-            </div>
-        </div>
-    );
-  }
+  const limpiarBusqueda = () => {
+    setBusqueda('');
+  };
 
-  // Muestra el formulario de edición/creación si está activo
+  // Efecto para resetear mostrarTodos cuando se realiza una búsqueda
+  useEffect(() => {
+    if (busqueda) {
+      setMostrarTodos(false);
+    }
+  }, [busqueda]);
+
   if (mostrarFormulario) {
     return (
       <FormularioEmpleado
@@ -141,20 +231,11 @@ function Empleados({ usuario }) {
     );
   }
 
-  // Renderizado para la Jefa/Encargada
   return (
     <div className="empleados-container">
       <div className="empleados-header">
         <h1>Empleados</h1>
         <div className="empleados-acciones">
-          <button 
-            className="btn-mostrar-todos"
-            onClick={() => setMostrarTodos(!mostrarTodos)}
-          >
-            {mostrarTodos ? 'Mostrar menos' : 'Mostrar todos los empleados'}
-          </button>
-          
-          {/* Botón de Agregar visible para la Jefa */}
           <button 
             className="btn-nuevo-empleado"
             onClick={handleCrearEmpleado}
@@ -164,61 +245,142 @@ function Empleados({ usuario }) {
         </div>
       </div>
 
-      <div className="lista-empleados">
-        {empleadosAMostrar.map(empleado => (
-          <div key={empleado.id} className="tarjeta-empleado">
-            <div className="empleado-header">
-              <h2>{empleado.nombre_emp} {empleado.apellido_emp}</h2>
-              <div className="empleado-acciones">
-                
-                {/* Botones de Editar y Eliminar visibles para la Jefa */}
-                <button 
-                  className="btn-editar"
-                  onClick={() => handleEditarEmpleado(empleado)}
-                  title="Editar empleado"
-                >
-                  <FaEdit />
-                </button>
-                <button 
-                  className="btn-eliminar"
-                  onClick={() => handleEliminarEmpleado(empleado)}
-                  title="Eliminar empleado"
-                >
-                  <FaTrash />
-                </button>
-              </div>
-            </div>
-            
-            <div className="empleado-info">
-              <div className="info-item">
-                <strong>Cargo:</strong> 
-                <span className={`badge-cargo ${empleado.tipo_usuario}`}>
-                  {empleado.tipo_usuario === 'jefa' ? 'Jefa/Encargada' : 'Empleada'}
-                </span>
-              </div>
-              <div className="info-item">
-                <strong>Teléfono:</strong> {empleado.telefono_emp || 'No especificado'}
-              </div>
-              <div className="info-item">
-                <strong>Email:</strong> {empleado.user?.email || 'No especificado'}
-              </div>
-              <div className="info-item">
-                <strong>DNI:</strong> {empleado.dni_emp}
-              </div>
-              <div className="info-item">
-                <strong>Dirección:</strong> {empleado.domicilio_emp || 'No especificado'}
-              </div>
-            </div>
-          </div>
-        ))}
+      {/* Buscador */}
+      <div className="buscador-empleados">
+        <div className="buscador-contenedor">
+          <FaSearch className="icono-busqueda" />
+          <input
+            type="text"
+            placeholder="Buscar empleados por nombre, apellido, DNI o email..."
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            className="input-busqueda"
+          />
+          {busqueda && (
+            <button 
+              className="btn-limpiar-busqueda"
+              onClick={limpiarBusqueda}
+              title="Limpiar búsqueda"
+            >
+              ×
+            </button>
+          )}
+        </div>
+        <div className="estado-busqueda">
+          {busqueda && (
+            <span>
+              {empleadosFiltrados.length} resultado{empleadosFiltrados.length !== 1 ? 's' : ''} encontrado{empleadosFiltrados.length !== 1 ? 's' : ''}
+              {empleadosFiltrados.length === 0 && ' - No se encontraron empleados'}
+            </span>
+          )}
+        </div>
       </div>
 
-      <ConfirmacionModal
+      {/* Controles de visualización */}
+      {!busqueda && (
+        <div className="controles-visualizacion">
+          <button 
+            className="btn-mostrar-todos"
+            onClick={() => setMostrarTodos(!mostrarTodos)}
+            disabled={empleadosFiltrados.length === 0}
+          >
+            {mostrarTodos ? 'Mostrar menos' : `Mostrar todos los empleados (${empleadosFiltrados.length})`}
+          </button>
+        </div>
+      )}
+
+      {/* Lista de empleados - MEJORADO */}
+      <div className="lista-empleados">
+        {!mostrarEmpleados ? (
+          <div className="sin-resultados">
+            {!busqueda && "Presiona 'Mostrar todos los empleados' para ver la lista completa"}
+          </div>
+        ) : empleadosAMostrar.length === 0 ? (
+          <div className="sin-resultados">
+            {busqueda ? 'No se encontraron empleados que coincidan con la búsqueda.' : 'No hay empleados registrados.'}
+          </div>
+        ) : (
+          empleadosAMostrar.map(empleado => {
+            const estaExpandido = empleadosExpandidos[empleado.id];
+            const email = obtenerEmail(empleado);
+            const observaciones = obtenerObservaciones(empleado);
+            
+            return (
+              <div key={empleado.id} className="tarjeta-empleado">
+                <div className="empleado-header">
+                  <h2>{empleado.nombre_emp} {empleado.apellido_emp}</h2>
+                  <div className="empleado-acciones">
+                    <button 
+                      className="btn-expandir"
+                      onClick={() => toggleExpandirEmpleado(empleado.id)}
+                      title={estaExpandido ? 'Ver menos información' : 'Ver más información'}
+                    >
+                      {estaExpandido ? <FaEyeSlash /> : <FaEye />}
+                    </button>
+                    <button 
+                      className="btn-editar"
+                      onClick={() => handleEditarEmpleado(empleado)}
+                      title="Editar empleado"
+                    >
+                      <FaEdit />
+                    </button>
+                    <button 
+                      className="btn-eliminar"
+                      onClick={() => handleEliminarEmpleado(empleado)}
+                      title="Eliminar empleado"
+                    >
+                      <FaTrash />
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="empleado-info">
+                  {/* Información básica - siempre visible */}
+                  <div className="info-basica">
+                    <div className="info-item">
+                      <strong>Cargo:</strong> 
+                      <span className={`badge-cargo ${empleado.tipo_usuario}`}>
+                        {empleado.tipo_usuario === 'jefa' ? 'Jefa/Encargada' : 'Empleada'}
+                      </span>
+                    </div>
+                    <div className="info-item">
+                      <strong>Teléfono:</strong> {empleado.telefono_emp || 'No especificado'}
+                    </div>
+                    <div className="info-item">
+                      <strong>Email:</strong> {email}
+                    </div>
+                  </div>
+
+                  {/* Información expandida - solo visible cuando se expande */}
+                  {estaExpandido && (
+                    <div className="info-expandida">
+                      <div className="info-item">
+                        <strong>DNI:</strong> {empleado.dni_emp}
+                      </div>
+                      <div className="info-item">
+                        <strong>Dirección:</strong> {empleado.domicilio_emp || 'No especificado'}
+                      </div>
+                      <div className="info-item observaciones">
+                        <strong>Observaciones:</strong> 
+                        <div className="texto-observaciones">
+                          {observaciones}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      <ModalConfirmacion
         mostrar={modalConfirmacion.mostrar}
         tipo={modalConfirmacion.tipo}
         mensaje={modalConfirmacion.mensaje}
         onConfirmar={confirmarEliminacion}
-        onCancelar={() => setModalConfirmacion({ mostrar: false, tipo: '', empleado: null, mensaje: '' })}
+        onCancelar={cerrarModal}
       />
     </div>
   );

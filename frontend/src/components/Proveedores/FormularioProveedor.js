@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import ModalConfirmacion from '../Proveedores/ModalConfirmacion';
-import './Proveedores.css';
+import ModalConfirmacion from './ModalConfirmacion';
+import './FormularioProveedor.css';
 
 function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) {
   const [form, setForm] = useState({
@@ -15,7 +15,8 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
 
   const [mostrarModal, setMostrarModal] = useState(false);
   const [errores, setErrores] = useState({});
-  const [guardando, setGuardando] = useState(false); 
+  const [guardando, setGuardando] = useState(false);
+  const [mostrarModalExito, setMostrarModalExito] = useState(false);
 
   // Lista de rubros predefinidos
   const rubros = [
@@ -30,6 +31,7 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
     'Perfumería',
     'Electrodomésticos',
     'Papelería',
+    'Distribuidora',
     'Otros'
   ];
 
@@ -38,8 +40,7 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
       setForm({
         nombre_prov: proveedorEditar.nombre_prov || '',
         tipo_prov: proveedorEditar.tipo_prov || '',
-        // Asegurar que telefono_prov sea siempre string, incluso si es null/undefined
-        telefono_prov: proveedorEditar.telefono_prov?.toString() || '',
+        telefono_prov: proveedorEditar.telefono_prov || '',
         correo_prov: proveedorEditar.correo_prov || '',
         direccion_prov: proveedorEditar.direccion_prov || '',
         observaciones: proveedorEditar.observaciones || ''
@@ -67,20 +68,12 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
       nuevosErrores.tipo_prov = 'El rubro es obligatorio';
     }
 
-    // CORRECCIÓN: Verificar que telefono_prov sea string antes de usar replace
-    if (form.telefono_prov && typeof form.telefono_prov === 'string') {
-      const telefonoLimpio = form.telefono_prov.replace(/\s/g, '');
-      if (!/^\d+$/.test(telefonoLimpio)) {
-        nuevosErrores.telefono_prov = 'El teléfono debe contener solo números';
-      }
-    } else if (form.telefono_prov) {
-      // Si telefono_prov existe pero no es string, convertirlo a string
-      const telefonoString = String(form.telefono_prov).replace(/\s/g, '');
-      if (!/^\d+$/.test(telefonoString)) {
-        nuevosErrores.telefono_prov = 'El teléfono debe contener solo números';
-      }
+    // Validar teléfono (solo números y espacios)
+    if (form.telefono_prov && !/^[\d\s\+\(\)\-]*$/.test(form.telefono_prov)) {
+      nuevosErrores.telefono_prov = 'El teléfono solo puede contener números, espacios y los caracteres + - ( )';
     }
 
+    // Validar email
     if (form.correo_prov && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo_prov)) {
       nuevosErrores.correo_prov = 'El email no es válido';
     }
@@ -94,56 +87,95 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
       return;
     }
 
+    setGuardando(true);
     try {
       const token = localStorage.getItem('token');
       
-      // Preparar datos para enviar - convertir teléfono vacío a null
+      // Preparar datos para enviar
       const datosEnviar = {
-        ...form,
-        telefono_prov: form.telefono_prov.trim() ? form.telefono_prov : null,
+        nombre_prov: form.nombre_prov.trim(),
+        tipo_prov: form.tipo_prov,
+        telefono_prov: form.telefono_prov.trim() || null,
         correo_prov: form.correo_prov.trim() || null,
         direccion_prov: form.direccion_prov.trim() || null,
         observaciones: form.observaciones.trim() || null
       };
 
+      console.log('Enviando datos:', datosEnviar); // Para debug
+
       if (modo === 'crear') {
         await axios.post('http://localhost:8000/api/proveedores/', datosEnviar, {
-          headers: { Authorization: `Token ${token}` }
+          headers: { 
+            'Authorization': `Token ${token}`,
+            'Content-Type': 'application/json'
+          }
         });
       } else {
         await axios.put(`http://localhost:8000/api/proveedores/${proveedorEditar.id}/`, datosEnviar, {
-          headers: { Authorization: `Token ${token}` }
+          headers: { 
+            'Authorization': `Token ${token}`,
+            'Content-Type': 'application/json'
+          }
         });
       }
-      onGuardado();
+      
+      // Mostrar modal de éxito
+      setMostrarModalExito(true);
+      
     } catch (error) {
       console.error('Error al guardar proveedor:', error);
+      
+      // Manejar errores del servidor
       if (error.response?.data) {
-        // Manejar errores del servidor
         const erroresServidor = error.response.data;
         const erroresTraducidos = {};
         
         if (erroresServidor.nombre_prov) {
-          erroresTraducidos.nombre_prov = 'Este nombre ya existe o es inválido';
+          if (erroresServidor.nombre_prov.includes('already exists')) {
+            erroresTraducidos.nombre_prov = 'Ya existe un proveedor con este nombre';
+          } else {
+            erroresTraducidos.nombre_prov = 'Error en el nombre del proveedor';
+          }
         }
+        
         if (erroresServidor.telefono_prov) {
-          erroresTraducidos.telefono_prov = 'El teléfono no es válido';
+          erroresTraducidos.telefono_prov = 'Error en el formato del teléfono';
         }
+        
         if (erroresServidor.correo_prov) {
-          erroresTraducidos.correo_prov = 'El email no es válido o ya existe';
+          if (erroresServidor.correo_prov.includes('already exists')) {
+            erroresTraducidos.correo_prov = 'Ya existe un proveedor con este email';
+          } else {
+            erroresTraducidos.correo_prov = 'Error en el formato del email';
+          }
         }
         
         setErrores(erroresTraducidos);
+        
+        // Mostrar alerta con el error
+        if (Object.keys(erroresTraducidos).length > 0) {
+          alert('Error al guardar: ' + Object.values(erroresTraducidos).join(', '));
+        } else {
+          alert('Error al guardar el proveedor: ' + JSON.stringify(erroresServidor));
+        }
+      } else {
+        alert('Error de conexión al guardar el proveedor');
       }
     } finally {
+      setGuardando(false);
       setMostrarModal(false);
     }
+  };
+
+  const handleConfirmarExito = () => {
+    setMostrarModalExito(false);
+    onGuardado();
   };
 
   return (
     <div className="formulario-container">
       <h2>{modo === 'crear' ? 'Agregar Proveedor' : 'Editar Proveedor'}</h2>
-      <p>Complete los siguientes datos para {modo === 'crear' ? 'registrar un proveedor nuevo en el inventario' : 'editar el proveedor seleccionado'}.</p>
+      <p>Complete los siguientes datos para {modo === 'crear' ? 'registrar un proveedor nuevo' : 'editar el proveedor seleccionado'}.</p>
 
       <form className="formulario-proveedor" onSubmit={(e) => e.preventDefault()}>
         <div className="form-grid">
@@ -151,7 +183,7 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
             <label>Nombre del proveedor o empresa *</label>
             <input 
               name="nombre_prov" 
-              placeholder="Nombre completo" 
+              placeholder="Ej: Distribuidora La Esperanza" 
               value={form.nombre_prov} 
               onChange={handleChange}
               className={errores.nombre_prov ? 'error' : ''}
@@ -179,8 +211,8 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
             <label>Teléfono</label>
             <input 
               name="telefono_prov" 
-              type='text'
-              placeholder="Ej: +54 9 11 1234 5678" 
+              type="text"
+              placeholder="Ej: +54 9 11 1234-5678" 
               value={form.telefono_prov} 
               onChange={handleChange}
               className={errores.telefono_prov ? 'error' : ''}
@@ -193,7 +225,7 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
             <input 
               name="correo_prov" 
               type="email"
-              placeholder="usuario@email.com" 
+              placeholder="ejemplo@empresa.com" 
               value={form.correo_prov} 
               onChange={handleChange}
               className={errores.correo_prov ? 'error' : ''}
@@ -206,7 +238,7 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
           <label>Dirección</label>
           <input 
             name="direccion_prov" 
-            placeholder="Calle, número" 
+            placeholder="Calle, número, ciudad" 
             value={form.direccion_prov} 
             onChange={handleChange}
           />
@@ -216,7 +248,7 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
           <label>Observaciones</label>
           <textarea 
             name="observaciones" 
-            placeholder="Escribe aquí" 
+            placeholder="Información adicional sobre el proveedor..." 
             value={form.observaciones} 
             onChange={handleChange}
             rows="3"
@@ -224,8 +256,13 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
         </div>
 
         <div className="botones-form">
-          <button type="button" className="btn-guardar" onClick={() => setMostrarModal(true)}>
-            {modo === 'crear' ? 'Agregar Proveedor' : 'Guardar Cambios'}
+          <button 
+            type="button" 
+            className="btn-guardar" 
+            onClick={() => setMostrarModal(true)}
+            disabled={guardando}
+          >
+            {guardando ? 'Guardando...' : (modo === 'crear' ? 'Agregar Proveedor' : 'Guardar Cambios')}
           </button>
           <button type="button" className="btn-cancelar" onClick={onCancelar}>
             Cancelar
@@ -233,14 +270,23 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
         </div>
       </form>
 
-      {mostrarModal && (
-        <ModalConfirmacion
-          titulo={modo === 'crear' ? 'Agregar proveedor' : 'Editar proveedor'}
-          mensaje={`¿Está seguro que desea ${modo === 'crear' ? 'agregar' : 'editar'} este proveedor?`}
-          onCancelar={() => setMostrarModal(false)}
-          onConfirmar={handleGuardar}
-        />
-      )}
+      {/* Modal de confirmación */}
+      <ModalConfirmacion
+        mostrar={mostrarModal}
+        tipo="confirmar"
+        mensaje={`¿Está seguro que desea ${modo === 'crear' ? 'agregar' : 'editar'} este proveedor?`}
+        onCancelar={() => setMostrarModal(false)}
+        onConfirmar={handleGuardar}
+      />
+
+      {/* Modal de éxito */}
+      <ModalConfirmacion
+        mostrar={mostrarModalExito}
+        tipo="exito"
+        mensaje={`Proveedor ${modo === 'crear' ? 'creado' : 'actualizado'} correctamente`}
+        onCancelar={handleConfirmarExito}
+        onConfirmar={handleConfirmarExito}
+      />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 // src/components/BarraLateral.js
 import React from "react";
-import { FaTachometerAlt, FaBox, FaChartLine, FaTruck, FaCog, FaSignOutAlt, FaUser, FaShoppingCart, FaCashRegister, FaUsers } from "react-icons/fa";
+import { FaTachometerAlt, FaBox, FaChartLine, FaTruck, FaCog, FaSignOutAlt, FaUser, FaShoppingCart, FaCashRegister, FaUsers, FaShoppingBag } from "react-icons/fa";
 import "./BarraLateral.css";
 
 function BarraLateral({ 
@@ -10,12 +10,15 @@ function BarraLateral({
   setModuloActivo,
   cajaAbierta,
   datosCaja,
-  onNavegarAVentas 
+  onNavegarAVentas,
+  esJefa,
+  esModuloEditable 
 }) {
   
   const handleModuloClick = (modulo) => {
+    if (!esModuloEditable(modulo)) return; // No hacer nada si no es editable
+    
     if (modulo === 'ventas') {
-      // Si hacen clic en Ventas, usar la función especial que maneja la caja
       onNavegarAVentas();
     } else {
       setModuloActivo(modulo);
@@ -25,6 +28,7 @@ function BarraLateral({
   const menuItems = [
     { id: 'inicio', icon: FaTachometerAlt, label: 'Inicio' },
     { id: 'ventas', icon: FaShoppingCart, label: 'Ventas' },
+    { id: 'compras', icon: FaShoppingBag, label: 'Compras' },
     { id: 'inventario', icon: FaBox, label: 'Productos' },
     { id: 'caja', icon: FaCashRegister, label: 'Caja' },
     { id: 'empleados', icon: FaUsers, label: 'Empleados' },
@@ -54,20 +58,19 @@ function BarraLateral({
         </div>
         <div className="datos-usuario">
           <div className="nombre-usuario">{usuario?.nombre || 'Usuario'}</div>
-          <div className="rol-usuario">{usuario?.tipo_usuario || 'Empleado'}</div>
+          <div className="rol-usuario">{usuario?.tipo_usuario === 'jefa' ? 'Jefa/Encargada' : 'Empleada'}</div>
         </div>
       </div>
 
       {/* Información de caja */}
       <div className="info-caja-lateral">
-        <div className={`estado-caja-lateral ${cajaAbierta ? 'abierta' : 'cerrada'}`}>
+        <div className="estado-caja-lateral">
           {cajaAbierta ? '🟢 Caja abierta' : '🔴 Caja cerrada'}
         </div>
         {cajaAbierta && datosCaja && (
           <>
-            <div className="cajera-info">{datosCaja.empleadoNombre}</div>
+            <div className="cajera-info">Por: {datosCaja.empleadoNombre}</div>
             <div className="turno-info">{datosCaja.turnoNombre}</div>
-            <div className="monto-info">Inicial: ${datosCaja.montoInicial}</div>
           </>
         )}
       </div>
@@ -76,10 +79,13 @@ function BarraLateral({
       <nav className="menu-lateral">
         {menuItems.map(item => {
           const Icono = item.icon;
+          const esEditable = esModuloEditable(item.id);
+          const estaActivo = moduloActivo === item.id && esEditable;
+          
           return (
             <div 
               key={item.id}
-              className={`opcion-menu ${moduloActivo === item.id ? 'activa' : ''}`}
+              className={`opcion-menu ${estaActivo ? 'activa' : ''} ${!esEditable ? 'no-editable' : ''}`}
               onClick={() => handleModuloClick(item.id)}
             >
               <Icono className="icono-menu" />
@@ -97,12 +103,6 @@ function BarraLateral({
         <div className="cerrar-sesion" onClick={onCerrarSesion}>
           <FaSignOutAlt className="icono-menu" />
           <span>Cerrar Sesión</span>
-        </div>
-        
-        {/* Información de versión o estado del sistema */}
-        <div className="info-sistema">
-          <div className="version">v1.0.0</div>
-          <div className="estado-sistema">🟢 En línea</div>
         </div>
       </div>
     </div>

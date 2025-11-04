@@ -1,3 +1,4 @@
+/* src/components/BarraLateral.css */
 .barra-lateral {
   width: 200px;
   height: 95vh;
@@ -66,6 +67,45 @@
   letter-spacing: 2px;
 }
 
+.info-usuario-lateral {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.avatar-usuario {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  background: #FF900A;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icono-avatar {
+  font-size: 16px;
+}
+
+.datos-usuario {
+  display: flex;
+  flex-direction: column;
+}
+
+.nombre-usuario {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.rol-usuario {
+  font-size: 11px;
+  opacity: 0.8;
+}
+
 .info-caja-lateral {
   background: #57828C;
   padding: 8px;
@@ -106,10 +146,30 @@
   border-radius: 18px;
 }
 
+.opcion-menu.no-editable {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.opcion-menu.no-editable:hover {
+  background: transparent;
+  transform: none;
+}
+
 .icono-menu {
   font-size: 13px;
   width: 18px;
   text-align: center;
+}
+
+.badge-venta-activa {
+  color: #4CAF50;
+  font-size: 16px;
+  margin-left: auto;
+}
+
+.cerrar-sesion-contenedor {
+  margin-bottom: 20px;
 }
 
 .cerrar-sesion {
@@ -121,31 +181,13 @@
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 14px;
+  background: rgb(155, 53, 53);
 }
 
-/* --- Estilos para Módulos Restringidos (Empleada) --- */
-.opcion-menu.restringido {
-    cursor: not-allowed;
-    opacity: 0.5; /* Lo vuelve gris */
-    position: relative;
-    pointer-events: none; /* Deshabilita el click completamente */
-}
-
-/* Restablece el color del texto para que no sea blanco puro si quieres un gris más oscuro */
-.opcion-menu.restringido span,
-.opcion-menu.restringido .icono-menu {
-    color: #cccccc; 
-}
-
-/* Icono de candado */
-.icono-candado {
-    position: absolute;
-    right: 15px;
-    font-size: 10px;
-}
-
-/* Asegura que el color activo no se aplique a los restringidos */
-.opcion-menu.restringido.activa {
-    background: none;
-    transform: none;
+.info-sistema {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-size: 10px;
+  opacity: 0.7;
 }

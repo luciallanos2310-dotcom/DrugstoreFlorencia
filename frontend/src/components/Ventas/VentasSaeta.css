@@ -1,0 +1,321 @@
+/* VentasSaeta.css */
+.modal-overlay-saeta {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-saeta {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  animation: modalAppear 0.3s ease-out;
+}
+
+@keyframes modalAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-header-saeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 25px;
+  border-bottom: 2px solid #e9ecef;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 12px 12px 0 0;
+}
+
+.modal-header-saeta h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.btn-cerrar-saeta {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-cerrar-saeta:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.modal-body-saeta {
+  padding: 25px;
+}
+
+/* Resumen de Cálculo */
+.resumen-calculo-saeta {
+  margin-bottom: 25px;
+}
+
+.tarjeta-resumen {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: 1px solid #dee2e6;
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.item-resumen {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.item-resumen:last-child {
+  border-bottom: none;
+}
+
+.item-resumen.ganancia {
+  background: #d4edda;
+  margin: 0 -20px;
+  padding: 12px 20px;
+  border-radius: 6px;
+}
+
+.item-resumen.total-saeta {
+  background: #007bff;
+  color: white;
+  margin: 10px -20px -20px -20px;
+  padding: 15px 20px;
+  border-radius: 0 0 10px 10px;
+}
+
+.label {
+  font-weight: 500;
+  color: #495057;
+}
+
+.valor {
+  font-weight: 600;
+  color: #212529;
+}
+
+.valor.destacado {
+  color: #155724;
+  font-size: 1.1em;
+}
+
+.valor.total {
+  color: white;
+  font-size: 1.2em;
+}
+
+/* Formulario */
+.formulario-saeta {
+  margin-bottom: 25px;
+}
+
+.campo-grupo-saeta {
+  margin-bottom: 20px;
+}
+
+.campo-grupo-saeta label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #495057;
+}
+
+.icono-campo {
+  color: #6c757d;
+}
+
+.campo-input-saeta,
+.campo-textarea-saeta {
+  width: 100%;
+  padding: 12px 15px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.campo-input-saeta:focus,
+.campo-textarea-saeta:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.campo-textarea-saeta {
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+}
+
+/* Ventas Recientes */
+.ventas-recientes-section {
+  border-top: 1px solid #e9ecef;
+  padding-top: 20px;
+}
+
+.ventas-recientes-section h4 {
+  margin-bottom: 15px;
+  color: #495057;
+  font-size: 1.1rem;
+}
+
+.lista-ventas-recientes {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+}
+
+.venta-item {
+  padding: 12px 15px;
+  border-bottom: 1px solid #f8f9fa;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.venta-item:hover {
+  background-color: #f8f9fa;
+}
+
+.venta-item.seleccionada {
+  background-color: #e3f2fd;
+  border-left: 4px solid #007bff;
+}
+
+.venta-item:last-child {
+  border-bottom: none;
+}
+
+.venta-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.venta-id {
+  font-weight: 600;
+  color: #495057;
+}
+
+.venta-total {
+  font-weight: 700;
+  color: #28a745;
+}
+
+.venta-fecha {
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+.sin-ventas {
+  padding: 20px;
+  text-align: center;
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* Footer del Modal */
+.modal-footer-saeta {
+  display: flex;
+  gap: 15px;
+  justify-content: flex-end;
+  padding: 20px 25px;
+  border-top: 1px solid #e9ecef;
+  background: #f8f9fa;
+  border-radius: 0 0 12px 12px;
+}
+
+.btn-cancelar-saeta,
+.btn-confirmar-saeta {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 120px;
+}
+
+.btn-cancelar-saeta {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-cancelar-saeta:hover:not(:disabled) {
+  background: #5a6268;
+  transform: translateY(-1px);
+}
+
+.btn-confirmar-saeta {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+}
+
+.btn-confirmar-saeta:hover:not(:disabled) {
+  background: linear-gradient(135deg, #218838 0%, #1e9e8a 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.btn-cancelar-saeta:disabled,
+.btn-confirmar-saeta:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .modal-saeta {
+    width: 95%;
+    margin: 10px;
+  }
+  
+  .modal-header-saeta,
+  .modal-body-saeta,
+  .modal-footer-saeta {
+    padding: 15px 20px;
+  }
+  
+  .modal-footer-saeta {
+    flex-direction: column;
+  }
+  
+  .btn-cancelar-saeta,
+  .btn-confirmar-saeta {
+    width: 100%;
+  }
+}

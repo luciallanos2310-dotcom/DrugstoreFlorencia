@@ -27,9 +27,35 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 CORS_ALLOW_CREDENTIALS = True
 
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+CORS_EXPOSE_HEADERS = [
+    'content-type',
+    'authorization',
+]
+
+# Configuración para COOP y COEP
+SECURE_CROSS_ORIGIN_OPENER_POLICY = None
+CROSS_ORIGIN_OPENER_POLICY = 'unsafe-none'
+
+# Headers de seguridad para desarrollo
+SECURE_REFERRER_POLICY = "no-referrer-when-downgrade"
+
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://localhost:8000", 
+    "http://127.0.0.1:8000",
 ]
 
 REST_FRAMEWORK = {
@@ -59,6 +85,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
+    'MiApp.middleware.AdditionalHeadersMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

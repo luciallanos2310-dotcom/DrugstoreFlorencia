@@ -1,15 +1,17 @@
 import React from 'react';
-import './Productos.css';
+import './Compras.css'; // Asegúrate de que este CSS tenga los estilos
 
-function ModalConfirmacion({ mostrar, tipo, mensaje, onConfirmar, onCancelar }) {
+function ModalConfirmacion({ mostrar, tipo, mensaje, onConfirmar, onCancelar, modo }) {
   if (!mostrar) return null;
 
-  // Determinar el título y texto del botón según el tipo
+  // ✅ CORREGIDO: Determinar el título y texto del botón según el tipo y modo
   const getTitulo = () => {
     switch(tipo) {
-      case 'eliminar': return 'Eliminar Producto';
+      case 'eliminar': return 'Eliminar Compra';
       case 'exito': return 'Éxito';
       case 'error': return 'Error';
+      case 'confirmar': 
+        return modo === 'editar' ? 'Confirmar Edición' : 'Confirmar Compra';
       default: return 'Confirmar Acción';
     }
   };
@@ -19,6 +21,8 @@ function ModalConfirmacion({ mostrar, tipo, mensaje, onConfirmar, onCancelar }) 
       case 'eliminar': return 'Eliminar';
       case 'exito': return 'Aceptar';
       case 'error': return 'Aceptar';
+      case 'confirmar': 
+        return modo === 'editar' ? 'Actualizar' : 'Confirmar';
       default: return 'Confirmar';
     }
   };

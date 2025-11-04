@@ -1,4 +1,4 @@
-.productos-container {
+.compras-container {
   padding: 20px;
   max-width: 1400px;
   margin: 0 auto;
@@ -7,7 +7,7 @@
   flex-direction: column;
 }
 
-.header-productos {
+.header-compras {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -15,7 +15,7 @@
   flex-shrink: 0;
 }
 
-.header-productos h2 {
+.header-compras h2 {
   color: #333;
   margin: 0;
   font-size: 24px;
@@ -26,6 +26,21 @@
   display: flex;
   gap: 10px;
   align-items: center;
+}
+
+.btn-refrescar {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-refrescar:hover {
+  background: #5a6268;
+  transform: rotate(180deg);
 }
 
 .btn-agregar {
@@ -55,7 +70,7 @@
   flex-shrink: 0;
 }
 
-.buscador-productos {
+.buscador-compras {
   flex: 1;
   min-width: 250px;
 }
@@ -105,7 +120,7 @@
   border-color: #667eea;
 }
 
-/* Botones */
+/* Botones - MÁS GRANDES */
 .btn-mostrar-todos,
 .btn-limpiar-grande {
   display: flex;
@@ -192,11 +207,48 @@
   font-size: 14px;
 }
 
-/* ✅ ESTILOS PARA PROVEEDORES INACTIVOS (igual que en Compras) */
-.proveedor-inactivo-tachado {
-  color: #6c757d !important;
-  text-decoration: line-through;
-  font-style: italic;
+/* ✅ ESTILOS PARA PROVEEDORES INACTIVOS */
+.compra-con-proveedor-inactivo {
+  background-color: #fff3cd !important;
+  border-left: 4px solid #ffc107;
+}
+
+.compra-con-proveedor-inactivo:hover {
+  background-color: #ffeaa7 !important;
+}
+
+.proveedor-inactivo {
+  color: #856404;
+  font-weight: 500;
+}
+
+.badge-inactivo-tabla {
+  display: inline-block;
+  background: #ffc107;
+  color: #856404;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  margin-left: 4px;
+  font-weight: bold;
+}
+
+.alerta-proveedor-inactivo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff3cd;
+  color: #856404;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #ffeaa7;
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.icono-alerta {
+  color: #ffc107;
 }
 
 .proveedor-inactivo-detalle {
@@ -225,21 +277,21 @@
   border: 1px solid #e1e5e9;
 }
 
-.tabla-productos-compacta {
+.tabla-compras-compacta {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
-  min-width: 1000px;
+  min-width: 1000px; /* Ancho mínimo para evitar compresión */
 }
 
-.tabla-productos-compacta thead {
+.tabla-compras-compacta thead {
   position: sticky;
   top: 0;
   background: #f8f9fa;
   z-index: 10;
 }
 
-.tabla-productos-compacta th {
+.tabla-compras-compacta th {
   background: #f8f9fa;
   padding: 12px 8px;
   text-align: center;
@@ -252,7 +304,7 @@
   white-space: nowrap;
 }
 
-.tabla-productos-compacta td {
+.tabla-compras-compacta td {
   padding: 10px 8px;
   border-bottom: 1px solid #e9ecef;
   transition: background-color 0.2s ease;
@@ -262,7 +314,7 @@
   max-width: 150px;
 }
 
-.tabla-productos-compacta tbody tr:hover {
+.tabla-compras-compacta tbody tr:hover {
   background-color: #f8f9fa;
 }
 
@@ -272,18 +324,18 @@
 }
 
 /* TAMAÑOS DE COLUMNAS COMPACTAS */
-.columna-id { width: 60px; min-width: 60px; }
-.columna-nombre { width: 140px; min-width: 140px; }
+.columna-codigo { width: 100px; min-width: 100px; }
+.columna-producto { width: 140px; min-width: 140px; }
 .columna-categoria { width: 100px; min-width: 100px; }
 .columna-proveedor { width: 120px; min-width: 120px; }
-.columna-stock { width: 80px; min-width: 80px; }
-.columna-stock-min { width: 80px; min-width: 80px; }
+.columna-fecha { width: 90px; min-width: 90px; }
+.columna-cantidad { width: 60px; min-width: 60px; }
 .columna-precio { width: 100px; min-width: 100px; }
-.columna-codigo { width: 100px; min-width: 100px; }
+.columna-precio-venta { width: 100px; min-width: 100px; }
 .columna-acciones { width: 120px; min-width: 120px; }
 
 /* Botones de acción compactos */
-.acciones-producto {
+.acciones-compra {
   display: flex;
   justify-content: center;
   gap: 6px;
@@ -332,60 +384,50 @@
   transform: scale(1.1);
 }
 
-/* Estilos específicos para productos */
-.nombre-producto {
+/* Estilos específicos para compras compactas */
+.producto-compra {
   font-weight: 500;
   color: #333;
   font-size: 13px;
 }
 
-.categoria-producto {
+.categoria-compra {
   color: #6c757d;
   font-size: 13px;
 }
 
-.proveedor-producto {
+.proveedor-compra {
   color: #495057;
   font-size: 13px;
 }
 
-.stock-producto {
-  font-weight: 600;
-  font-size: 13px;
-}
-
-.stock-minimo-producto {
+.fecha-compra {
   color: #6c757d;
   font-size: 13px;
 }
 
-.precio-producto {
+.cantidad-compra {
+  font-weight: 600;
+  color: #333;
+  font-size: 13px;
+}
+
+.precio-compra {
   color: #28a745;
   font-weight: 600;
   font-size: 13px;
 }
 
-.codigo-producto {
-  color: #6c757d;
+.precio-venta-compra {
+  color: #007bff;
+  font-weight: 600;
   font-size: 13px;
 }
 
-/* Badge de stock */
-.badge-stock {
-  padding: 2px 6px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.stock-normal {
-  background: #d4edda;
-  color: #155724;
-}
-
-.stock-bajo {
-  background: #f8d7da;
-  color: #721c24;
+.total-compra {
+  color: #007bff;
+  font-weight: 700;
+  font-size: 13px;
 }
 
 /* Scroll personalizado para tabla */
@@ -408,7 +450,7 @@
   background: #a8a8a8;
 }
 
-/* Modal de Detalles (igual que en Compras) */
+/* Modal de Detalles */
 .modal-overlay-detalles {
   position: fixed;
   top: 0;
@@ -623,6 +665,12 @@
 .btn-cerrar:hover {
   background: #5a6268;
   transform: translateY(-1px);
+}
+/* ✅ ESTILO PARA PROVEEDOR INACTIVO TACHADO */
+.proveedor-inactivo-tachado {
+  color: #6c757d !important;
+  text-decoration: line-through;
+  font-style: italic;
 }
 
 @keyframes fadeIn {

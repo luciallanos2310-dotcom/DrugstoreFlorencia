@@ -1,3 +1,4 @@
+# MiApp/views.py - VERSIÓN CORREGIDA
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
@@ -11,14 +12,14 @@ from django.db import transaction
 from django.db.models import Q
 import json
 
-# --- IMPORTACIONES CLAVE DE PERMISOS ---
 from .permissions import IsJefa, IsJefaOrReadOnly, IsJefaOrEmpleado 
-
-from .models import Empleado, Producto, Proveedor, ProvProducto, UserProfile, Caja, Venta, DetalleVenta
+from .models import Empleado, Producto, Proveedor, Caja, Venta, DetalleVenta, VentaSaeta, Compra
 from .serializers import (
-    ProductoSerializer, ProveedorSerializer, ProvProductoSerializer,
-    UserProfileSerializer, CajaSerializer, VentaSerializer, DetalleVentaSerializer
+    ProductoSerializer, ProveedorSerializer, CajaSerializer, 
+    VentaSerializer, DetalleVentaSerializer, EmpleadoSerializer, CompraSerializer
 )
+from .models import VentaSaeta
+from .serializers import VentaSaetaSerializer
 
 # =======================================================
 # ===== AUTENTICACIÓN =====
@@ -37,19 +38,16 @@ def register(request):
         dni = request.data.get('dni', '')
         tipo_usuario = request.data.get('tipo_usuario', 'empleada')
         
-        # Validaciones básicas
         if not email or not password or not dni:
             return Response({'error': 'Email, contraseña y DNI son obligatorios'}, status=400)
             
         if password != confirm_password:
             return Response({'error': 'Las contraseñas no coinciden'}, status=400)
 
-        # Validar que solo haya una jefa
-        if tipo_usuario == 'jefa' and UserProfile.objects.filter(tipo_usuario='jefa').exists():
+        if tipo_usuario == 'jefa' and Empleado.objects.filter(tipo_usuario='jefa').exists():
             return Response({'error': 'Ya existe una jefa/encargada registrada'}, status=400)
 
         with transaction.atomic():
-            # Crear usuario de Django
             username = email.split('@')[0]
             counter = 1
             original_username = username
@@ -65,28 +63,16 @@ def register(request):
                 last_name=last_name
             )
             
-            # Crear empleado (SIN tipo_usuario)
             empleado = Empleado.objects.create(
                 user=user,
                 nombre_emp=first_name,
                 apellido_emp=last_name,
                 dni_emp=dni,
                 telefono_emp=phone,
-                domicilio_emp=address
-                # ❌ NO incluir tipo_usuario aquí
+                domicilio_emp=address,
+                tipo_usuario=tipo_usuario
             )
             
-            # Crear perfil de usuario (SOLO aquí va el tipo_usuario)
-            UserProfile.objects.create(
-                user=user,
-                tipo_usuario=tipo_usuario,
-                dni=dni,
-                telefono=phone,
-                direccion=address,
-                empleado_relacionado=empleado
-            )
-            
-            # Crear token
             token, created = Token.objects.get_or_create(user=user)
             
             return Response({
@@ -100,7 +86,7 @@ def register(request):
         
     except Exception as e:
         return Response({'error': f'Error interno: {str(e)}'}, status=500)
-    
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_view(request):
@@ -112,6 +98,7 @@ def login_view(request):
             return Response({'error': 'Email y contraseña son obligatorios'}, status=400)
         
         try:
+            # BUSCAR POR EMAIL en lugar de username
             user = User.objects.get(email=email)
         except User.DoesNotExist:
             return Response({'error': 'Usuario no encontrado'}, status=400)
@@ -121,30 +108,15 @@ def login_view(request):
         
         token, created = Token.objects.get_or_create(user=user)
         
-        # ✅ LÓGICA CORREGIDA - Solo usar UserProfile
         try:
-            user_profile = UserProfile.objects.get(user=user)
-            tipo_usuario = user_profile.tipo_usuario
-            empleado_id = user_profile.empleado_relacionado.id if user_profile.empleado_relacionado else None
-            
-            # Obtener nombre del empleado relacionado
-            if user_profile.empleado_relacionado:
-                nombre_completo = f"{user_profile.empleado_relacionado.nombre_emp} {user_profile.empleado_relacionado.apellido_emp}"
-            else:
-                nombre_completo = f"{user.first_name} {user.last_name}"
-                
-        except UserProfile.DoesNotExist:
-            # Si no existe perfil, crear uno por defecto
-            user_profile = UserProfile.objects.create(
-                user=user,
-                tipo_usuario='empleada',
-                dni='',
-                telefono='',
-                direccion=''
-            )
+            empleado = Empleado.objects.get(user=user)
+            tipo_usuario = empleado.tipo_usuario
+            nombre_completo = f"{empleado.nombre_emp} {empleado.apellido_emp}"
+            empleado_id = empleado.id
+        except Empleado.DoesNotExist:
             tipo_usuario = 'empleada'
-            empleado_id = None
             nombre_completo = f"{user.first_name} {user.last_name}"
+            empleado_id = None
         
         return Response({
             'token': token.key,
@@ -157,86 +129,55 @@ def login_view(request):
         
     except Exception as e:
         return Response({'error': f'Error interno: {str(e)}'}, status=500)
-    
+
 # =======================================================
-# ===== EMPLEADOS (Permisos manuales en la función) =====
+# ===== EMPLEADOS =====
 # =======================================================
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def empleados_list(request):
     if request.method == 'GET':
         try:
-            # Verificar permisos - solo jefas pueden ver la lista completa
-            user_profile = UserProfile.objects.get(user=request.user)
+            user_profile = request.user.empleado
             if user_profile.tipo_usuario != 'jefa':
-                # Si no es jefa, se deniega (el frontend ya gestiona esto, pero por seguridad)
                 return Response({'error': 'No tiene permisos para ver esta información'}, status=403)
             
             empleados = Empleado.objects.select_related('user').all()
-            data = []
-            for emp in empleados:
-                # Intenta obtener el email del usuario de Django
-                email = emp.user.email if emp.user else None
-                # Intenta obtener el perfil para asegurar el tipo_usuario
-                tipo_usuario_perfil = emp.user.userprofile.tipo_usuario if emp.user and hasattr(emp.user, 'userprofile') else emp.tipo_usuario
-                
-                data.append({
-                    'id': emp.id,
-                    'nombre_emp': emp.nombre_emp,
-                    'apellido_emp': emp.apellido_emp,
-                    'dni_emp': emp.dni_emp,
-                    'telefono_emp': emp.telefono_emp,
-                    'domicilio_emp': emp.domicilio_emp,
-                    # Usar el rol más actualizado si está disponible
-                    'tipo_usuario': tipo_usuario_perfil, 
-                    'user': {
-                        'id': emp.user.id if emp.user else None,
-                        'email': email,
-                        'username': emp.user.username if emp.user else None
-                    }
-                })
-            return Response(data)
+            serializer = EmpleadoSerializer(empleados, many=True)
+            return Response(serializer.data)
             
-        except UserProfile.DoesNotExist:
-            return Response({'error': 'Perfil de usuario no encontrado'}, status=404)
+        except Empleado.DoesNotExist:
+            return Response({'error': 'Perfil de empleado no encontrado'}, status=404)
         except Exception as e:
             return Response({'error': f'Error interno: {str(e)}'}, status=500)
     
     elif request.method == 'POST':
         try:
-            # Verificar permisos - solo jefas pueden crear empleados
-            user_profile = UserProfile.objects.get(user=request.user)
+            user_profile = request.user.empleado
             if user_profile.tipo_usuario != 'jefa':
                 return Response({'error': 'No tiene permisos para crear empleados'}, status=403)
             
             data = request.data
             
-            # Validaciones (código sin cambios)
             required_fields = ['nombre_emp', 'apellido_emp', 'dni_emp', 'telefono_emp', 'domicilio_emp', 'email', 'password']
             for field in required_fields:
                 if not data.get(field):
                     return Response({'error': f'El campo {field} es requerido'}, status=400)
             
-            # Verificar DNI único
             if Empleado.objects.filter(dni_emp=data['dni_emp']).exists():
                 return Response({'error': 'Ya existe un empleado con este DNI'}, status=400)
             
-            # Verificar email único
             if User.objects.filter(email=data['email']).exists():
                 return Response({'error': 'Ya existe un usuario con este email'}, status=400)
             
-            # Validar tipo de usuario
             tipo_usuario = data.get('tipo_usuario', 'empleada')
             if tipo_usuario not in ['jefa', 'empleada']:
                 return Response({'error': 'Tipo de usuario no válido'}, status=400)
             
-            # Validar que solo haya una jefa
             if tipo_usuario == 'jefa' and Empleado.objects.filter(tipo_usuario='jefa').exists():
-                # Esta validación se debe hacer sobre UserProfile/Empleado, ya la tienes aquí
-                pass 
-            
+                return Response({'error': 'Ya existe una jefa/encargada registrada'}, status=400)
+
             with transaction.atomic():
-                # Crear usuario (código sin cambios)
                 username = data['email'].split('@')[0]
                 counter = 1
                 original_username = username
@@ -252,7 +193,6 @@ def empleados_list(request):
                     last_name=data['apellido_emp']
                 )
                 
-                # Crear empleado
                 empleado = Empleado.objects.create(
                     user=user,
                     nombre_emp=data['nombre_emp'],
@@ -261,16 +201,6 @@ def empleados_list(request):
                     telefono_emp=data['telefono_emp'],
                     domicilio_emp=data['domicilio_emp'],
                     tipo_usuario=tipo_usuario
-                )
-                
-                # Crear perfil de usuario
-                UserProfile.objects.create(
-                    user=user,
-                    tipo_usuario=tipo_usuario,
-                    dni=data['dni_emp'],
-                    telefono=data['telefono_emp'],
-                    direccion=data['domicilio_emp'],
-                    empleado_relacionado=empleado
                 )
                 
                 return Response({
@@ -285,8 +215,7 @@ def empleados_list(request):
 @permission_classes([IsAuthenticated])
 def empleado_detail(request, id):
     try:
-        # Verificar permisos - solo jefas pueden modificar/eliminar empleados
-        user_profile = UserProfile.objects.get(user=request.user)
+        user_profile = request.user.empleado
         if user_profile.tipo_usuario != 'jefa':
             return Response({'error': 'No tiene permisos para realizar esta acción'}, status=403)
         
@@ -295,22 +224,18 @@ def empleado_detail(request, id):
         if request.method == 'PUT':
             data = request.data
             
-            # Validaciones (código sin cambios)
             required_fields = ['nombre_emp', 'apellido_emp', 'dni_emp', 'telefono_emp', 'domicilio_emp', 'email']
             for field in required_fields:
                 if not data.get(field):
                     return Response({'error': f'El campo {field} es requerido'}, status=400)
             
-            # Verificar DNI único (excluyendo el actual)
             if Empleado.objects.filter(dni_emp=data['dni_emp']).exclude(id=id).exists():
                 return Response({'error': 'Ya existe otro empleado con este DNI'}, status=400)
             
-            # Verificar email único (excluyendo el actual)
             if User.objects.filter(email=data['email']).exclude(id=empleado.user.id).exists():
                 return Response({'error': 'Ya existe otro usuario con este email'}, status=400)
             
             with transaction.atomic():
-                # Actualizar empleado
                 empleado.nombre_emp = data['nombre_emp']
                 empleado.apellido_emp = data['apellido_emp']
                 empleado.dni_emp = data['dni_emp']
@@ -319,7 +244,6 @@ def empleado_detail(request, id):
                 empleado.tipo_usuario = data.get('tipo_usuario', empleado.tipo_usuario)
                 empleado.save()
                 
-                # Actualizar usuario
                 if empleado.user:
                     empleado.user.email = data['email']
                     empleado.user.first_name = data['nombre_emp']
@@ -328,26 +252,13 @@ def empleado_detail(request, id):
                         empleado.user.set_password(data['password'])
                     empleado.user.save()
                 
-                # Actualizar perfil de usuario (también el rol)
-                try:
-                    user_profile = UserProfile.objects.get(empleado_relacionado=empleado)
-                    user_profile.dni = data['dni_emp']
-                    user_profile.telefono = data['telefono_emp']
-                    user_profile.direccion = data['domicilio_emp']
-                    user_profile.tipo_usuario = data.get('tipo_usuario', empleado.tipo_usuario)
-                    user_profile.save()
-                except UserProfile.DoesNotExist:
-                    pass
-                
                 return Response({'message': 'Empleado actualizado exitosamente'})
                 
         elif request.method == 'DELETE':
-            # No permitir eliminarse a sí mismo
             if empleado.user == request.user:
                 return Response({'error': 'No puede eliminarse a sí mismo'}, status=400)
             
             with transaction.atomic():
-                # Eliminar usuario (esto eliminará automáticamente el empleado por CASCADE)
                 if empleado.user:
                     empleado.user.delete()
                 else:
@@ -360,8 +271,67 @@ def empleado_detail(request, id):
     except Exception as e:
         return Response({'error': f'Error interno: {str(e)}'}, status=500)
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def verificar_password_actual(request):
+    try:
+        data = request.data
+        empleado_id = data.get('empleado_id')
+        password_actual = data.get('password_actual')
+        
+        if not empleado_id or not password_actual:
+            return Response({'error': 'Datos incompletos'}, status=400)
+        
+        user_profile = request.user.empleado
+        if user_profile.tipo_usuario != 'jefa' and str(user_profile.id) != str(empleado_id):
+            return Response({'error': 'No tiene permisos para esta acción'}, status=403)
+        
+        empleado = Empleado.objects.get(id=empleado_id)
+        es_correcta = empleado.user.check_password(password_actual)
+        
+        return Response({'es_correcta': es_correcta})
+    
+    except Empleado.DoesNotExist:
+        return Response({'error': 'Empleado no encontrado'}, status=404)
+    except Exception as e:
+        return Response({'error': f'Error interno: {str(e)}'}, status=500)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def cambiar_password(request):
+    try:
+        data = request.data
+        empleado_id = data.get('empleado_id')
+        password_actual = data.get('password_actual')
+        nueva_password = data.get('nueva_password')
+        
+        if not empleado_id or not password_actual or not nueva_password:
+            return Response({'error': 'Datos incompletos'}, status=400)
+        
+        user_profile = request.user.empleado
+        if user_profile.tipo_usuario != 'jefa' and str(user_profile.id) != str(empleado_id):
+            return Response({'error': 'No tiene permisos para esta acción'}, status=403)
+        
+        empleado = Empleado.objects.get(id=empleado_id)
+        
+        if not empleado.user.check_password(password_actual):
+            return Response({'error': 'La contraseña actual es incorrecta'}, status=400)
+        
+        if len(nueva_password) < 6:
+            return Response({'error': 'La nueva contraseña debe tener al menos 6 caracteres'}, status=400)
+        
+        empleado.user.set_password(nueva_password)
+        empleado.user.save()
+        
+        return Response({'mensaje': 'Contraseña actualizada exitosamente'})
+    
+    except Empleado.DoesNotExist:
+        return Response({'error': 'Empleado no encontrado'}, status=404)
+    except Exception as e:
+        return Response({'error': f'Error interno: {str(e)}'}, status=500)
+
 # =======================================================
-# ===== VIEWSETS (Permisos aplicados) =====
+# ===== VIEWSETS =====
 # =======================================================
 class ProductoViewSet(viewsets.ModelViewSet):
     queryset = Producto.objects.all().order_by('id')
@@ -378,43 +348,26 @@ class ProductoViewSet(viewsets.ModelViewSet):
             )
         return queryset
 
-    @action(detail=True, methods=['get'])
-    def proveedores(self, request, pk=None):
-        try:
-            producto = self.get_object()
-            proveedores_ids = ProvProducto.objects.filter(
-                producto=producto
-            ).values_list('proveedor_id', flat=True)
-            
-            proveedores = Proveedor.objects.filter(id__in=proveedores_ids)
-            serializer = ProveedorSerializer(proveedores, many=True)
-            return Response(serializer.data)
-        except Producto.DoesNotExist:
-            return Response({'error': 'Producto no encontrado'}, status=status.HTTP_404_NOT_FOUND)
-
-    @action(detail=True, methods=['post'])
-    def asignar_proveedores(self, request, pk=None):
-        try:
-            producto = self.get_object()
-            proveedores_ids = request.data.get('proveedores', [])
-            
-            ProvProducto.objects.filter(producto=producto).delete()
-            
-            for proveedor_id in proveedores_ids:
-                try:
-                    proveedor = Proveedor.objects.get(id=proveedor_id)
-                    ProvProducto.objects.create(producto=producto, proveedor=proveedor)
-                except Proveedor.DoesNotExist:
-                    continue
-            
-            return Response({'message': 'Proveedores asignados correctamente'})
-        except Producto.DoesNotExist:
-            return Response({'error': 'Producto no encontrado'}, status=status.HTTP_404_NOT_FOUND)
-
 class ProveedorViewSet(viewsets.ModelViewSet):
     queryset = Proveedor.objects.all().order_by('id')
     serializer_class = ProveedorSerializer
     permission_classes = [IsJefaOrReadOnly]
+
+    def get_permissions(self):
+        if self.request.user and self.request.user.is_authenticated:
+            try:
+                empleado = self.request.user.empleado
+                
+                if empleado.tipo_usuario == 'jefa':
+                    return [IsAuthenticated()]
+                
+                if self.action in ['list', 'retrieve']:
+                    return [IsAuthenticated()]
+                    
+            except Empleado.DoesNotExist:
+                pass
+        
+        return [IsAuthenticated()]
 
     def get_queryset(self):
         queryset = Proveedor.objects.all().order_by('id')
@@ -422,29 +375,62 @@ class ProveedorViewSet(viewsets.ModelViewSet):
         if search:
             queryset = queryset.filter(
                 Q(nombre_prov__icontains=search) |
-                Q(tipo_prov__icontains=search) |
-                Q(correo_prov__icontains=search)
+                Q(tipo_prov__icontains=search)
             )
         return queryset
 
-class ProvProductoViewSet(viewsets.ModelViewSet):
-    queryset = ProvProducto.objects.all().order_by('id')
-    serializer_class = ProvProductoSerializer
+class CompraViewSet(viewsets.ModelViewSet):
+    queryset = Compra.objects.all().select_related('producto').prefetch_related('proveedores').order_by('-fecha_entrada')  # CAMBIO: prefetch_related
+    serializer_class = CompraSerializer
     permission_classes = [IsJefaOrReadOnly]
 
-    @action(detail=False, methods=['get'])
-    def por_producto(self, request):
-        producto_id = request.query_params.get('producto_id')
-        if not producto_id:
-            return Response({'error': 'Se requiere producto_id'}, status=400)
-        relaciones = ProvProducto.objects.filter(producto_id=producto_id)
-        serializer = self.get_serializer(relaciones, many=True)
-        return Response(serializer.data)
+    def get_queryset(self):
+        queryset = Compra.objects.all().select_related('producto').prefetch_related('proveedores').order_by('-fecha_entrada')
+        search = self.request.query_params.get('search', None)
+        if search:
+            queryset = queryset.filter(
+                Q(producto__nombre_prod__icontains=search) |
+                Q(proveedores__nombre_prov__icontains=search)  # CAMBIO: proveedores (plural)
+            ).distinct()  # Agregar distinct para evitar duplicados
+        return queryset
 
-class UserProfileViewSet(viewsets.ModelViewSet):
-    queryset = UserProfile.objects.all()
-    serializer_class = UserProfileSerializer
-    permission_classes = [IsJefaOrEmpleado]
+    def create(self, request, *args, **kwargs):
+        try:
+            print("Datos recibidos para crear compra:", request.data)
+            
+            data = request.data.copy()
+            
+            # Asegurar que los datos numéricos estén en formato correcto
+            if 'cantidad' in data:
+                data['cantidad'] = int(data['cantidad'])
+            if 'precio_total' in data:
+                data['precio_total'] = float(data['precio_total'])
+            if 'precio_venta' in data:
+                data['precio_venta'] = float(data['precio_venta'])
+            
+            # Convertir proveedores a lista si es necesario
+            if 'proveedores' in data:
+                if isinstance(data['proveedores'], str):
+                    try:
+                        data['proveedores'] = json.loads(data['proveedores'])
+                    except json.JSONDecodeError:
+                        data['proveedores'] = [data['proveedores']]
+            
+            print("Datos procesados para compra:", data)
+            
+            serializer = self.get_serializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+            
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+            
+        except Exception as e:
+            print("Error completo al crear compra:", str(e))
+            return Response(
+                {'error': f'Error al crear compra: {str(e)}'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 class CajaViewSet(viewsets.ModelViewSet):
     queryset = Caja.objects.all()
@@ -452,11 +438,90 @@ class CajaViewSet(viewsets.ModelViewSet):
     permission_classes = [IsJefaOrEmpleado]
 
 class VentaViewSet(viewsets.ModelViewSet):
-    queryset = Venta.objects.all()
+    queryset = Venta.objects.all().prefetch_related('detalles')
     serializer_class = VentaSerializer
     permission_classes = [IsJefaOrEmpleado]
+
+    def create(self, request, *args, **kwargs):
+        try:
+            print("📥 Datos recibidos para crear venta:", request.data)
+            
+            # Asegurar que los datos numéricos estén en formato correcto
+            data = request.data.copy()
+            
+            if 'total_venta' in data:
+                data['total_venta'] = float(data['total_venta'])
+            if 'monto_recibido' in data:
+                data['monto_recibido'] = float(data['monto_recibido'])
+            if 'vuelto' in data:
+                data['vuelto'] = float(data['vuelto'])
+            
+            # Procesar detalles si existen
+            if 'detalles' in data:
+                if isinstance(data['detalles'], str):
+                    try:
+                        data['detalles'] = json.loads(data['detalles'])
+                    except json.JSONDecodeError:
+                        data['detalles'] = []
+                
+                # Asegurar que los detalles tengan los campos correctos
+                for detalle in data['detalles']:
+                    if 'cantidad' in detalle:
+                        detalle['cantidad'] = int(detalle['cantidad'])
+                    if 'precio_unitario' in detalle:
+                        detalle['precio_unitario'] = float(detalle['precio_unitario'])
+                    if 'subtotal' in detalle:
+                        detalle['subtotal'] = float(detalle['subtotal'])
+            
+            print("📤 Datos procesados para venta:", data)
+            
+            serializer = self.get_serializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            venta = serializer.save()
+            
+            print(f"✅ Venta creada exitosamente: {venta.id}")
+            
+            # Devolver la venta creada con sus detalles
+            venta_serializada = self.get_serializer(venta)
+            return Response(venta_serializada.data, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            print(f"❌ Error completo al crear venta: {str(e)}")
+            return Response(
+                {'error': f'Error al crear venta: {str(e)}'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 class DetalleVentaViewSet(viewsets.ModelViewSet):
     queryset = DetalleVenta.objects.all()
     serializer_class = DetalleVentaSerializer
     permission_classes = [IsJefaOrEmpleado]
+
+class VentaSaetaViewSet(viewsets.ModelViewSet):
+    queryset = VentaSaeta.objects.all().select_related('detalle_venta')
+    serializer_class = VentaSaetaSerializer
+    permission_classes = [IsJefaOrEmpleado]
+
+    def create(self, request, *args, **kwargs):
+        try:
+            data = request.data.copy()
+            
+            # Asegurar que los datos numéricos estén en formato correcto
+            if 'monto_saeta' in data:
+                data['monto_saeta'] = float(data['monto_saeta'])
+            if 'porcentaje_ganancia_saeta' in data:
+                data['porcentaje_ganancia_saeta'] = float(data['porcentaje_ganancia_saeta'])
+            
+            serializer = self.get_serializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+            
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+            
+        except Exception as e:
+            print("Error al crear venta Saeta:", str(e))
+            return Response(
+                {'error': f'Error al crear venta Saeta: {str(e)}'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )

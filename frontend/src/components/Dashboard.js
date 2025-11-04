@@ -1,5 +1,5 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { FaSignOutAlt, FaUser, FaShoppingCart, FaCashRegister, FaBox, FaChartBar, FaUsers, FaCog, FaStore, FaUserPlus, FaHome, FaTruck } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { FaSignOutAlt, FaUser, FaShoppingCart, FaCashRegister, FaBox, FaChartBar, FaUsers, FaCog, FaStore, FaUserPlus, FaHome, FaTruck, FaLock, FaShoppingBag } from 'react-icons/fa';
 import Registro from './Registro';
 import BarraLateral from './BarraLateral';
 import Productos from './Productos/Productos';
@@ -8,63 +8,75 @@ import FormularioProducto from './Productos/FormularioProducto';
 import AperturaCaja from './Caja/AperturaCaja';
 import Ventas from './Ventas/Ventas';
 import Empleados from './Empleados/Empleados';
+import Compras from './Compras/Compras';
+import FormularioCompra from './Compras/FormularioCompra';
 import './Dashboard.css';
 
 function Dashboard({ usuario, onCerrarSesion }) {
   const [moduloActivo, setModuloActivo] = useState('inicio');
-  // Se elimina el estado esAdministrador y se usa directamente usuario?.tipo_usuario === 'jefa'
   const [mostrarRegistro, setMostrarRegistro] = useState(false);
   const [vistaProductos, setVistaProductos] = useState('lista');
   const [modoFormulario, setModoFormulario] = useState('crear');
   const [productoEditando, setProductoEditando] = useState(null);
-  const [vistaProveedores, setVistaProveedores] = useState('lista');
-  const [proveedorEditando, setProveedorEditando] = useState(null);
-  
+  const [vistaCompras, setVistaCompras] = useState('lista');
+  const [modoFormularioCompra, setModoFormularioCompra] = useState('nueva');
+  const [compraEditando, setCompraEditando] = useState(null);
+      
   // Estados para la gestión de caja
   const [cajaAbierta, setCajaAbierta] = useState(false);
   const [datosCaja, setDatosCaja] = useState(null);
 
-  // Datos de ejemplo para empleados y turnos
-  const empleados = [
-    { id: 1, nombre: 'Lujan Ramírez' },
-    { id: 2, nombre: 'María González' },
-    { id: 3, nombre: 'Carlos López' }
-  ];
+  // Verificar si el usuario es jefa
+  const esJefa = usuario?.tipo_usuario === 'jefa';
+  const esEmpleada = usuario?.tipo_usuario === 'empleada';
 
-  const turnos = [
-    { id: 1, nombre: 'Turno mañana' },
-    { id: 2, nombre: 'Turno tarde' },
-    { id: 3, nombre: 'Turno noche' }
-  ];
+  // Función para verificar si un módulo es editable
+  const esModuloEditable = (modulo) => {
+    if (esJefa) return true; // Jefa puede editar todo
+    
+    // Empleada solo puede editar estos módulos
+    const modulosEditablesEmpleada = [
+      'inicio', 'ventas', 'caja', 'compras'
+    ];
+    
+    return modulosEditablesEmpleada.includes(modulo);
+  };
 
-  // Eliminamos el useEffect que setea esAdministrador, ya no es necesario
-  
+  // Función para manejar la navegación con permisos
+  const handleNavegarA = (modulo) => {
+    if (esModuloEditable(modulo)) {
+      setModuloActivo(modulo);
+    }
+  };
+
   const handleVolverAlDashboard = () => {
     setMostrarRegistro(false);
     setModuloActivo('inicio');
   };
 
+  // En Dashboard.js, modifica handleAperturaConfirmada
   const handleAperturaConfirmada = (datosApertura) => {
-    // Encontrar el nombre del empleado y turno seleccionados
-    const empleadoSeleccionado = empleados.find(emp => emp.id == datosApertura.empleado);
-    const turnoSeleccionado = turnos.find(turno => turno.id == datosApertura.turno);
+    console.log('Caja abierta exitosamente:', datosApertura);
     
-    const datosCompletos = {
-      ...datosApertura,
-      empleadoNombre: empleadoSeleccionado?.nombre || 'No especificado',
-      turnoNombre: turnoSeleccionado?.nombre || 'No especificado',
-      fechaApertura: new Date().toLocaleString()
-    };
-    
+    // Actualizar estado de caja CORREGIDO
     setCajaAbierta(true);
-    setDatosCaja(datosCompletos);
-    setModuloActivo('ventas'); // Redirigir a ventas después de abrir caja
+    setDatosCaja({
+      empleadoNombre: datosApertura.empleadoNombre,
+      turnoNombre: datosApertura.turnoNombre,
+      montoInicial: datosApertura.montoInicial,
+      saldo_inicial: datosApertura.saldo_inicial,
+      turno: datosApertura.turno,
+      fecha_hs_apertura: datosApertura.fecha_hs_apertura,
+      id: datosApertura.id
+    });
     
-    console.log('Caja abierta:', datosCompletos);
+    // Redirigir automáticamente a ventas después de 2 segundos
+    setTimeout(() => {
+      setModuloActivo('ventas');
+    }, 2000);
   };
 
   const handleCerrarCaja = () => {
-    // Aquí iría la lógica para cerrar la caja
     setCajaAbierta(false);
     setDatosCaja(null);
     setModuloActivo('inicio');
@@ -73,10 +85,8 @@ function Dashboard({ usuario, onCerrarSesion }) {
 
   const handleNavegarAVentas = () => {
     if (!cajaAbierta) {
-      // Si la caja no está abierta, mostrar apertura de caja
       setModuloActivo('caja');
     } else {
-      // Si la caja está abierta, ir directamente a ventas
       setModuloActivo('ventas');
     }
   };
@@ -91,33 +101,102 @@ function Dashboard({ usuario, onCerrarSesion }) {
   }
 
   const renderModulo = () => {
+    // Si el módulo no es editable para empleada, mostrar vista de solo lectura
+    if (!esModuloEditable(moduloActivo) && esEmpleada) {
+      switch (moduloActivo) {
+        case 'inventario':
+          return (
+            <div className="modulo-contenido modulo-solo-lectura">
+              <div className="modulo-header-solo-lectura">
+                <FaLock className="icono-bloqueo" />
+                <h2>📦 Inventario - Vista de Solo Lectura</h2>
+                <p>No tiene permisos para modificar el inventario</p>
+              </div>
+              <Productos 
+                onNavegarAFormulario={null}
+                esJefa={false}
+                modoLectura={true}
+              />
+            </div>
+          );
+
+        case 'proveedores':
+          return (
+            <div className="modulo-contenido modulo-solo-lectura">
+              <div className="modulo-header-solo-lectura">
+                <FaLock className="icono-bloqueo" />
+                <h2>🚚 Proveedores - Vista de Solo Lectura</h2>
+                <p>No tiene permisos para modificar proveedores</p>
+              </div>
+              <Proveedores 
+                esJefa={false}
+                modoLectura={true}
+              />
+            </div>
+          );
+
+        case 'empleados':
+          return (
+            <div className="modulo-contenido modulo-solo-lectura">
+              <div className="modulo-header-solo-lectura">
+                <FaLock className="icono-bloqueo" />
+                <h2>👥 Empleados - Vista de Solo Lectura</h2>
+                <p>No tiene permisos para modificar empleados</p>
+              </div>
+              <Empleados 
+                usuario={usuario}
+                modoLectura={true}
+              />
+            </div>
+          );
+
+        case 'configuracion':
+          return (
+            <div className="modulo-contenido modulo-solo-lectura">
+              <div className="modulo-header-solo-lectura">
+                <FaLock className="icono-bloqueo" />
+                <h2>⚙️ Configuración - Vista de Solo Lectura</h2>
+                <p>No tiene permisos para modificar la configuración</p>
+              </div>
+              <div className="configuracion-solo-lectura">
+                <p>Esta sección está disponible solo para la jefa/encargada.</p>
+              </div>
+            </div>
+          );
+
+        default:
+          return renderModuloNormal();
+      }
+    }
+
+    return renderModuloNormal();
+  };
+
+  const renderModuloNormal = () => {
     switch (moduloActivo) {
       case 'ventas':
         if (!cajaAbierta) {
           return (
             <AperturaCaja 
               onAperturaConfirmada={handleAperturaConfirmada}
-              empleados={empleados}
-              turnos={turnos}
               onCancelar={() => setModuloActivo('inicio')}
             />
           );
         }
-        return <Ventas datosCaja={datosCaja} />;
+        return <Ventas datosCaja={datosCaja} onCerrarCaja={handleCerrarCaja} />;
       
       case 'caja':
         return (
           <div className="modulo-contenido">
-            <h2>💰 Gestión de Caja</h2>
             {cajaAbierta ? (
               <div className="caja-abierta-info">
-                <div className="estado-caja positivo">Caja Actualmente Abierta</div>
+                <div className="estado-caja positivo">🟢 Caja Actualmente Abierta</div>
                 <div className="detalles-caja">
                   <p><strong>Empleado:</strong> {datosCaja?.empleadoNombre}</p>
                   <p><strong>Turno:</strong> {datosCaja?.turnoNombre}</p>
-                  <p><strong>Monto inicial:</strong> ${datosCaja?.montoInicial}</p>
-                  <p><strong>Fecha apertura:</strong> {datosCaja?.fechaApertura}</p>
-                  <p><strong>Observaciones:</strong> {datosCaja?.observaciones || 'Ninguna'}</p>
+                  <p><strong>Monto inicial:</strong> ${parseFloat(datosCaja?.montoInicial || datosCaja?.saldo_inicial).toFixed(2)}</p>
+                  <p><strong>Fecha apertura:</strong> {new Date(datosCaja?.fecha_hs_apertura).toLocaleString('es-ES')}</p>
+                  <p><strong>Descripción:</strong> {datosCaja?.descripcion || 'Ninguna'}</p>
                 </div>
                 <button 
                   className="btn-cerrar-caja"
@@ -129,12 +208,37 @@ function Dashboard({ usuario, onCerrarSesion }) {
             ) : (
               <AperturaCaja 
                 onAperturaConfirmada={handleAperturaConfirmada}
-                empleados={empleados}
-                turnos={turnos}
                 onCancelar={() => setModuloActivo('inicio')}
               />
             )}
           </div>
+        );
+
+      case 'compras':
+        if (vistaCompras === 'formulario') {
+          return (
+            <FormularioCompra 
+              modo={modoFormularioCompra}
+              compraEditar={compraEditando}
+              onCancelar={() => {
+                setVistaCompras('lista');
+                setCompraEditando(null);
+              }}
+              onGuardado={() => {
+                setVistaCompras('lista');
+                setCompraEditando(null);
+              }}
+            />
+          );
+        }
+        return (
+          <Compras 
+            onNavegarAFormulario={(modo, compra) => {
+              setModoFormularioCompra(modo);
+              setCompraEditando(compra);
+              setVistaCompras('formulario');
+            }}
+          />
         );
 
       case 'inventario':
@@ -159,17 +263,15 @@ function Dashboard({ usuario, onCerrarSesion }) {
               setProductoEditando(producto);
               setVistaProductos('formulario');
             }}
+            esJefa={esJefa}
           />
         );
 
       case 'proveedores':
-        return <Proveedores />;
+        return <Proveedores esJefa={esJefa} />;
 
       case 'empleados':
-        // El componente Empleados recibe la información del rol del usuario
-        return (
-            <Empleados usuario={usuario} />
-        );
+        return <Empleados usuario={usuario} />;
 
       case 'configuracion':
         return (
@@ -192,7 +294,7 @@ function Dashboard({ usuario, onCerrarSesion }) {
               })}</p>
               {cajaAbierta && (
                 <div className="estado-caja-inicio positivo">
-                  ✅ Caja abierta - {datosCaja?.empleadoNombre} - {datosCaja?.turnoNombre}
+                  🟢 Caja abierta - {datosCaja?.empleadoNombre} - {datosCaja?.turnoNombre}
                 </div>
               )}
             </div>
@@ -207,11 +309,19 @@ function Dashboard({ usuario, onCerrarSesion }) {
                 >
                   {cajaAbierta ? 'Nueva venta' : 'Abrir caja y vender'}
                 </button>
+                {esJefa && (
+                  <button 
+                    className="btn-nuevo-producto"
+                    onClick={() => setModuloActivo('inventario')}
+                  >
+                    Nuevo producto
+                  </button>
+                )}
                 <button 
-                  className="btn-nuevo-producto"
-                  onClick={() => setModuloActivo('inventario')}
+                  className="btn-nueva-compra"
+                  onClick={() => setModuloActivo('compras')}
                 >
-                  Nuevo producto
+                  Nueva compra
                 </button>
               </div>
             </div>
@@ -330,10 +440,12 @@ function Dashboard({ usuario, onCerrarSesion }) {
         onCerrarSesion={onCerrarSesion}
         usuario={usuario}
         moduloActivo={moduloActivo}
-        setModuloActivo={setModuloActivo}
+        setModuloActivo={handleNavegarA}
         cajaAbierta={cajaAbierta}
         datosCaja={datosCaja}
         onNavegarAVentas={handleNavegarAVentas}
+        esJefa={esJefa}
+        esModuloEditable={esModuloEditable}
       />
 
       <div className="contenido-principal">

@@ -1,5 +1,5 @@
-/* FormularioProducto.css - VERSIÓN CORREGIDA */
-.formulario-productos-container {
+/* FormularioCompra.css - VERSIÓN CORREGIDA */
+.formulario-compras-container {
   width: 100%;
   margin: 0;
   background-color: white;
@@ -34,7 +34,7 @@
   width: 100%;
 }
 
-.formulario-producto {
+.formulario-compra {
   display: flex;
   flex-direction: column;
   gap: 15px;
@@ -43,18 +43,14 @@
 
 /* Secciones */
 .seccion-producto,
-.seccion-stock-precios,
-.seccion-fechas,
-.seccion-proveedores,
-.seccion-descripcion {
+.seccion-compra,
+.seccion-proveedores {
   padding: 0;
 }
 
 .seccion-producto h3,
-.seccion-stock-precios h3,
-.seccion-fechas h3,
-.seccion-proveedores h3,
-.seccion-descripcion h3 {
+.seccion-compra h3,
+.seccion-proveedores h3 {
   margin: 0 0 10px 0;
   color: #2c3e50;
   font-size: 1rem;
@@ -168,99 +164,61 @@
 }
 
 /* Buscadores compactos */
-.buscador-proveedores-container {
+.buscador-producto,
+.buscador-proveedores {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.input-busqueda-container {
-  position: relative;
-}
-
-.input-busqueda {
-  width: 100%;
+.btn-buscador {
   padding: 8px;
-  border: 1px solid #e0e0e0;
+  border: 1px dashed #e0e0e0;
   border-radius: 3px;
+  background: white;
+  cursor: pointer;
+  text-align: left;
+  color: #6c757d;
+  transition: all 0.3s ease;
   font-size: 0.8rem;
+  width: 100%;
   height: 32px;
 }
 
-.input-busqueda:focus {
-  outline: none;
+.btn-buscador:hover {
   border-color: #007e7e;
+  color: #007e7e;
 }
 
-/* Dropdown de proveedores */
-.dropdown-proveedores {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: white;
-  border: 1px solid #e0e0e0;
-  border-top: none;
-  border-radius: 0 0 3px 3px;
-  max-height: 150px;
-  overflow-y: auto;
-  z-index: 1000;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.dropdown-item {
-  padding: 6px 8px;
-  cursor: pointer;
-  border-bottom: 1px solid #f0f0f0;
+.producto-info {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 6px;
-  transition: background-color 0.2s ease;
+  padding: 4px 8px;
+  background: #e8f5e8;
+  border-radius: 2px;
   font-size: 0.75rem;
+  color: #155724;
 }
 
-.dropdown-item:hover {
-  background-color: #f8f9fa;
-}
-
-.dropdown-item.selected {
-  background-color: #e8f5e8;
-}
-
-.dropdown-item.no-results {
+.btn-limpiar,
+.btn-remover {
+  background: none;
+  border: none;
+  cursor: pointer;
   color: #6c757d;
-  cursor: default;
-  font-style: italic;
+  padding: 1px;
+  border-radius: 2px;
+  font-size: 0.7rem;
 }
 
-.dropdown-item.no-results:hover {
-  background-color: white;
+.btn-limpiar:hover,
+.btn-remover:hover {
+  background: #dc3545;
+  color: white;
 }
 
-.checkbox-dropdown {
-  width: 12px;
-  height: 12px;
-  margin: 0;
-}
-
-.proveedor-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.proveedor-nombre {
-  font-weight: 600;
-  color: #333;
-  font-size: 0.75rem;
-}
-
-.proveedor-rubro {
-  font-size: 0.65rem;
-  color: #6c757d;
-}
-
-/* Proveedores seleccionados */
+/* Proveedores seleccionados compactos */
 .proveedores-seleccionados {
   display: flex;
   flex-wrap: wrap;
@@ -268,46 +226,16 @@
   margin-top: 6px;
 }
 
-.tag-proveedor {
+.proveedor-tag {
   display: flex;
   align-items: center;
   gap: 4px;
-  background: #e8f5e8;
-  color: #2c3e50;
   padding: 3px 8px;
+  background: #e3f2fd;
+  border: 1px solid #bbdefb;
   border-radius: 12px;
-  font-size: 0.7rem;
-  font-weight: 500;
-}
-
-.btn-quitar {
-  background: none;
-  border: none;
-  color: #dc3545;
-  cursor: pointer;
-  font-size: 0.9rem;
-  padding: 0;
-  width: 16px;
-  height: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: background-color 0.2s ease;
-}
-
-.btn-quitar:hover {
-  background-color: rgba(220, 53, 69, 0.1);
-}
-
-.sin-proveedores {
-  color: #6c757d;
-  font-style: italic;
-  padding: 8px;
-  text-align: center;
-  background: #f8f9fa;
-  border-radius: 3px;
   font-size: 0.75rem;
+  color: #1976d2;
 }
 
 /* Input de precio compacto */
@@ -329,64 +257,6 @@
 .input-precio input {
   padding-left: 20px;
   width: 100%;
-}
-
-/* Checkbox personalizado */
-.checkbox-container {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  font-weight: normal;
-  margin: 0;
-  font-size: 0.8rem;
-}
-
-.checkbox-label input[type="checkbox"] {
-  width: 14px;
-  height: 14px;
-  margin: 0;
-}
-
-.checkmark {
-  width: 14px;
-  height: 14px;
-  border: 1px solid #e0e0e0;
-  border-radius: 2px;
-  display: inline-block;
-  position: relative;
-  transition: all 0.3s ease;
-}
-
-.checkbox-label input[type="checkbox"]:checked + .checkmark {
-  background-color: #007e7e;
-  border-color: #007e7e;
-}
-
-.checkbox-label input[type="checkbox"]:checked + .checkmark::after {
-  content: '';
-  position: absolute;
-  left: 4px;
-  top: 1px;
-  width: 3px;
-  height: 6px;
-  border: solid white;
-  border-width: 0 1px 1px 0;
-  transform: rotate(45deg);
-}
-
-/* Texto de ayuda */
-.texto-ayuda {
-  color: #6c757d;
-  font-size: 0.65rem;
-  margin-top: 2px;
-  display: block;
 }
 
 /* Botones compactos - posición fija en la parte inferior */
@@ -440,9 +310,190 @@
   opacity: 0.6;
 }
 
+/* Modales de búsqueda compactos */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 10px;
+}
+
+.modal-contenedor {
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-buscador {
+  max-width: 400px;
+  width: 95%;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 1rem;
+}
+
+.btn-cerrar {
+  background: none;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  color: #6c757d;
+  padding: 3px;
+  border-radius: 2px;
+}
+
+.btn-cerrar:hover {
+  background: #f0f0f0;
+}
+
+.modal-body {
+  padding: 12px;
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.input-busqueda {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+  margin-bottom: 10px;
+  font-size: 0.8rem;
+  height: 32px;
+}
+
+.input-busqueda:focus {
+  outline: none;
+  border-color: #007e7e;
+}
+
+.lista-resultados {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+}
+
+.item-resultado {
+  padding: 8px 10px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  font-size: 0.8rem;
+}
+
+.item-resultado:hover {
+  background: #f8f9fa;
+}
+
+.item-resultado:last-child {
+  border-bottom: none;
+}
+
+.item-resultado-checkbox {
+  padding: 8px 10px;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background 0.2s ease;
+  font-size: 0.8rem;
+}
+
+.item-resultado-checkbox:hover {
+  background: #f8f9fa;
+}
+
+.item-resultado-checkbox:last-child {
+  border-bottom: none;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.checkbox-label input[type="checkbox"] {
+  margin-top: 1px;
+  transform: scale(0.8);
+}
+
+.proveedor-info {
+  flex: 1;
+}
+
+.producto-nombre,
+.proveedor-nombre {
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 1px;
+  font-size: 0.85rem;
+}
+
+.producto-info,
+.proveedor-detalle {
+  font-size: 0.7rem;
+  color: #6c757d;
+}
+
+.sin-resultados {
+  padding: 12px;
+  text-align: center;
+  color: #6c757d;
+  font-style: italic;
+  font-size: 0.8rem;
+}
+
+.modal-footer {
+  padding: 12px;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-confirmar {
+  background: #007e7e;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.8rem;
+  transition: background 0.2s ease;
+  height: 28px;
+}
+
+.btn-confirmar:hover {
+  background: #005f5f;
+}
+
 /* Responsive para pantallas pequeñas */
 @media (max-width: 768px) {
-  .formulario-productos-container {
+  .formulario-compras-container {
     padding: 10px;
   }
   
@@ -456,6 +507,16 @@
     gap: 8px;
   }
   
+  .tipo-producto-opciones {
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  .modal-buscador {
+    width: 98%;
+    margin: 5px;
+  }
+  
   .btn-guardar,
   .btn-cancelar {
     width: 100%;
@@ -464,20 +525,20 @@
 }
 
 /* Scroll personalizado */
-.formulario-productos-container::-webkit-scrollbar {
+.formulario-compras-container::-webkit-scrollbar {
   width: 6px;
 }
 
-.formulario-productos-container::-webkit-scrollbar-track {
+.formulario-compras-container::-webkit-scrollbar-track {
   background: #f1f1f1;
   border-radius: 3px;
 }
 
-.formulario-productos-container::-webkit-scrollbar-thumb {
+.formulario-compras-container::-webkit-scrollbar-thumb {
   background: #c1c1c1;
   border-radius: 3px;
 }
 
-.formulario-productos-container::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+.formulario-compras-container::-webkit-scrollbar-thumb:hover {
+  background: #ff8c8c;
 }
