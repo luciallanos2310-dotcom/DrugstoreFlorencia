@@ -442,6 +442,23 @@ class VentaViewSet(viewsets.ModelViewSet):
     serializer_class = VentaSerializer
     permission_classes = [IsJefaOrEmpleado]
 
+    def get_queryset(self):
+        queryset = Venta.objects.all().prefetch_related('detalles')
+        
+        # ✅ FILTRAR POR CAJA - ESTO ES LO QUE FALTA
+        caja_id = self.request.query_params.get('caja', None)
+        if caja_id:
+            queryset = queryset.filter(caja_id=caja_id)
+            print(f"🔍 Filtrando ventas por caja: {caja_id} - Encontradas: {queryset.count()}")
+        
+        # ✅ También filtrar por fecha para mayor seguridad
+        fecha = self.request.query_params.get('fecha', None)
+        if fecha:
+            queryset = queryset.filter(fecha_hora_venta__date=fecha)
+            print(f"📅 Filtrando ventas por fecha: {fecha}")
+            
+        return queryset.order_by('-fecha_hora_venta')
+
     def create(self, request, *args, **kwargs):
         try:
             print("📥 Datos recibidos para crear venta:", request.data)
@@ -455,6 +472,23 @@ class VentaViewSet(viewsets.ModelViewSet):
                 data['monto_recibido'] = float(data['monto_recibido'])
             if 'vuelto' in data:
                 data['vuelto'] = float(data['vuelto'])
+            
+            # Verificar que la caja existe y está abierta
+            caja_id = data.get('caja')
+            if caja_id:
+                try:
+                    caja = Caja.objects.get(id=caja_id)
+                    if caja.estado != 'abierta':
+                        return Response(
+                            {'error': 'No se pueden agregar ventas a una caja cerrada'}, 
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    print(f"✅ Caja {caja_id} verificada - Estado: {caja.estado}")
+                except Caja.DoesNotExist:
+                    return Response(
+                        {'error': 'Caja no encontrada'}, 
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
             
             # Procesar detalles si existen
             if 'detalles' in data:
@@ -501,6 +535,23 @@ class VentaSaetaViewSet(viewsets.ModelViewSet):
     queryset = VentaSaeta.objects.all().select_related('detalle_venta')
     serializer_class = VentaSaetaSerializer
     permission_classes = [IsJefaOrEmpleado]
+
+    def get_queryset(self):
+        queryset = VentaSaeta.objects.all().select_related('detalle_venta')
+        
+        # ✅ FILTRAR POR FECHA
+        fecha = self.request.query_params.get('fecha_pago_saeta', None)
+        if fecha:
+            queryset = queryset.filter(fecha_pago_saeta=fecha)
+            print(f"🔍 Filtrando ventas Saeta por fecha: {fecha} - Encontradas: {queryset.count()}")
+        
+        # ✅ FILTRAR POR CAJA (a través de la venta asociada)
+        caja_id = self.request.query_params.get('caja', None)
+        if caja_id:
+            queryset = queryset.filter(venta__caja_id=caja_id)
+            print(f"🔍 Filtrando ventas Saeta por caja: {caja_id} - Encontradas: {queryset.count()}")
+            
+        return queryset
 
     def create(self, request, *args, **kwargs):
         try:

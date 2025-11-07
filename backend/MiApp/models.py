@@ -18,6 +18,7 @@ class Empleado(models.Model):
     def __str__(self):
         return f"{self.nombre_emp} {self.apellido_emp}" if self.nombre_emp else f"Empleado {self.id}"
 
+# En models.py - Actualizar el modelo Caja
 class Caja(models.Model):
     TURNO_CHOICES = [('mañana', 'Turno Mañana'), ('tarde', 'Turno Tarde')]
     
@@ -26,12 +27,36 @@ class Caja(models.Model):
     fecha_hs_cierre = models.DateTimeField(null=True, blank=True)
     saldo_inicial = models.DecimalField(max_digits=10, decimal_places=2)
     saldo_final = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    ingresos = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Ingresos extra")  # NUEVO
+    egresos = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Egresos")  # NUEVO
+    monto_contado = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Monto contado")  # NUEVO
+    descripcion = models.TextField(blank=True, null=True)  # Cambiar observaciones por descripción
     turno = models.CharField(max_length=20, choices=TURNO_CHOICES, default='mañana')
-    descripcion = models.TextField(blank=True, null=True)
     estado = models.CharField(max_length=20, choices=[('abierta', 'Abierta'), ('cerrada', 'Cerrada')], default='abierta')
 
     def __str__(self):
         return f"Caja {self.id} - {self.turno}"
+
+    @property
+    def monto_esperado(self):
+        """Calcular monto esperado automáticamente"""
+        return self.saldo_inicial + self.ingresos - self.egresos
+
+    @property
+    def diferencia(self):
+        """Calcular diferencia entre monto esperado y contado"""
+        if self.monto_contado is not None:
+            return self.monto_contado - self.monto_esperado
+        return 0
+
+    @property
+    def total_ventas(self):
+        """Calcular total de ventas de esta caja"""
+        from django.db.models import Sum
+        ventas = Venta.objects.filter(caja=self)
+        if ventas.exists():
+            return ventas.aggregate(Sum('total_venta'))['total_venta__sum'] or 0
+        return 0
 
 # models.py - Actualizar el modelo Proveedor
 class Proveedor(models.Model):
@@ -164,14 +189,19 @@ class Venta(models.Model):
 
 class DetalleVenta(models.Model):
     venta = models.ForeignKey('Venta', on_delete=models.CASCADE, related_name='detalles')
-    producto = models.ForeignKey('Producto', on_delete=models.PROTECT)
+    producto = models.ForeignKey('Producto', on_delete=models.PROTECT, null=True, blank=True)
     cantidad = models.PositiveIntegerField(default=1)
     precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
     subtotal = models.DecimalField(max_digits=10, decimal_places=2)
     creado_en = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Detalle {self.id} - {self.producto.nombre_prod}"
+        # CORRECCIÓN: Verificar si producto existe antes de acceder a sus atributos
+        if self.producto:
+            producto_nombre = self.producto.nombre_prod
+        else:
+            producto_nombre = "Saeta"
+        return f"Detalle {self.id} - {producto_nombre}"
 
     def save(self, *args, **kwargs):
         # Calcular subtotal automáticamente
@@ -182,11 +212,14 @@ class DetalleVenta(models.Model):
         verbose_name = 'Detalle de Venta'
         verbose_name_plural = 'Detalles de Ventas'
 
+# En models.py - Modifica el modelo VentaSaeta
 class VentaSaeta(models.Model):
-    detalle_venta = models.ForeignKey('DetalleVenta', on_delete=models.CASCADE)
+    detalle_venta = models.ForeignKey('DetalleVenta', on_delete=models.CASCADE, null=True, blank=True)  # Hacer opcional
+    venta = models.ForeignKey('Venta', on_delete=models.CASCADE, null=True, blank=True)  # NUEVO CAMPO
     monto_saeta = models.DecimalField(max_digits=10, decimal_places=2)
     fecha_pago_saeta = models.DateField()
     porcentaje_ganancia_saeta = models.DecimalField(max_digits=5, decimal_places=2)
+    ganancia_drugstore = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     descripcion = models.TextField(blank=True, null=True)
 
     def __str__(self):

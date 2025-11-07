@@ -1,4 +1,4 @@
-# MiApp/serializers.py
+# MiApp/serializers.py - VERSIÓN COMPLETA CORREGIDA
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import Empleado, Producto, Proveedor, Caja, Venta, DetalleVenta, VentaSaeta, Compra
@@ -28,15 +28,12 @@ class ProveedorSerializer(serializers.ModelSerializer):
         fields = ['id', 'nombre_prov', 'tipo_prov', 'telefono_prov', 'correo_prov', 'direccion_prov', 'descripcion', 'estado']
 
 class ProductoSerializer(serializers.ModelSerializer):
-    stock_actual = serializers.ReadOnlyField()
-    
     class Meta:
         model = Producto
         fields = [
             'id', 'nombre_prod', 'categoria_prod', 'descripcion_prod',
             'precio_total', 'precio_venta', 'codigo_prod',
-            'fecha_entrada', 'fecha_vencimiento', 'cantidad', 
-            'stock_actual'
+            'fecha_entrada', 'fecha_vencimiento', 'cantidad'
         ]
 
 class CompraSerializer(serializers.ModelSerializer):
@@ -82,43 +79,35 @@ class CajaSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Caja
-        fields = ['id', 'empleado', 'empleado_nombre', 'fecha_hs_apertura', 'fecha_hs_cierre', 
-                 'saldo_inicial', 'saldo_final', 'turno', 'descripcion', 'estado']
+        fields = [
+            'id', 'empleado', 'empleado_nombre', 'fecha_hs_apertura', 'fecha_hs_cierre', 
+            'saldo_inicial', 'saldo_final', 'ingresos', 'egresos', 'monto_contado',
+            'descripcion', 'turno', 'estado'
+        ]
 
-# MiApp/serializers.py - VERSIÓN CORREGIDA
-# MiApp/serializers.py - Parte de Ventas
 class DetalleVentaSerializer(serializers.ModelSerializer):
     producto_nombre = serializers.CharField(source='producto.nombre_prod', read_only=True)
     
     class Meta:
         model = DetalleVenta
         fields = ['id', 'venta', 'producto', 'producto_nombre', 'cantidad', 'precio_unitario', 'subtotal', 'creado_en']
-        extra_kwargs = {
-            'venta': {'required': False},  # Hacer opcional para creación
-            'producto': {'required': True}  # Producto es requerido
-        }
 
 class VentaSerializer(serializers.ModelSerializer):
-    detalles = DetalleVentaSerializer(many=True, read_only=True)  # Solo lectura
+    detalles = DetalleVentaSerializer(many=True, read_only=True)
     empleado_nombre = serializers.CharField(source='caja.empleado.nombre_emp', read_only=True)
     
     class Meta:
         model = Venta
-        fields = ['id', 'caja', 'empleado_nombre', 'fecha_hora_venta', 'total_venta', 
-                 'estado_venta', 'tipo_pago_venta', 'monto_recibido', 'vuelto', 'descripcion', 'detalles', 'creado_en', 'actualizado_en']
-    
-# En serializers.py - AGREGAR ESTO
+        fields = [
+            'id', 'caja', 'empleado_nombre', 'fecha_hora_venta', 'total_venta', 
+            'estado_venta', 'tipo_pago_venta', 'monto_recibido', 'vuelto', 
+            'descripcion', 'detalles', 'creado_en', 'actualizado_en'
+        ]
+
 class VentaSaetaSerializer(serializers.ModelSerializer):
-    detalle_venta_info = serializers.CharField(source='detalle_venta.id', read_only=True)
-    
     class Meta:
         model = VentaSaeta
         fields = [
-            'id', 
-            'detalle_venta', 
-            'detalle_venta_info',
-            'monto_saeta', 
-            'fecha_pago_saeta', 
-            'porcentaje_ganancia_saeta', 
-            'descripcion'
+            'id', 'detalle_venta', 'venta', 'monto_saeta', 
+            'fecha_pago_saeta', 'porcentaje_ganancia_saeta', 'ganancia_drugstore', 'descripcion'
         ]
