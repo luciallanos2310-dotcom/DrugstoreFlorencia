@@ -1,9 +1,9 @@
-// Ventas.js
 import React, { useState, useEffect } from 'react';
-import { FaSearch, FaReceipt } from 'react-icons/fa';
-import DetalleVenta from './DetalleVenta';
+import { FaSearch, FaReceipt, FaPlus, FaMinus, FaTimes } from 'react-icons/fa';
 import ModalConfirmacion from '../Ventas/ModalConfirmacion';
 import VentasSaeta from './VentasSaeta';
+import IngresosEgresos from '../Caja/IngresosEgresos';
+import CierreCaja from '../Caja/CierreCaja';
 import './Ventas.css';
 
 function Ventas({ datosCaja, onCerrarCaja }) {
@@ -16,6 +16,8 @@ function Ventas({ datosCaja, onCerrarCaja }) {
   const [mostrarModalCancelar, setMostrarModalCancelar] = useState(false);
   const [mostrarModalExito, setMostrarModalExito] = useState(false);
   const [mostrarModalSaeta, setMostrarModalSaeta] = useState(false);
+  const [mostrarModalCerrarCaja, setMostrarModalCerrarCaja] = useState(false);
+  const [mostrarCierreCaja, setMostrarCierreCaja] = useState(false);
 
   const fechaActual = new Date().toLocaleDateString('es-ES', {
     weekday: 'long',
@@ -23,6 +25,10 @@ function Ventas({ datosCaja, onCerrarCaja }) {
     month: 'long',
     day: 'numeric'
   });
+
+  const handleRegistroAgregado = () => {
+    console.log('✅ Ingreso/Egreso registrado exitosamente');
+  };
 
   const cargarProductos = async () => {
     try {
@@ -40,7 +46,8 @@ function Ventas({ datosCaja, onCerrarCaja }) {
         
         const productosFormateados = data.map(producto => ({
           ...producto,
-          precio_venta: parseFloat(producto.precio_venta) || 0
+          precio_venta: parseFloat(producto.precio_venta) || 0,
+          cantidad: parseInt(producto.cantidad) || 0
         }));
         setProductos(productosFormateados);
       } else {
@@ -73,78 +80,43 @@ function Ventas({ datosCaja, onCerrarCaja }) {
     console.log('✅ Venta Saeta agregada a productos seleccionados:', productoSaeta);
   };
 
-  const productosIniciales = productos.slice(0, 5);
-  
-  const productosFiltrados = busqueda 
-    ? productos.filter(producto => {
-        const nombre = producto.nombre_prod || '';
-        const codigo = producto.codigo_prod || '';
-        
-        return (
-          nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-          codigo.toLowerCase().includes(busqueda.toLowerCase())
-        );
-      })
-    : productosIniciales;
-
-  const formatearPrecio = (precio) => {
-    const precioNumero = parseFloat(precio) || 0;
-    return precioNumero.toFixed(2);
+  const eliminarProducto = (id) => {
+    setProductosSeleccionados(prev =>
+      prev.filter(p => p.id !== id)
+    );
   };
 
-  // ✅ FUNCIÓN MEJORADA: Actualizar stock de productos (solo productos normales, no Saeta)
-  const actualizarStockProductos = async (productosVendidos) => {
-    try {
-      const token = localStorage.getItem('token');
-      const actualizaciones = [];
-
-      for (const producto of productosVendidos) {
-        // Saltar productos Saeta (no tienen stock)
-        if (producto.esSaeta) {
-          console.log('⏭️ Saltando actualización de stock para producto Saeta');
-          continue;
-        }
-
-        console.log(`🔄 Actualizando stock producto ${producto.id}: ${producto.cantidad} unidades vendidas`);
-
-        // Obtener producto actual
-        const response = await fetch(`http://localhost:8000/api/productos/${producto.id}/`, {
-          headers: { 'Authorization': `Token ${token}` }
-        });
-
-        if (response.ok) {
-          const productoActual = await response.json();
-          const nuevaCantidad = Math.max(productoActual.cantidad - producto.cantidad, 0);
-
-          // Actualizar con PATCH
-          const updateResponse = await fetch(`http://localhost:8000/api/productos/${producto.id}/`, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Token ${token}`
-            },
-            body: JSON.stringify({ cantidad: nuevaCantidad })
-          });
-
-          if (updateResponse.ok) {
-            console.log(`✅ Stock actualizado: ${producto.nombre} - ${nuevaCantidad} unidades`);
-            actualizaciones.push({ success: true, producto: producto.nombre });
-          } else {
-            const errorText = await updateResponse.text();
-            console.error(`❌ Error actualizando ${producto.nombre}:`, errorText);
-            actualizaciones.push({ success: false, producto: producto.nombre, error: errorText });
-          }
-        }
-      }
-
-      // Actualizar lista de productos en el estado
-      await cargarProductos();
-      return actualizaciones;
-
-    } catch (error) {
-      console.error('❌ Error en actualizarStockProductos:', error);
-      throw error;
+  const actualizarCantidad = (id, nuevaCantidad) => {
+    if (nuevaCantidad < 1) {
+      eliminarProducto(id);
+      return;
     }
+
+    // Para productos Saeta, no permitir cambiar cantidad
+    const productoSeleccionado = productosSeleccionados.find(p => p.id === id);
+    if (productoSeleccionado?.esSaeta) {
+      alert('❌ No se puede modificar la cantidad de recargas Saeta');
+      return;
+    }
+
+    const productoOriginal = productos.find(p => p.id === id);
+    
+    if (productoOriginal && nuevaCantidad > productoOriginal.cantidad) {
+      alert(`❌ No hay suficiente stock disponible. Stock: ${productoOriginal.cantidad}`);
+      return;
+    }
+
+    setProductosSeleccionados(prev =>
+      prev.map(p =>
+        p.id === id
+          ? { 
+              ...p, 
+              cantidad: nuevaCantidad, 
+              subtotal: nuevaCantidad * p.precio 
+            }
+          : p
+      )
+    );
   };
 
   const agregarProducto = (producto) => {
@@ -189,6 +161,7 @@ function Ventas({ datosCaja, onCerrarCaja }) {
         ...prev,
         { 
           ...producto, 
+          id: producto.id,
           cantidad: 1,
           nombre: nombre,
           precio: precio,
@@ -198,43 +171,115 @@ function Ventas({ datosCaja, onCerrarCaja }) {
     }
   };
 
-  const eliminarProducto = (id) => {
-    setProductosSeleccionados(prev =>
-      prev.filter(p => p.id !== id)
-    );
+  // ✅ Función para manejar el cierre de caja - CORREGIDA
+  const handleCerrarCaja = () => {
+    console.log('🔄 Iniciando proceso de cierre de caja...');
+    setMostrarModalCerrarCaja(true);
   };
 
-  const actualizarCantidad = (id, nuevaCantidad) => {
-    if (nuevaCantidad < 1) {
-      eliminarProducto(id);
-      return;
-    }
+  // ✅ Función para confirmar el cierre de caja - CORREGIDA
+  const handleConfirmarCierreCaja = () => {
+    console.log('✅ Confirmando cierre de caja, mostrando componente...');
+    setMostrarModalCerrarCaja(false);
+    setMostrarCierreCaja(true);
+  };
 
-    // Para productos Saeta, no permitir cambiar cantidad
-    const productoSeleccionado = productosSeleccionados.find(p => p.id === id);
-    if (productoSeleccionado?.esSaeta) {
-      alert('❌ No se puede modificar la cantidad de recargas Saeta');
-      return;
-    }
-
-    const productoOriginal = productos.find(p => p.id === id);
+  // ✅ Función cuando se completa el cierre de caja - MODIFICADA PARA REDIRIGIR A CAJA
+  const handleCierreCompletado = () => {
+    console.log('🏁 Cierre de caja completado, redirigiendo a módulo caja...');
+    setMostrarCierreCaja(false);
     
-    if (productoOriginal && nuevaCantidad > productoOriginal.cantidad) {
-      alert('❌ No hay suficiente stock disponible');
-      return;
+    // 🔥 REDIRIGIR AL MÓDULO DE CAJA
+    if (window.setModuloActivo) {
+      window.setModuloActivo('caja');
     }
+    
+    if (onCerrarCaja) {
+      onCerrarCaja();
+    }
+  };
 
-    setProductosSeleccionados(prev =>
-      prev.map(p =>
-        p.id === id
-          ? { 
-              ...p, 
-              cantidad: nuevaCantidad, 
-              subtotal: nuevaCantidad * p.precio 
-            }
-          : p
-      )
-    );
+  const productosIniciales = productos.slice(0, 8);
+  
+  const productosFiltrados = busqueda 
+    ? productos.filter(producto => {
+        const nombre = producto.nombre_prod || '';
+        const codigo = producto.codigo_prod || '';
+        
+        return (
+          nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+          codigo.toLowerCase().includes(busqueda.toLowerCase())
+        );
+      })
+    : productosIniciales;
+
+  const formatearPrecio = (precio) => {
+    const precioNumero = parseFloat(precio) || 0;
+    return precioNumero.toFixed(2);
+  };
+
+  // ✅ FUNCIÓN MEJORADA: Actualizar stock de productos (solo productos normales, no Saeta)
+  const actualizarStockProductos = async (productosVendidos) => {
+    try {
+      const token = localStorage.getItem('token');
+      const actualizaciones = [];
+
+      for (const producto of productosVendidos) {
+        // Saltar productos Saeta (no tienen stock)
+        if (producto.esSaeta) {
+          console.log('⏭️ Saltando actualización de stock para producto Saeta');
+          continue;
+        }
+
+        console.log(`🔄 Actualizando stock producto ${producto.id}: ${producto.cantidad} unidades vendidas`);
+
+        // Obtener producto actual
+        const response = await fetch(`http://localhost:8000/api/productos/${producto.id}/`, {
+          headers: { 'Authorization': `Token ${token}` }
+        });
+
+        if (response.ok) {
+          const productoActual = await response.json();
+          const nuevaCantidad = Math.max(productoActual.cantidad - producto.cantidad, 0);
+
+          // Actualizar con PATCH - CORREGIDO: enviar solo los campos necesarios
+          const updateResponse = await fetch(`http://localhost:8000/api/productos/${producto.id}/`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Token ${token}`
+            },
+            body: JSON.stringify({ 
+              cantidad: nuevaCantidad,
+              nombre_prod: productoActual.nombre_prod,
+              precio_venta: productoActual.precio_venta,
+              categoria_prod: productoActual.categoria_prod,
+              precio_total: productoActual.precio_total
+            })
+          });
+
+          if (updateResponse.ok) {
+            console.log(`✅ Stock actualizado: ${producto.nombre} - ${nuevaCantidad} unidades`);
+            actualizaciones.push({ success: true, producto: producto.nombre });
+          } else {
+            const errorText = await updateResponse.text();
+            console.error(`❌ Error actualizando ${producto.nombre}:`, errorText);
+            actualizaciones.push({ success: false, producto: producto.nombre, error: errorText });
+          }
+        } else {
+          console.error(`❌ Error obteniendo producto ${producto.id}`);
+          actualizaciones.push({ success: false, producto: producto.nombre, error: 'No se pudo obtener el producto' });
+        }
+      }
+
+      // Actualizar lista de productos en el estado
+      await cargarProductos();
+      return actualizaciones;
+
+    } catch (error) {
+      console.error('❌ Error en actualizarStockProductos:', error);
+      throw error;
+    }
   };
 
   const calcularTotal = () => {
@@ -258,31 +303,41 @@ function Ventas({ datosCaja, onCerrarCaja }) {
       return;
     }
 
+    // Validar que haya productos seleccionados
+    if (productosSeleccionados.length === 0) {
+      alert('❌ No hay productos seleccionados para vender');
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       
       // ✅ 1. PRIMERO ACTUALIZAR STOCK (solo productos normales)
       console.log('🔄 Actualizando stock de productos...');
       const productosNormales = productosSeleccionados.filter(p => !p.esSaeta);
-      const resultadosStock = await actualizarStockProductos(productosNormales);
       
-      const erroresStock = resultadosStock.filter(r => !r.success);
-      if (erroresStock.length > 0) {
-        alert('Error al actualizar stock. Venta cancelada.');
-        return;
+      if (productosNormales.length > 0) {
+        const resultadosStock = await actualizarStockProductos(productosNormales);
+        const erroresStock = resultadosStock.filter(r => !r.success);
+        if (erroresStock.length > 0) {
+          alert('❌ Error al actualizar stock. Venta cancelada.');
+          return;
+        }
+        console.log('✅ Stock actualizado correctamente');
       }
 
-      // ✅ 2. LUEGO CREAR LA VENTA
+      // ✅ 2. CREAR VENTA PRINCIPAL (para todos los productos)
       const ventaData = {
         caja: datosCaja?.id,
         total_venta: total,
         tipo_pago_venta: metodoPago,
         monto_recibido: metodoPago === 'efectivo' ? parseFloat(montoRecibido) : 0,
         vuelto: metodoPago === 'efectivo' ? vuelto : 0,
-        estado_venta: 'completada'
+        estado_venta: 'completada',
+        descripcion: `Venta con ${productosSeleccionados.length} productos`
       };
 
-      console.log('📤 Creando venta:', ventaData);
+      console.log('📤 Creando venta principal:', ventaData);
 
       const responseVenta = await fetch('http://localhost:8000/api/ventas/', {
         method: 'POST',
@@ -299,9 +354,9 @@ function Ventas({ datosCaja, onCerrarCaja }) {
       }
 
       const ventaCreada = await responseVenta.json();
-      console.log('✅ Venta creada:', ventaCreada);
+      console.log('✅ Venta principal creada:', ventaCreada);
       
-      // ✅ 3. FINALMENTE CREAR DETALLES (solo productos normales)
+      // ✅ 3. CREAR DETALLES PARA PRODUCTOS NORMALES
       for (const producto of productosNormales) {
         const detalleData = {
           venta: ventaCreada.id,
@@ -322,6 +377,35 @@ function Ventas({ datosCaja, onCerrarCaja }) {
 
         if (!responseDetalle.ok) {
           console.error(`❌ Error creando detalle para ${producto.nombre}`);
+          const errorDetalle = await responseDetalle.text();
+          console.error('Error detalle:', errorDetalle);
+        } else {
+          console.log(`✅ Detalle creado para ${producto.nombre}`);
+        }
+      }
+
+      // ✅ 4. ACTUALIZAR VENTAS SAETA CON LA VENTA CREADA
+      const productosSaeta = productosSeleccionados.filter(p => p.esSaeta);
+      for (const productoSaeta of productosSaeta) {
+        if (productoSaeta.datosSaeta) {
+          const saetaUpdateData = {
+            venta: ventaCreada.id
+          };
+
+          const responseSaeta = await fetch(`http://localhost:8000/api/ventas_saeta/${productoSaeta.datosSaeta.id}/`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Token ${token}`
+            },
+            body: JSON.stringify(saetaUpdateData)
+          });
+
+          if (responseSaeta.ok) {
+            console.log('✅ Venta Saeta actualizada con venta principal');
+          } else {
+            console.error('❌ Error actualizando venta Saeta');
+          }
         }
       }
       
@@ -332,12 +416,13 @@ function Ventas({ datosCaja, onCerrarCaja }) {
       setTimeout(() => {
         setProductosSeleccionados([]);
         setMontoRecibido('');
+        setMetodoPago('efectivo');
         setMostrarModalExito(false);
       }, 3000);
       
     } catch (error) {
       console.error('❌ Error completo al procesar venta:', error);
-      alert('Error al procesar la venta: ' + error.message);
+      alert('❌ Error al procesar la venta: ' + error.message);
       setMostrarModalConfirmar(false);
     }
   };
@@ -345,6 +430,7 @@ function Ventas({ datosCaja, onCerrarCaja }) {
   const handleCancelarCobro = () => {
     setProductosSeleccionados([]);
     setMontoRecibido('');
+    setMetodoPago('efectivo');
     setMostrarModalCancelar(false);
   };
 
@@ -355,36 +441,168 @@ function Ventas({ datosCaja, onCerrarCaja }) {
     vuelto: calcularVuelto(),
     cantidadProductos: productosSeleccionados.length
   };
+  
+
+  // ✅ Componente DetalleVenta integrado
+  const DetalleVenta = () => {
+    return (
+      <div className="seccion-resumen">
+        <div className="resumen-venta">
+          <h2>Productos Seleccionados</h2>
+          <div className="lista-productos-seleccionados">
+            <table className="tabla-seleccionados">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Precio Unit.</th>
+                  <th>Cantidad</th>
+                  <th>Sub total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {productosSeleccionados.map(producto => (
+                  <tr key={producto.id}>
+                    <td>
+                      <div className="producto-info">
+                        <span className="nombre-producto">{producto.nombre}</span>
+                        
+                      </div>
+                      
+                    </td>
+                    <td className="precio-unitario">${producto.precio.toFixed(2)}</td>
+                    <td>
+                      <div className="controles-cantidad">
+                        <button
+                          onClick={() => actualizarCantidad(producto.id, producto.cantidad - 1)}
+                          className="btn-cantidad"
+                        >
+                          <FaMinus />
+                        </button>
+                        <span className="cantidad">{producto.cantidad}</span>
+                        <button
+                          onClick={() => actualizarCantidad(producto.id, producto.cantidad + 1)}
+                          className="btn-cantidad"
+                        >
+                          <FaPlus />
+                        </button>
+                      </div>
+                    </td>
+                    <td className="subtotal">${producto.subtotal.toFixed(2)}</td>
+                    <button 
+                          className="btn-eliminar-producto"
+                          onClick={() => eliminarProducto(producto.id)}
+                          title="Eliminar producto"
+                        >
+                          <FaTimes />
+                        </button>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {productosSeleccionados.length === 0 && (
+              <div className="sin-seleccionados">
+                No hay productos seleccionados
+              </div>
+            )}
+          </div>
+
+          <div className="total-venta">
+            <div className="total-linea"></div>
+            <div className="total-monto">
+              <strong>TOTAL:</strong>
+              <strong>${calcularTotal().toFixed(2)}</strong>
+            </div>
+          </div>
+
+          <div className="metodo-pago">
+            <h3>Método de pago</h3>
+            <div className="opciones-pago">
+              <label className="opcion-pago">
+                <input
+                  type="radio"
+                  value="efectivo"
+                  checked={metodoPago === 'efectivo'}
+                  onChange={(e) => setMetodoPago(e.target.value)}
+                />
+                Efectivo
+              </label>
+              <label className="opcion-pago">
+                <input
+                  type="radio"
+                  value="transferencia"
+                  checked={metodoPago === 'transferencia'}
+                  onChange={(e) => setMetodoPago(e.target.value)}
+                />
+                Transferencia
+              </label>
+            </div>
+          </div>
+
+         
+        </div>
+        <div className="acciones-venta">
+          <button 
+              className="boton-cancelar-cobro"
+              onClick={() => setMostrarModalCancelar(true)}
+              disabled={productosSeleccionados.length === 0}
+            >
+              Cancelar Cobro
+            </button>
+            <button
+              className="boton-confirmar-cobro"
+              onClick={() => setMostrarModalConfirmar(true)}
+              disabled={productosSeleccionados.length === 0 || (metodoPago === 'efectivo' && (!montoRecibido || parseFloat(montoRecibido) < calcularTotal()))}
+            >
+            Confirmar Cobro
+          </button>
+         </div>  
+      </div>
+    );
+  };
+
+  // ✅ Si estamos mostrando el cierre de caja, mostrar ese componente
+  if (mostrarCierreCaja) {
+    console.log('📊 Mostrando componente CierreCaja con datos:', datosCaja);
+    return (
+      <CierreCaja 
+        cajaId={datosCaja?.id}
+        datosCaja={datosCaja}
+        onCierreConfirmado={handleCierreCompletado}
+        onCancelar={() => setMostrarCierreCaja(false)}
+      />
+    );
+  }
 
   return (
     <div className="ventas-container">
       <div className="ventas-header">
         <div className="ventas-titulo">
-          <h1>florencia DRUGSTORE</h1>
+          <h1>Ventas Drugstore</h1>
           <div className="ventas-fecha">{fechaActual}</div>
         </div>
         <div className="header-actions">
-          <button className="btn-reportes">
-            Reportes Diarios
-          </button>
           <button 
             className="btn-saeta"
             onClick={() => setMostrarModalSaeta(true)}
           >
-            Saeta
+            SAETA
           </button>
+          
+          <IngresosEgresos 
+            cajaId={datosCaja?.id}
+            onRegistroAgregado={handleRegistroAgregado}
+          />
         </div>
       </div>
 
       <div className="ventas-content">
         <div className="seccion-productos">
           <div className="buscar-productos">
-            <h2>Buscar productos</h2>
             <div className="buscar-input-container">
               <FaSearch className="icono-buscar" />
               <input
                 type="text"
-                placeholder="Buscar por nombre o código..."
+                placeholder="Buscar productos"
                 className="buscar-input"
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
@@ -396,11 +614,10 @@ function Ventas({ datosCaja, onCerrarCaja }) {
             <table className="tabla-productos">
               <thead>
                 <tr>
+                  <th className="columna-checkbox"></th>
                   <th>Código</th>
                   <th>Producto</th>
                   <th>Precio</th>
-                  <th>Stock</th>
-                  <th>Acción</th>
                 </tr>
               </thead>
               <tbody>
@@ -409,24 +626,31 @@ function Ventas({ datosCaja, onCerrarCaja }) {
                   const nombre = producto.nombre_prod || 'Producto sin nombre';
                   const precio = producto.precio_venta || 0;
                   const stock = producto.cantidad || 0;
+                  const estaSeleccionado = productosSeleccionados.some(p => p.id === producto.id);
                   
                   return (
-                    <tr key={producto.id}>
+                    <tr 
+                      key={producto.id} 
+                      className={`fila-producto ${estaSeleccionado ? 'seleccionado' : ''} ${stock === 0 ? 'sin-stock' : ''}`}
+                    >
+                      <td className="columna-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={estaSeleccionado}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              agregarProducto(producto);
+                            } else {
+                              eliminarProducto(producto.id);
+                            }
+                          }}
+                          disabled={stock === 0}
+                          className="checkbox-producto"
+                        />
+                      </td>
                       <td className="codigo-producto">{codigo}</td>
                       <td className="nombre-producto">{nombre}</td>
                       <td className="precio-producto">${formatearPrecio(precio)}</td>
-                      <td className={`stock-producto ${stock === 0 ? 'sin-stock' : stock < 5 ? 'stock-bajo' : ''}`}>
-                        {stock} unidades
-                      </td>
-                      <td>
-                        <button
-                          className="btn-agregar"
-                          onClick={() => agregarProducto(producto)}
-                          disabled={stock === 0}
-                        >
-                          {stock === 0 ? 'Sin Stock' : 'Agregar'}
-                        </button>
-                      </td>
                     </tr>
                   );
                 })}
@@ -438,22 +662,49 @@ function Ventas({ datosCaja, onCerrarCaja }) {
               </div>
             )}
           </div>
+
+          {/* SECCIÓN MONTO RECIBIDO - AHORA DENTRO DE .seccion-productos */}
+          {metodoPago === 'efectivo' && (
+            <div className="monto-recibido-section">
+              <div className="monto-recibido-horizontal">
+                <div className="monto-input-container">
+                  <label>Monto Recibido</label>
+                  <div className="input-wrapper">
+                   {/* <span className="simbolo-peso">$</span> */}
+                    <input
+                      type="number"
+                      value={montoRecibido}
+                      onChange={(e) => setMontoRecibido(e.target.value)}
+                      placeholder="0.00"
+                      className="monto-input"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                </div>
+                
+                <div className="vuelto-display">
+                  <label>Vuelto</label>
+                  <div className="vuelto-monto">
+                    {montoRecibido && calcularVuelto() >= 0 ? (
+                      <strong>${calcularVuelto().toFixed(2)}</strong>
+                    ) : (
+                      <span style={{color: '#666b6fff'}}>$ 0.00</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+           <button 
+            className="btn-cerrar-caja"
+            onClick={handleCerrarCaja}
+          >
+            Ir a cierre de caja
+          </button>
         </div>
 
-        <DetalleVenta
-          productosSeleccionados={productosSeleccionados}
-          eliminarProducto={eliminarProducto}
-          actualizarCantidad={actualizarCantidad}
-          calcularTotal={calcularTotal}
-          metodoPago={metodoPago}
-          setMetodoPago={setMetodoPago}
-          montoRecibido={montoRecibido}
-          setMontoRecibido={setMontoRecibido}
-          calcularVuelto={calcularVuelto}
-          setMostrarModalConfirmar={setMostrarModalConfirmar}
-          setMostrarModalCancelar={setMostrarModalCancelar}
-          onCerrarCaja={onCerrarCaja}
-        />
+        <DetalleVenta />
       </div>
 
       {/* Modales de venta normal */}
@@ -480,6 +731,23 @@ function Ventas({ datosCaja, onCerrarCaja }) {
         mensaje="¡Venta procesada exitosamente!"
         onConfirmar={() => setMostrarModalExito(false)}
         onCancelar={() => setMostrarModalExito(false)}
+      />
+
+      {/* ✅ Modal de confirmación para cerrar caja */}
+      <ModalConfirmacion
+        mostrar={mostrarModalCerrarCaja}
+        tipo="cierre_caja"
+        mensaje="¿Está seguro que desea cerrar la caja?"
+        onConfirmar={handleConfirmarCierreCaja}
+        onCancelar={() => {
+          console.log('❌ Cierre de caja cancelado');
+          setMostrarModalCerrarCaja(false);
+        }}
+        datosApertura={{
+          empleadoNombre: datosCaja?.empleadoNombre,
+          turnoNombre: datosCaja?.turnoNombre,
+          montoInicial: datosCaja?.montoInicial || datosCaja?.saldo_inicial
+        }}
       />
 
       {/* Modal de Ventas Saeta */}

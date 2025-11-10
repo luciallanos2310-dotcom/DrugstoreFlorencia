@@ -1,4 +1,3 @@
-// VentasSaeta.js
 import React, { useState, useEffect } from 'react';
 import { FaCalculator, FaPercentage, FaCalendarAlt, FaStickyNote } from 'react-icons/fa';
 import ModalConfirmacion from './ModalConfirmacion';
@@ -12,12 +11,16 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
     descripcion: ''
   });
   const [calculando, setCalculando] = useState(false);
-  const [gananciaCalculada, setGananciaCalculada] = useState(0);
+  const [gananciaDrugstore, setGananciaDrugstore] = useState(0);
+  const [montoParaSaeta, setMontoParaSaeta] = useState(0);
   const [mostrarModalConfirmar, setMostrarModalConfirmar] = useState(false);
+  const [mostrarModalExito, setMostrarModalExito] = useState(false);
+  const [mostrarModalError, setMostrarModalError] = useState(false);
+  const [mensajeError, setMensajeError] = useState('');
 
-  // Calcular ganancia cuando cambien monto o porcentaje
+  // Calcular ganancias cuando cambien monto o porcentaje
   useEffect(() => {
-    calcularGanancia();
+    calcularGanancias();
   }, [formData.monto_saeta, formData.porcentaje_ganancia_saeta]);
 
   // Resetear form al abrir
@@ -29,7 +32,8 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
         porcentaje_ganancia_saeta: 15,
         descripcion: ''
       });
-      setGananciaCalculada(0);
+      setGananciaDrugstore(0);
+      setMontoParaSaeta(0);
     }
   }, [mostrar]);
 
@@ -41,21 +45,35 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
     }));
   };
 
-  const calcularGanancia = () => {
-    const monto = parseFloat(formData.monto_saeta) || 0;
-    const porcentaje = parseFloat(formData.porcentaje_ganancia_saeta) || 0;
+  const calcularGanancias = () => {
+    const montoTotal = parseFloat(formData.monto_saeta) || 0;
+    const porcentajeSaeta = parseFloat(formData.porcentaje_ganancia_saeta) || 0;
     
-    if (monto > 0 && porcentaje > 0) {
-      const ganancia = (monto * porcentaje) / 100;
-      setGananciaCalculada(ganancia);
+    if (montoTotal > 0 && porcentajeSaeta > 0) {
+      const montoSaeta = (montoTotal * porcentajeSaeta) / 100;
+      const gananciaDrugstoreCalc = montoTotal - montoSaeta;
+      
+      setMontoParaSaeta(montoSaeta);
+      setGananciaDrugstore(gananciaDrugstoreCalc);
     } else {
-      setGananciaCalculada(0);
+      setMontoParaSaeta(0);
+      setGananciaDrugstore(0);
     }
+  };
+
+  const mostrarError = (mensaje) => {
+    setMensajeError(mensaje);
+    setMostrarModalError(true);
   };
 
   const handleConfirmarVentaSaeta = async () => {
     if (!formData.monto_saeta || parseFloat(formData.monto_saeta) <= 0) {
-      alert('Por favor ingrese un monto válido');
+      mostrarError('Por favor ingrese un monto válido');
+      return;
+    }
+
+    if (!cajaId) {
+      mostrarError('Error: No se encontró la caja activa');
       return;
     }
 
@@ -63,17 +81,86 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
       setCalculando(true);
       const token = localStorage.getItem('token');
 
-      // Crear la venta Saeta SIN detalle_venta (campo opcional)
+      const montoTotal = parseFloat(formData.monto_saeta);
+      const porcentajeSaeta = parseFloat(formData.porcentaje_ganancia_saeta);
+
+      console.log('🔄 Iniciando creación de venta Saeta para caja:', cajaId);
+
+      // ✅ 1. PRIMERO crear una VENTA para Saeta
+      const ventaData = {
+        caja: cajaId,
+        total_venta: montoTotal,
+        tipo_pago_venta: 'efectivo',
+        monto_recibido: montoTotal,
+        vuelto: 0,
+        estado_venta: 'completada',
+        descripcion: 'Venta Saeta - Recarga de saldo'
+      };
+
+      console.log('📤 Creando venta para Saeta:', ventaData);
+
+      const responseVenta = await fetch('http://localhost:8000/api/ventas/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Token ${token}`
+        },
+        body: JSON.stringify(ventaData)
+      });
+
+      if (!responseVenta.ok) {
+        const errorData = await responseVenta.json();
+        throw new Error(`Error creando venta: ${JSON.stringify(errorData)}`);
+      }
+
+      const ventaCreada = await responseVenta.json();
+      console.log('✅ Venta creada para Saeta:', ventaCreada);
+
+      // ✅ 2. LUEGO crear el DetalleVenta
+      const detalleData = {
+        venta: ventaCreada.id,
+        producto: null,
+        cantidad: 1,
+        precio_unitario: montoTotal,
+        subtotal: montoTotal
+      };
+
+      console.log('📤 Creando detalle venta para Saeta:', detalleData);
+
+      const responseDetalle = await fetch('http://localhost:8000/api/detalle_ventas/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Token ${token}`
+        },
+        body: JSON.stringify(detalleData)
+      });
+
+      if (!responseDetalle.ok) {
+        await fetch(`http://localhost:8000/api/ventas/${ventaCreada.id}/`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Token ${token}` }
+        });
+        throw new Error('Error creando detalle venta');
+      }
+
+      const detalleCreado = await responseDetalle.json();
+      console.log('✅ Detalle venta creado:', detalleCreado);
+
+      // ✅ 3. FINALMENTE crear la VentaSaeta
       const ventaSaetaData = {
-        monto_saeta: parseFloat(formData.monto_saeta),
+        detalle_venta: detalleCreado.id,
+        venta: ventaCreada.id,
+        monto_saeta: montoTotal,
         fecha_pago_saeta: formData.fecha_pago_saeta,
-        porcentaje_ganancia_saeta: parseFloat(formData.porcentaje_ganancia_saeta),
+        porcentaje_ganancia_saeta: porcentajeSaeta,
+        ganancia_drugstore: gananciaDrugstore,
         descripcion: formData.descripcion || 'Recarga Saeta'
       };
 
       console.log('📤 Creando venta Saeta:', ventaSaetaData);
 
-      const response = await fetch('http://localhost:8000/api/ventas_saeta/', {
+      const responseSaeta = await fetch('http://localhost:8000/api/ventas_saeta/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -82,42 +169,52 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
         body: JSON.stringify(ventaSaetaData)
       });
 
-      if (response.ok) {
-        const ventaSaetaCreada = await response.json();
+      if (responseSaeta.ok) {
+        const ventaSaetaCreada = await responseSaeta.json();
         console.log('✅ Venta Saeta creada:', ventaSaetaCreada);
         
-        // Cerrar modales
-        setMostrarModalConfirmar(false);
-        
-        // Notificar a Ventas.js que se creó una venta Saeta
+        // Notificar a Ventas.js
         if (onVentaSaetaCreada) {
           onVentaSaetaCreada(ventaSaetaCreada);
         }
         
-        // Mostrar éxito y cerrar
+        setMostrarModalConfirmar(false);
+        setMostrarModalExito(true);
+        
         setTimeout(() => {
+          setMostrarModalExito(false);
           onCerrar();
-          alert('✅ Venta Saeta registrada exitosamente');
-        }, 500);
+        }, 2000);
         
       } else {
-        const errorData = await response.json();
+        const errorData = await responseSaeta.json();
         console.error('❌ Error creando venta Saeta:', errorData);
-        alert('Error al crear venta Saeta: ' + JSON.stringify(errorData));
+        
+        // Limpiar recursos creados en caso de error
+        await fetch(`http://localhost:8000/api/detalle_ventas/${detalleCreado.id}/`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Token ${token}` }
+        });
+        await fetch(`http://localhost:8000/api/ventas/${ventaCreada.id}/`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Token ${token}` }
+        });
+        
+        mostrarError('Error al crear venta Saeta: ' + JSON.stringify(errorData));
       }
     } catch (error) {
       console.error('❌ Error creando venta Saeta:', error);
-      alert('Error de conexión al crear venta Saeta');
+      mostrarError('Error de conexión al crear venta Saeta: ' + error.message);
     } finally {
       setCalculando(false);
     }
   };
 
   const datosParaModal = {
-    montoSaeta: parseFloat(formData.monto_saeta) || 0,
-    porcentaje: parseFloat(formData.porcentaje_ganancia_saeta) || 0,
-    ganancia: gananciaCalculada,
-    totalSaeta: (parseFloat(formData.monto_saeta) || 0) - gananciaCalculada
+    montoTotal: parseFloat(formData.monto_saeta) || 0,
+    porcentajeSaeta: parseFloat(formData.porcentaje_ganancia_saeta) || 0,
+    montoParaSaeta: montoParaSaeta,
+    gananciaDrugstore: gananciaDrugstore
   };
 
   if (!mostrar) return null;
@@ -137,27 +234,27 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
           <div className="resumen-calculo-saeta">
             <div className="tarjeta-resumen">
               <div className="item-resumen">
-                <span className="label">Monto Recarga:</span>
+                <span className="label">Monto Total Recarga:</span>
                 <span className="valor">
                   ${formData.monto_saeta ? parseFloat(formData.monto_saeta).toFixed(2) : '0.00'}
                 </span>
               </div>
               <div className="item-resumen">
-                <span className="label">Porcentaje Ganancia:</span>
+                <span className="label">Porcentaje</span>
                 <span className="valor">
                   {formData.porcentaje_ganancia_saeta}%
                 </span>
               </div>
-              <div className="item-resumen ganancia">
-                <span className="label">Ganancia Drugstore:</span>
-                <span className="valor destacado">
-                  ${gananciaCalculada.toFixed(2)}
+              <div className="item-resumen monto-saeta">
+                <span className="label">Ganancia Saeta</span>
+                <span className="valor saeta">
+                  ${montoParaSaeta.toFixed(2)}
                 </span>
               </div>
-              <div className="item-resumen total-saeta">
-                <span className="label">Total para Saeta:</span>
-                <span className="valor total">
-                  ${formData.monto_saeta ? (parseFloat(formData.monto_saeta) - gananciaCalculada).toFixed(2) : '0.00'}
+              <div className="item-resumen ganancia-drugstore">
+                <span className="label">Ganancia Drugstore:</span>
+                <span className="valor destacado">
+                  ${gananciaDrugstore.toFixed(2)}
                 </span>
               </div>
             </div>
@@ -167,8 +264,7 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
           <div className="formulario-saeta">
             <div className="campo-grupo-saeta">
               <label htmlFor="monto_saeta">
-                <FaCalculator className="icono-campo" />
-                Monto de Recarga Saeta *
+                Monto Total de Recarga *
               </label>
               <input
                 type="number"
@@ -179,6 +275,7 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
                 placeholder="0.00"
                 step="0.01"
                 min="0"
+                max="999999.99"
                 className="campo-input-saeta"
                 required
               />
@@ -186,8 +283,7 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
 
             <div className="campo-grupo-saeta">
               <label htmlFor="porcentaje_ganancia_saeta">
-                <FaPercentage className="icono-campo" />
-                Porcentaje de Ganancia *
+                Porcentaje *
               </label>
               <input
                 type="number"
@@ -205,8 +301,7 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
 
             <div className="campo-grupo-saeta">
               <label htmlFor="fecha_pago_saeta">
-                <FaCalendarAlt className="icono-campo" />
-                Fecha de Pago
+                Fecha
               </label>
               <input
                 type="date"
@@ -220,22 +315,19 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
 
             <div className="campo-grupo-saeta">
               <label htmlFor="descripcion">
-                <FaStickyNote className="icono-campo" />
-                Descripción / Notas
+                Descripción 
               </label>
               <textarea
                 id="descripcion"
                 name="descripcion"
                 value={formData.descripcion}
                 onChange={handleChange}
-                placeholder="Ej: Recarga de saldo, pago de servicio, etc."
                 className="campo-textarea-saeta"
                 rows="3"
               />
             </div>
           </div>
         </div>
-
         <div className="modal-footer-saeta">
           <button 
             className="btn-cancelar-saeta" 
@@ -247,7 +339,7 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
           <button 
             className="btn-confirmar-saeta"
             onClick={() => setMostrarModalConfirmar(true)}
-            disabled={calculando || !formData.monto_saeta}
+            disabled={calculando || !formData.monto_saeta || !cajaId}
           >
             {calculando ? 'Procesando...' : 'Confirmar Venta Saeta'}
           </button>
@@ -257,11 +349,34 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
       {/* Modal de Confirmación */}
       <ModalConfirmacion
         mostrar={mostrarModalConfirmar}
-        tipo="confirmar"
+        tipo="confirmar_saeta"
         mensaje="¿Está seguro que desea registrar esta venta Saeta?"
         onConfirmar={handleConfirmarVentaSaeta}
         onCancelar={() => setMostrarModalConfirmar(false)}
-        datosVenta={datosParaModal}
+      />
+
+      {/* Modal de Éxito */}
+      <ModalConfirmacion
+        mostrar={mostrarModalExito}
+        tipo="exito"
+        mensaje="¡Venta Saeta registrada exitosamente!"
+        onConfirmar={() => {
+          setMostrarModalExito(false);
+          onCerrar();
+        }}
+        onCancelar={() => {
+          setMostrarModalExito(false);
+          onCerrar();
+        }}
+      />
+
+      {/* Modal de Error */}
+      <ModalConfirmacion
+        mostrar={mostrarModalError}
+        tipo="error"
+        mensaje={mensajeError}
+        onConfirmar={() => setMostrarModalError(false)}
+        onCancelar={() => setMostrarModalError(false)}
       />
     </div>
   );

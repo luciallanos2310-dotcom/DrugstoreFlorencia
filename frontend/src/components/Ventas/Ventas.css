@@ -1,195 +1,429 @@
 /* Estilos para reducir el tamaño de fuente general */
 .ventas-container {
-  font-size: 0.9em;
   height: 100vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background-color: white;
+}
+
+/* Header styles */
+.ventas-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background-color: white;
+}
+
+.ventas-titulo h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #333;
+}
+
+.ventas-fecha {
+  color: #666;
+  font-size: 12px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-saeta {
+  padding: 7px 30px;
+  border: 1px solid #989797;
+  background: rgb(63, 65, 137);
+  border-radius: 20px;
+  cursor: pointer;
+  color: rgb(255, 255, 255);
+  font-weight: 700;
+  font-size: 14px;
 }
 
 /* Layout principal */
 .ventas-content {
   display: flex;
   flex: 1;
-  gap: 20px;
+  gap: 30px;
   overflow: hidden;
-  padding: 0 20px 20px 20px;
+  padding: 0 0px 20px 20px;
+  background-color: white;
 }
 
 .seccion-productos {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0; /* Importante para el scroll */
+  background-color: white;
+  flex: 0.8;
 }
 
-.seccion-resumen {
-  width: 400px;
-  display: flex;
-  flex-direction: column;
-  min-height: 0; /* Importante para el scroll */
+/* Buscar productos */
+.buscar-productos {
+  padding: 15px 0px;
+  background: white;
 }
 
-/* Scroll para la sección de productos */
+.buscar-input-container {
+  position: relative;
+}
+
+.icono-buscar {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #666;
+}
+
+.buscar-input {
+  padding: 10px 250px 10px 35px;
+  border: 1px solid #efeeee;
+  display: flex;
+  justify-content: left;
+  font-size: 14px;
+  border-radius: 15px;
+  background-color: #efeeee;
+}
+
 .lista-productos-ventas {
   flex: 1;
   overflow-y: auto;
-  border: 1px solid #ddd;
   border-radius: 4px;
+  background-color: white;
+  margin-bottom: 10px; /* Reducir margen */
 }
 
-/* Scroll para productos seleccionados */
-.resumen-venta {
+
+/* Estilos para las tablas */
+.tabla-productos {
+  width: 80%;
+  background-color: white;
+}
+
+.tabla-productos th,
+.tabla-productos td {
+  padding: 8px 0px 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid #c6c3c3;
+  background-color: white;
+}
+
+.tabla-productos th {
+  background-color: white;
+  font-weight: 600;
+  position: sticky;
+  font-size: 14px;
+}
+
+/* Estilos para checkbox, nombres y códigos de productos */
+
+.columna-checkbox {
+  width: 30px;
+  text-align: center;
+}
+
+.checkbox-producto {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+.checkbox-producto:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.codigo-producto {
+  font-weight: 500;
+  font-size: 11x;
+  color: #333;
+}
+
+.nombre-producto {
+  font-weight: 500;
+  color: #333;
+  font-size: 13px;
+}
+
+.precio-producto {
+  font-weight: bold;
+  color: #333;
+  font-size: 13px;
+}
+
+/* Estilos para la sección de monto recibido - VERSIÓN MEJORADA */
+.monto-recibido-section {
+  padding: 15px;
+  background-color: #f2efef;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  width: 80%;
+  border: 1px solid #cccccc;
+  margin-top: 20px;
+}
+
+.monto-recibido-horizontal {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  justify-content: space-between;
+}
+
+.monto-recibido-horizontal .monto-input-container {
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 0; /* Importante para el scroll */
+  gap: 8px;
+}
+
+.monto-recibido-horizontal .monto-input-container label {
+  font-weight: 600;
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 3px;
+}
+
+.monto-recibido-horizontal .input-wrapper {
+  display: flex;
+  align-items: center;
+  border: 2px solid #c4c6c8;
+  border-radius: 6px;
+  background-color: white;
+}
+
+.monto-recibido-horizontal .simbolo-peso {
+  background-color: #f8f9fa;
+  padding: 6px 12px;
+  border-right: 1px solid #e9ecef;
+  font-weight: bold;
+  color: #495057;
+  font-size: 14px;
+}
+
+.monto-recibido-horizontal .monto-input {
+  flex: 1;
+  padding: 6px 12px;
+  border: none;
+  font-size: 14px;
+  background-color: transparent;
+  outline: none;
+}
+
+.monto-recibido-horizontal .vuelto-display {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.monto-recibido-horizontal .vuelto-display label {
+  font-weight: 600;
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.monto-recibido-horizontal .vuelto-monto {
+  padding: 6px 10px;
+  background-color: #bebebe;
+  border-radius: 6px;
+  font-size: 14px;
+  text-align: left;
+}
+
+.acciones-venta {
+  display: flex;
+  gap: 15px;
+  margin-left: 30px;
+}
+
+.boton-cancelar-cobro {
+  padding: 10px 20px;
+  background-color: #dc3545;
+  color: white;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  border: 1px solid #dc3545;
+}
+
+.boton-confirmar-cobro {
+  padding: 10px 15px;
+  background-color: #087182;
+  color: white;
+  border-radius: 20px;
+  cursor: pointer;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  border: #087182;
+}
+
+.boton-cancelar-cobro:disabled,
+.boton-confirmar-cobro:disabled {
+  opacity: 1.9;
+}
+
+/* Tablas Seleccionados */
+.seccion-resumen {
+  width: 350px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background-color: white;
+}
+
+/* Resumen venta */
+.resumen-venta {
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  height: 80%;
+  display: flex;
+  flex-direction: column;
+  width: 500px;
+}
+
+.resumen-venta h2 {
+ font-size: 16px;
+ font-weight: 600;
+ margin-bottom: 20px;
 }
 
 .lista-productos-seleccionados {
   flex: 1;
   overflow-y: auto;
   margin-bottom: 15px;
-  border: 1px solid #ddd;
+  border: 1px solid #e0e0e0;
   border-radius: 4px;
-  max-height: 200px;
+  max-height: 300px;
+  background-color: white;
 }
 
-/* Estilos para el scroll */
-.lista-productos-ventas::-webkit-scrollbar,
-.lista-productos-seleccionados::-webkit-scrollbar {
-  width: 6px;
-}
-
-.lista-productos-ventas::-webkit-scrollbar-track,
-.lista-productos-seleccionados::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
-}
-
-.lista-productos-ventas::-webkit-scrollbar-thumb,
-.lista-productos-seleccionados::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
-}
-
-.lista-productos-ventas::-webkit-scrollbar-thumb:hover,
-.lista-productos-seleccionados::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
-}
-
-/* Estilos para las tablas */
-.tabla-productos {
-  font-size: 0.85em;
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.tabla-productos th,
-.tabla-productos td {
-  padding: 8px 6px;
-  text-align: left;
-  border-bottom: 1px solid #eee;
-}
-
-.tabla-productos th {
-  background-color: #f8f9fa;
-  font-weight: 600;
-  position: sticky;
-  top: 0;
-}
-
+/* TABLA DE PRODUCTOS SELECCIONADOS */
 .tabla-seleccionados {
-  font-size: 0.85em;
   width: 100%;
   border-collapse: collapse;
-}
-
-.tabla-seleccionados th,
-.tabla-seleccionados td {
-  padding: 8px 6px;
-  text-align: left;
-  border-bottom: 1px solid #eee;
+  background-color: white;
 }
 
 .tabla-seleccionados th {
-  background-color: #f8f9fa;
+  background-color: white;
+  padding: 12px 8px;
+  text-align: left;
+  border-bottom: 2px solid #e0e0e0;
   font-weight: 600;
-  position: sticky;
-  top: 0;
-}
-
-/* Estilos para los nuevos elementos */
-.monto-recibido-section {
-  margin: 15px 0;
-  padding: 12px;
-  background-color: #f8f9fa;
-  border-radius: 5px;
-  border: 1px solid #dee2e6;
-}
-
-.monto-recibido-section h3 {
-  margin-bottom: 10px;
-  font-size: 0.9em;
+  font-size: 14x;
   color: #333;
 }
 
-.monto-input-container {
+.tabla-seleccionados td {
+  padding: 12px 8px;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: middle;
+  font-size: 13px;
+}
+
+.tabla-seleccionados th {
+  padding: 12px 8px;
+  font-size: 13px;
+}
+
+.controles-cantidad {
+  font-size: 12px;
+  border: 1px solid #333;
+  border-radius: 15px;
+}
+
+.btn-cantidad {
+  background-color: white;
+  padding: 4px 10px;
+  color: #333;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+
+}
+
+.producto-info {
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.btn-eliminar-producto {
+  background: none;
+  border: none;
+  color: #dc3545;
+  cursor: pointer;
+  padding: 4px;
+  margin-top: 14px;
+}
+
+/* Sin productos/seleccionados */
+.sin-productos, .sin-seleccionados {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+  background-color: white;
+}
+
+.total-venta {
+  margin-top: 10px;
+}
+
+.total-monto {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Método de pago - ESTILOS MEJORADOS */
+.metodo-pago {
+  margin: 15px 0;
+  padding: 25px 0px;
+  border-top: 1px solid #dbdada;
+  border-bottom: 1px solid #dbdada;
+}
+
+.metodo-pago h3 {
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 15px 0;
+  color: #333;
+}
+
+.opciones-pago {
+  display: flex;
+  gap: 150px;
+}
+
+.opcion-pago {
   display: flex;
   align-items: center;
-  margin-bottom: 8px;
-}
-
-.simbolo-peso {
-  background-color: #e9ecef;
-  padding: 8px 12px;
-  border: 1px solid #ced4da;
-  border-right: none;
-  border-radius: 4px 0 0 4px;
-  font-weight: bold;
-}
-
-.monto-input {
-  flex: 1;
-  padding: 8px 12px;
-  border: 1px solid #ced4da;
-  border-radius: 0 4px 4px 0;
-  font-size: 0.9em;
-}
-
-.vuelto-display {
-  background-color: #d4edda;
-  padding: 10px;
-  border-radius: 4px;
-  font-weight: bold;
-  font-size: 0.9em;
-  border: 1px solid #c3e6cb;
-  text-align: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
 }
 
 .btn-cerrar-caja {
-  background-color: #6c757d;
+  background-color: orange;
+  border: 1px solid orange;
+  padding: 14px 40px;
+  margin-top: 20px;
+  border-radius: 15px;
   color: white;
-  border: none;
-  padding: 12px 15px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 0.9em;
-  margin-top: 15px;
-  width: 100%;
-  font-weight: bold;
-}
-
-.btn-cerrar-caja:hover {
-  background-color: #5a6268;
-}
-
-/* Ajustes para hacer todo más compacto */
-.buscar-input {
-  font-size: 0.9em;
-  padding: 10px 10px 10px 35px;
-  width: 100%;
-}
+  font-weight: 600;
+  margin-right: 150px;
+} 
 
 .btn-agregar {
   font-size: 0.8em;
@@ -205,203 +439,8 @@
   background-color: #218838;
 }
 
-.controles-cantidad {
-  font-size: 0.8em;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
 
-.btn-cantidad {
-  padding: 4px 8px;
-  background-color: #6c757d;
-  color: white;
-  border: none;
-  border-radius: 3px;
-  cursor: pointer;
-}
 
-.producto-info {
-  font-size: 0.85em;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.btn-eliminar-producto {
-  background: none;
-  border: none;
-  color: #dc3545;
-  cursor: pointer;
-  padding: 4px;
-}
-
-/* Header styles */
-.ventas-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 20px;
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
-}
-
-.ventas-titulo h1 {
-  margin: 0;
-  font-size: 1.5em;
-  color: #333;
-}
-
-.ventas-fecha {
-  color: #666;
-  font-size: 0.9em;
-}
-
-.header-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.btn-reportes, .btn-saeta {
-  padding: 8px 15px;
-  border: 1px solid #ddd;
-  background: white;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-/* Buscar productos */
-.buscar-productos {
-  padding: 15px 0;
-  background: white;
-}
-
-.buscar-input-container {
-  position: relative;
-}
-
-.icono-buscar {
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #666;
-}
-
-/* Resumen venta */
-.resumen-venta {
-  background: white;
-  padding: 15px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.total-venta {
-  margin-top: auto;
-  padding-top: 15px;
-  border-top: 2px solid #dee2e6;
-}
-
-.total-monto {
-  display: flex;
-  justify-content: space-between;
-  font-size: 1.2em;
-  font-weight: bold;
-}
-
-/* Método de pago */
-.metodo-pago {
-  margin: 15px 0;
-}
-
-.opciones-pago {
-  display: flex;
-  gap: 15px;
-}
-
-.opcion-pago {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-/* Acciones venta */
-.acciones-venta {
-  display: flex;
-  gap: 10px;
-  margin-top: 15px;
-}
-
-.btn-cancelar {
-  flex: 1;
-  padding: 12px;
-  background-color: #6c757d;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.btn-confirmar-cobro {
-  flex: 2;
-  padding: 12px;
-  background-color: #28a745;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  font-weight: bold;
-}
-
-.btn-confirmar-cobro:disabled {
-  background-color: #6c757d;
-  cursor: not-allowed;
-}
-
-/* Sin productos/seleccionados */
-.sin-productos, .sin-seleccionados {
-  text-align: center;
-  padding: 40px 20px;
-  color: #666;
-  font-style: italic;
-  background-color: #f8f9fa;
-}
-
-/* Estilos para nombres y códigos de productos */
-.codigo-producto {
-  font-family: monospace;
-  font-size: 0.8em;
-  color: #666;
-}
-
-.nombre-producto {
-  font-weight: 500;
-  color: #333;
-}
-
-.precio-producto {
-  font-weight: bold;
-  color: #28a745;
-}
-
-.precio-unitario, .subtotal {
-  font-weight: bold;
-  color: #333;
-}
-
-.cantidad {
-  font-weight: bold;
-  min-width: 30px;
-  text-align: center;
-}
 
 /* =========================================== */
 /* ESTILOS DE MODAL PARA VENTAS */
@@ -422,7 +461,7 @@
 
 .modal-contenedor {
   background: white;
-  padding: 2rem;
+  padding: 15px;
   border-radius: 12px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
   max-width: 400px;
@@ -431,38 +470,34 @@
 }
 
 .modal-header h3 {
-  margin: 0 0 1rem 0;
   color: #2c2c2c;
-  font-size: 1.3rem;
+  font-size: 18px;
   font-weight: 600;
 }
 
 .modal-body p {
-  margin: 0 0 1.5rem 0;
   color: #666;
-  line-height: 1.5;
+  font-size: 14px;
 }
 
 .resumen-venta-modal {
-  background: #f8f9fa;
-  padding: 20px;
+  padding: 10px;
   border-radius: 8px;
-  border: 1px solid #e9ecef;
-  margin-top: 20px;
+  border: 1px solid #e0e0e0;
 }
 
 .resumen-venta-modal h4 {
-  margin: 0 0 15px 0;
+  margin: 5px;
   color: #333;
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 17px;
+  font-weight: 500;
   text-align: center;
 }
 
 .resumen-venta-modal p {
-  margin: 8px 0;
+  margin: 8px;
   text-align: left;
-  color: #555;
+  color: #2f2e2e;
   font-size: 14px;
 }
 
@@ -473,55 +508,29 @@
 
 .modal-footer {
   display: flex;
-  gap: 1rem;
   justify-content: center;
 }
 
-.btn-cancelar {
-  background: #95a5a6;
+.boton-cancelar {
+  padding: 10px 20px;
+  background-color: #dc3545;
   color: white;
-  border: none;
-  padding: 0.6rem 1.2rem;
-  border-radius: 6px;
+  border-radius: 20px;
   cursor: pointer;
   font-weight: 600;
-  transition: background 0.2s ease;
+  font-size: 13px;
 }
 
-.btn-confirmar {
-  background: #007e7e;
+.boton-confirmar {
+  padding: 10px 15px;
+  background-color: #087182;
   color: white;
-  border: none;
-  padding: 0.6rem 1.2rem;
-  border-radius: 6px;
+  border-radius: 20px;
   cursor: pointer;
+  justify-content: center;
   font-weight: 600;
-  transition: background 0.2s ease;
-}
-
-.btn-cancelar:hover {
-  background: #7f8c8d;
-}
-
-.btn-confirmar:hover {
-  background: #005f5f;
-}
-
-/* Estilos específicos para tipos de modal */
-.btn-confirmar.btn-eliminar {
-  background: #e74c3c;
-}
-
-.btn-confirmar.btn-eliminar:hover {
-  background: #c0392b;
-}
-
-.btn-confirmar.btn-exito {
-  background: #27ae60;
-}
-
-.btn-confirmar.btn-exito:hover {
-  background: #219a52;
+  font-size: 14px;
+  border: #087182;
 }
 
 /* Modal específico para Saeta */
@@ -552,9 +561,9 @@
   justify-content: space-between;
   align-items: center;
   padding: 20px 25px;
-  border-bottom: 2px solid #e9ecef;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  border-bottom: 2px solid #e0e0e0;
+  background: white;
+  color: #333;
   border-radius: 12px 12px 0 0;
 }
 
@@ -565,9 +574,9 @@
 }
 
 .btn-cerrar-saeta {
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
-  color: white;
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  color: #333;
   padding: 8px 12px;
   border-radius: 8px;
   cursor: pointer;
@@ -579,32 +588,12 @@
 }
 
 .btn-cerrar-saeta:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: #e9ecef;
   transform: scale(1.05);
 }
 
 .modal-body-saeta {
   padding: 25px;
+  background: white;
 }
 
-/* Responsive para modales */
-@media (max-width: 768px) {
-  .modal-footer {
-    flex-direction: column;
-  }
-  
-  .btn-cancelar,
-  .btn-confirmar {
-    width: 100%;
-  }
-  
-  .modal-contenedor {
-    width: 95%;
-    margin: 10px;
-  }
-  
-  .modal-saeta {
-    width: 95%;
-    margin: 10px;
-  }
-}

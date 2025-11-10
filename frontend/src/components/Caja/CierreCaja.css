@@ -1,0 +1,337 @@
+.cierre-caja-container {
+  padding: 20px 20px 50px 20px;
+  margin: 0 auto;
+  background: #f8f9fa;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cierre-caja-header {
+  background: white;
+  padding: 5px;
+  text-align: left;
+}
+
+.cierre-caja-header h1 {
+  color: #333;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.cierre-caja-header h2 {
+  color: #505050;
+  font-size: 14px;
+  border: none;
+  font-weight: 500;
+}
+
+.cierre-caja-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  flex: 1;
+}
+
+.columna-resumen,
+.columna-arqueo {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+}
+
+.columna-resumen{
+ 
+  height: 380px;
+}
+
+.columna-arqueo {
+
+}
+
+.columna-resumen h2,
+.columna-arqueo h2 {
+  margin-bottom: 5px ;
+  color: #2c3e50;
+  padding-bottom: 10px;
+  text-align: left;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.columna-resumen span,
+.columna-arqueo span{
+  font-size: 13px;
+}
+
+.card-resumen,
+.card-arqueo {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.fila-resumen,
+.fila-arqueo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 6px;
+}
+
+.fila-resumen.total,
+.fila-arqueo.total {
+  background: #e8f4fd;
+  font-weight: 600;
+}
+
+.fila-arqueo.ingreso {
+  color: #27ae60;
+}
+
+.fila-arqueo.egreso {
+  color: #e74c3c;
+}
+
+.fila-arqueo.diferencia.positiva {
+  color: #27ae60;
+  font-weight: bold;
+}
+
+.fila-arqueo.diferencia.negativa {
+  color: #e74c3c;
+  font-weight: bold;
+}
+
+
+.fila-arqueo.total-general {
+  background: #2c3e50;
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+  border-radius: 8px;
+  margin-top: auto;
+  padding: 8px;
+}
+
+.seccion-metodos-pago,
+.seccion-saeta {
+  padding-top: 15px;
+  
+}
+
+.seccion-metodos-pago h4{
+  margin: 0 0 5px 0;
+  color: #34495e;
+  border-top: 1px solid rgb(185, 185, 185);
+  padding-top: 20px;
+  font-size: 14px;
+}
+
+.seccion-saeta h4 {
+  margin: 0 0 5px 0;
+  color: #34495e;
+  font-size: 14px;
+  border-top: 1px solid rgb(185, 185, 185);
+  padding-top: 20px;
+}
+
+.fila-resumen.comision {
+  color: #e74c3c;
+  font-size: 0.9em;
+  padding-left: 15px;
+}
+
+.fila-resumen.neto {
+  background: #e8f6f3;
+  font-weight: bold;
+  padding-left: 15px;
+}
+
+.campo-contado {
+  margin: 5px 0;
+  padding: 2px 15px;
+  border-radius: 8px;
+}
+
+.campo-contado label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: bold;
+  color: #2c3e50;
+  font-size: 14px;
+}
+
+.input-contado {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-contado .simbolo-peso {
+  position: absolute;
+  left: 1px;
+  color: #7f8c8d;
+  font-weight: bold;
+}
+
+.input-contado input {
+  width: 100%;
+  padding: 4px 12px;
+  border: 2px solid #bdc3c7;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.seccion-observaciones {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.seccion-observaciones h3 {
+  margin: 0 0 15px 0;
+  color: #2c3e50;
+}
+
+.seccion-observaciones textarea {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #dddedf;
+  border-radius: 6px;
+  font-size: 14px;
+  resize: vertical;
+  max-height:70px;
+  font-family: inherit;
+  background-color: #e1e1e1;
+}
+
+.info-fecha {
+  background: white;
+  padding: 2px 20px;
+  display: flex;
+  color: #7f8c8d;
+  border: none;
+}
+
+.acciones-cierre {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+}
+
+.btn-cancelar-cierre {
+  padding: 10px 15px;
+  background: #C30E0E;
+  color: white;
+  border: 1px solid #C30E0E;  
+  cursor: pointer;
+  font-size: 14px;
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+.btn-confirmar-cierre {
+  padding: 10px 15px;
+  background: #004858;
+  color: white;
+  border: 1px solid #004858;
+  cursor: pointer;
+  font-size: 14px;
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+
+.cargando {
+  text-align: center;
+  padding: 40px;
+  font-size: 1.2rem;
+  color: #7f8c8d;
+}
+
+/* Scroll general único */
+.cierre-caja-container {
+  overflow-y: auto;
+  max-height: 100vh;
+}
+
+.cierre-caja-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.cierre-caja-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.cierre-caja-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.cierre-caja-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Quitar scrolls internos */
+.columna-resumen,
+.columna-arqueo,
+.seccion-observaciones {
+  overflow: visible;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .cierre-caja-content {
+    grid-template-columns: 1fr;
+  }
+  
+  .acciones-cierre {
+    flex-direction: column;
+  }
+  
+  .info-fecha {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+  
+  .cierre-caja-container {
+    padding: 10px;
+  }
+}
+
+/* Estilos específicos para emular la imagen */
+.seccion-metodos-pago h4 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.fila-resumen span:first-child {
+  color: #2c3e50;
+}
+
+.fila-resumen strong {
+  color: #2c3e50;
+}
+
+.columna-arqueo h2 {
+  text-transform: uppercase;
+  font-weight: bold;
+}
+
+.fila-arqueo span {
+  font-weight: 500;
+}
+
+.fila-arqueo strong {
+  font-weight: bold;
+}

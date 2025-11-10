@@ -3,7 +3,7 @@ import { FaCashRegister, FaCalendarAlt, FaUser, FaCheck, FaTimes, FaClock, FaMon
 import './AperturaCaja.css';
 import ModalConfirmacion from './ModalConfirmacion';
 
-function AperturaCaja({ onAperturaConfirmada, onCancelar }) {
+function AperturaCaja({ onAperturaConfirmada, onCancelar, cajaAbierta, datosCaja }) {
   const [datosApertura, setDatosApertura] = useState({
     fecha: new Date().toISOString().split('T')[0],
     hora: '08:00',
@@ -17,6 +17,7 @@ function AperturaCaja({ onAperturaConfirmada, onCancelar }) {
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
   const [mostrarExito, setMostrarExito] = useState(false);
   const [errores, setErrores] = useState({});
+  const [cajaLocalAbierta, setCajaLocalAbierta] = useState(null);
 
   // Solo turnos mañana y tarde
   const turnos = [
@@ -86,69 +87,72 @@ function AperturaCaja({ onAperturaConfirmada, onCancelar }) {
     }
   };
 
-  // En AperturaCaja.js, modifica handleConfirmacionFinal
-const handleConfirmacionFinal = async () => {
-  try {
-    const token = localStorage.getItem('token');
-    
-    // Preparar datos para enviar a la API
-    const datosParaEnviar = {
-      empleado: parseInt(datosApertura.empleado),
-      fecha_hs_apertura: `${datosApertura.fecha}T${datosApertura.hora}:00`,
-      saldo_inicial: parseFloat(datosApertura.montoInicial),
-      turno: datosApertura.turno,
-      descripcion: datosApertura.descripcion,
-      estado: 'abierta'
-    };
-
-    console.log('Enviando datos de apertura:', datosParaEnviar);
-
-    const response = await fetch('http://localhost:8000/api/cajas/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Token ${token}`
-      },
-      body: JSON.stringify(datosParaEnviar)
-    });
-
-    if (response.ok) {
-      const cajaAbierta = await response.json();
-      console.log('Caja abierta exitosamente:', cajaAbierta);
+  const handleConfirmacionFinal = async () => {
+    try {
+      const token = localStorage.getItem('token');
       
-      // Preparar datos para pasar al componente padre CORREGIDO
-      const datosCajaParaBarra = {
-        empleadoNombre: empleadoSeleccionado ? 
-          `${empleadoSeleccionado.nombre_emp} ${empleadoSeleccionado.apellido_emp}` : '',
-        turnoNombre: turnoSeleccionado ? turnoSeleccionado.nombre : '',
-        montoInicial: datosApertura.montoInicial,
-        saldo_inicial: parseFloat(datosApertura.montoInicial), // Agregar esto
-        turno: datosApertura.turno, // Agregar esto
-        fecha_hs_apertura: `${datosApertura.fecha}T${datosApertura.hora}:00`, // Agregar esto
-        id: cajaAbierta.id
+      // Preparar datos para enviar a la API
+      const datosParaEnviar = {
+        empleado: parseInt(datosApertura.empleado),
+        fecha_hs_apertura: `${datosApertura.fecha}T${datosApertura.hora}:00`,
+        saldo_inicial: parseFloat(datosApertura.montoInicial),
+        turno: datosApertura.turno,
+        descripcion: datosApertura.descripcion,
+        estado: 'abierta'
       };
-      
-      // Mostrar modal de éxito
-      setMostrarExito(true);
-      setMostrarConfirmacion(false);
-      
-      // Esperar 2 segundos y luego redirigir a ventas PASANDO LOS DATOS CORRECTOS
-      setTimeout(() => {
-        onAperturaConfirmada(datosCajaParaBarra);
-      }, 2000);
-      
-    } else {
-      const errorData = await response.json();
-      console.error('Error al abrir caja:', errorData);
-      alert('Error al abrir caja: ' + JSON.stringify(errorData));
+
+      console.log('Enviando datos de apertura:', datosParaEnviar);
+
+      const response = await fetch('http://localhost:8000/api/cajas/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Token ${token}`
+        },
+        body: JSON.stringify(datosParaEnviar)
+      });
+
+      if (response.ok) {
+        const cajaCreada = await response.json();
+        console.log('Caja abierta exitosamente:', cajaCreada);
+        
+        // Preparar datos para mostrar en el estado de caja
+        const datosCajaParaMostrar = {
+          empleadoNombre: empleadoSeleccionado ? 
+            `${empleadoSeleccionado.nombre_emp} ${empleadoSeleccionado.apellido_emp}` : '',
+          turnoNombre: turnoSeleccionado ? turnoSeleccionado.nombre : '',
+          montoInicial: datosApertura.montoInicial,
+          saldo_inicial: parseFloat(datosApertura.montoInicial),
+          turno: datosApertura.turno,
+          fecha_hs_apertura: `${datosApertura.fecha}T${datosApertura.hora}:00`,
+          id: cajaCreada.id,
+          descripcion: datosApertura.descripcion
+        };
+
+        // Guardar datos de caja abierta en el estado local
+        setCajaLocalAbierta(datosCajaParaMostrar);
+        
+        // Mostrar modal de éxito
+        setMostrarExito(true);
+        setMostrarConfirmacion(false);
+        
+        // Llamar a la función del padre para actualizar el estado global
+        if (onAperturaConfirmada) {
+          onAperturaConfirmada(datosCajaParaMostrar);
+        }
+        
+      } else {
+        const errorData = await response.json();
+        console.error('Error al abrir caja:', errorData);
+        alert('Error al abrir caja: ' + JSON.stringify(errorData));
+        setMostrarConfirmacion(false);
+      }
+    } catch (error) {
+      console.error('Error al abrir caja:', error);
+      alert('Error de conexión al abrir caja');
       setMostrarConfirmacion(false);
     }
-  } catch (error) {
-    console.error('Error al abrir caja:', error);
-    alert('Error de conexión al abrir caja');
-    setMostrarConfirmacion(false);
-  }
-};
+  };
 
   const empleadoSeleccionado = empleados.find(emp => emp.id === parseInt(datosApertura.empleado));
   const turnoSeleccionado = turnos.find(t => t.id === datosApertura.turno);
@@ -162,6 +166,71 @@ const handleConfirmacionFinal = async () => {
     montoInicial: datosApertura.montoInicial
   };
 
+  // Si hay una caja abierta (ya sea local o del padre), mostrar el estado
+  const cajaActual = cajaLocalAbierta || datosCaja;
+  
+  if (cajaAbierta && cajaActual) {
+    return (
+      <div className="estado-caja-abierta-container">
+        <div className="estado-caja-card">
+          <div className="estado-header">
+            <div className="estado-badge abierta">
+              <FaCashRegister /> Caja Actualmente Abierta
+            </div>
+            <div className="info-fecha">
+              <FaCalendarAlt /> {new Date(cajaActual.fecha_hs_apertura).toLocaleDateString('es-AR')}
+            </div>
+          </div>
+
+          <div className="info-caja-detalle">
+            <div className="info-item">
+              <p><FaUser /></p> 
+              <span className="label">Empleada:</span>
+              <span className="value">{cajaActual.empleadoNombre}</span>
+            </div>
+            
+            <div className="info-item">
+              <p><FaClock /></p>
+              <span className="label">Turno:</span>
+              <span className="value">{cajaActual.turnoNombre}</span>
+            </div>
+            
+            <div className="info-item"> 
+              <p><FaMoneyBillWave /></p>  
+              <span className="label">Monto Inicial:</span>
+              <span className="value">${parseFloat(cajaActual.saldo_inicial).toLocaleString('es-AR', { 
+                minimumFractionDigits: 2, 
+                maximumFractionDigits: 2 
+              })}</span>
+            </div>
+
+            {cajaActual.descripcion && (
+              <div className="info-item">
+                <FaStickyNote />
+                <span className="label">Descripción:</span>
+                <span className="value">{cajaActual.descripcion}</span>
+              </div>
+            )}
+          </div>   
+
+          <div className="acciones-caja-abierta">
+            <button 
+              className="btn-ir-ventas"
+              onClick={() => {
+                if (onAperturaConfirmada) {
+                  onAperturaConfirmada(cajaActual);
+                }
+              }}
+            >
+              Ir a Ventas
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Estado normal - formulario de apertura de caja
   return (
     <div className="apertura-caja-container">
       <div className="apertura-caja-card">
@@ -170,15 +239,13 @@ const handleConfirmacionFinal = async () => {
           <p className="subtitulo">Complete los siguientes datos para registrar la apertura de caja.</p>
         </div>
 
-        <div className="formulario-contenedor">
-          <form className="formulario-apertura" onSubmit={(e) => e.preventDefault()}>
+        <form className="formulario-apertura" onSubmit={(e) => e.preventDefault()}>
           {/* Fecha de apertura */}
           <div className="campo-grupo">
             <label htmlFor="fecha">
               Fecha de apertura:
             </label>
             <div className="input-with-icon">
-              <FaCalendarAlt className="input-icon" />
               <input
                 type="date"
                 id="fecha"
@@ -197,7 +264,6 @@ const handleConfirmacionFinal = async () => {
               Hora de apertura:
             </label>
             <div className="input-with-icon">
-              <FaClock className="input-icon" />
               <input
                 type="time"
                 id="hora"
@@ -216,7 +282,6 @@ const handleConfirmacionFinal = async () => {
               Empleada/o:
             </label>
             <div className="input-with-icon">
-              <FaUser className="input-icon" />
               <select
                 id="empleado"
                 name="empleado"
@@ -241,7 +306,6 @@ const handleConfirmacionFinal = async () => {
               Turno:
             </label>
             <div className="input-with-icon">
-              <FaClock className="input-icon" />
               <select
                 id="turno"
                 name="turno"
@@ -266,7 +330,6 @@ const handleConfirmacionFinal = async () => {
               Monto inicial:
             </label>
             <div className="input-with-icon">
-              <FaMoneyBillWave className="input-icon" />
               <input
                 type="number"
                 id="montoInicial"
@@ -285,10 +348,9 @@ const handleConfirmacionFinal = async () => {
           {/* Descripción */}
           <div className="campo-grupo">
             <label htmlFor="descripcion">
-              Notas / Descripción:
+              Descripción:
             </label>
             <div className="input-with-icon">
-              <FaStickyNote className="input-icon textarea-icon" />
               <textarea
                 id="descripcion"
                 name="descripcion"
@@ -300,21 +362,20 @@ const handleConfirmacionFinal = async () => {
               />
             </div>
           </div>
-        </form>
-        </div>
 
-        <div className="acciones-apertura">
-          <button type="button" className="btn-cancelar" onClick={onCancelar}>
-            <FaTimes /> Cancelar
-          </button>
-          <button 
-            type="button"
-            className="btn-confirmar"
-            onClick={handleConfirmarApertura}
-          >
-            <FaCheck /> Confirmar apertura
-          </button>
-        </div>
+          <div className="acciones-apertura">
+            <button type="button" className="btn-cancelar-caja" onClick={onCancelar}>
+              Cancelar
+            </button>
+            <button 
+              type="button"
+              className="btn-confirmar-caja"
+              onClick={handleConfirmarApertura}
+            >
+              Confirmar apertura
+            </button>
+          </div>
+        </form>
       </div>
 
       {/* Modal de confirmación */}

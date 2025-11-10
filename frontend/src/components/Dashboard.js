@@ -54,11 +54,11 @@ function Dashboard({ usuario, onCerrarSesion }) {
     setModuloActivo('inicio');
   };
 
-  // En Dashboard.js, modifica handleAperturaConfirmada
+  // Función para manejar la apertura de caja confirmada
   const handleAperturaConfirmada = (datosApertura) => {
     console.log('Caja abierta exitosamente:', datosApertura);
     
-    // Actualizar estado de caja CORREGIDO
+    // Actualizar estado de caja
     setCajaAbierta(true);
     setDatosCaja({
       empleadoNombre: datosApertura.empleadoNombre,
@@ -67,13 +67,12 @@ function Dashboard({ usuario, onCerrarSesion }) {
       saldo_inicial: datosApertura.saldo_inicial,
       turno: datosApertura.turno,
       fecha_hs_apertura: datosApertura.fecha_hs_apertura,
-      id: datosApertura.id
+      id: datosApertura.id,
+      descripcion: datosApertura.descripcion
     });
     
-    // Redirigir automáticamente a ventas después de 2 segundos
-    setTimeout(() => {
-      setModuloActivo('ventas');
-    }, 2000);
+    // Redirigir automáticamente a ventas
+    setModuloActivo('ventas');
   };
 
   const handleCerrarCaja = () => {
@@ -109,7 +108,7 @@ function Dashboard({ usuario, onCerrarSesion }) {
             <div className="modulo-contenido modulo-solo-lectura">
               <div className="modulo-header-solo-lectura">
                 <FaLock className="icono-bloqueo" />
-                <h2>📦 Inventario - Vista de Solo Lectura</h2>
+                <h2>Inventario - Vista de Solo Lectura</h2>
                 <p>No tiene permisos para modificar el inventario</p>
               </div>
               <Productos 
@@ -125,7 +124,7 @@ function Dashboard({ usuario, onCerrarSesion }) {
             <div className="modulo-contenido modulo-solo-lectura">
               <div className="modulo-header-solo-lectura">
                 <FaLock className="icono-bloqueo" />
-                <h2>🚚 Proveedores - Vista de Solo Lectura</h2>
+                <h2>Proveedores - Vista de Solo Lectura</h2>
                 <p>No tiene permisos para modificar proveedores</p>
               </div>
               <Proveedores 
@@ -140,7 +139,7 @@ function Dashboard({ usuario, onCerrarSesion }) {
             <div className="modulo-contenido modulo-solo-lectura">
               <div className="modulo-header-solo-lectura">
                 <FaLock className="icono-bloqueo" />
-                <h2>👥 Empleados - Vista de Solo Lectura</h2>
+                <h2>Empleados - Vista de Solo Lectura</h2>
                 <p>No tiene permisos para modificar empleados</p>
               </div>
               <Empleados 
@@ -155,7 +154,7 @@ function Dashboard({ usuario, onCerrarSesion }) {
             <div className="modulo-contenido modulo-solo-lectura">
               <div className="modulo-header-solo-lectura">
                 <FaLock className="icono-bloqueo" />
-                <h2>⚙️ Configuración - Vista de Solo Lectura</h2>
+                <h2>Configuración - Vista de Solo Lectura</h2>
                 <p>No tiene permisos para modificar la configuración</p>
               </div>
               <div className="configuracion-solo-lectura">
@@ -180,6 +179,8 @@ function Dashboard({ usuario, onCerrarSesion }) {
             <AperturaCaja 
               onAperturaConfirmada={handleAperturaConfirmada}
               onCancelar={() => setModuloActivo('inicio')}
+              cajaAbierta={cajaAbierta}
+              datosCaja={datosCaja}
             />
           );
         }
@@ -188,29 +189,12 @@ function Dashboard({ usuario, onCerrarSesion }) {
       case 'caja':
         return (
           <div className="modulo-contenido">
-            {cajaAbierta ? (
-              <div className="caja-abierta-info">
-                <div className="estado-caja positivo">🟢 Caja Actualmente Abierta</div>
-                <div className="detalles-caja">
-                  <p><strong>Empleado:</strong> {datosCaja?.empleadoNombre}</p>
-                  <p><strong>Turno:</strong> {datosCaja?.turnoNombre}</p>
-                  <p><strong>Monto inicial:</strong> ${parseFloat(datosCaja?.montoInicial || datosCaja?.saldo_inicial).toFixed(2)}</p>
-                  <p><strong>Fecha apertura:</strong> {new Date(datosCaja?.fecha_hs_apertura).toLocaleString('es-ES')}</p>
-                  <p><strong>Descripción:</strong> {datosCaja?.descripcion || 'Ninguna'}</p>
-                </div>
-                <button 
-                  className="btn-cerrar-caja"
-                  onClick={handleCerrarCaja}
-                >
-                  Cerrar Caja
-                </button>
-              </div>
-            ) : (
-              <AperturaCaja 
-                onAperturaConfirmada={handleAperturaConfirmada}
-                onCancelar={() => setModuloActivo('inicio')}
-              />
-            )}
+            <AperturaCaja 
+              onAperturaConfirmada={handleAperturaConfirmada}
+              onCancelar={() => setModuloActivo('inicio')}
+              cajaAbierta={cajaAbierta}
+              datosCaja={datosCaja}
+            />
           </div>
         );
 
@@ -292,11 +276,6 @@ function Dashboard({ usuario, onCerrarSesion }) {
                 month: 'long', 
                 year: 'numeric' 
               })}</p>
-              {cajaAbierta && (
-                <div className="estado-caja-inicio positivo">
-                  🟢 Caja abierta - {datosCaja?.empleadoNombre} - {datosCaja?.turnoNombre}
-                </div>
-              )}
             </div>
 
             {/* Sección Novedades */}

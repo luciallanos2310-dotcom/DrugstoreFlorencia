@@ -22,13 +22,20 @@ function ModalConfirmacion({
     }
   };
 
-  const getTextoBoton = () => {
+  const getTextoBotonConfirmar = () => {
     switch(tipo) {
       case 'confirmar': return 'Confirmar Venta';
       case 'cancelar': return 'Sí, Cancelar';
       case 'exito': return 'Aceptar';
       case 'error': return 'Aceptar';
       default: return 'Confirmar';
+    }
+  };
+
+  const getTextoBotonCancelar = () => {
+    switch(tipo) {
+      case 'cancelar': return 'No, Continuar';
+      default: return 'Cancelar';
     }
   };
 
@@ -63,16 +70,27 @@ function ModalConfirmacion({
         
         <div className="modal-footer">
           {!esAlerta && (
-            <button className="btn-cancelar" onClick={onCancelar}>
-              {tipo === 'cancelar' ? 'No, Continuar' : 'Cancelar'}
+            <>
+              {/* ORDEN CORREGIDO: Primero el botón de cancelar (izquierda), luego confirmar (derecha) */}
+              <button className="btn-cancelar" onClick={onCancelar}>
+                {getTextoBotonCancelar()}
+              </button>
+              <button 
+                className={`btn-confirmar ${tipo === 'exito' ? 'btn-exito' : ''} ${tipo === 'cancelar' ? 'btn-eliminar' : ''}`}
+                onClick={onConfirmar}
+              >
+                {getTextoBotonConfirmar()}
+              </button>
+            </>
+          )}
+          {esAlerta && (
+            <button 
+              className={`btn-confirmar ${tipo === 'exito' ? 'btn-exito' : ''}`}
+              onClick={onConfirmar}
+            >
+              {getTextoBotonConfirmar()}
             </button>
           )}
-          <button 
-            className={`btn-confirmar ${tipo === 'exito' ? 'btn-exito' : ''} ${tipo === 'cancelar' ? 'btn-eliminar' : ''}`}
-            onClick={onConfirmar}
-          >
-            {getTextoBoton()}
-          </button>
         </div>
       </div>
     </div>

@@ -1,244 +1,567 @@
 import React, { useState, useEffect } from 'react';
+import { FaCalculator, FaMoneyBillWave, FaCashRegister, FaFileExport, FaTimes } from 'react-icons/fa';
 import './CierreCaja.css';
 
-function CierreCaja({ cajaActual, onCerrarCaja, onCancelar }) {
-  const [ventas, setVentas] = useState([]);
-  const [montoInicial, setMontoInicial] = useState(0);
-  const [montoContado, setMontoContado] = useState('');
-  const [observaciones, setObservaciones] = useState('');
-  const [ingresos, setIngresos] = useState(0);
-  const [egresos, setEgresos] = useState(0);
+function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
+  const [datosCierre, setDatosCierre] = useState({
+    monto_contado: '',
+    observaciones: ''
+  });
+  const [resumenVentas, setResumenVentas] = useState({
+    totalOperaciones: 0,
+    totalVentas: 0,
+    ventasEfectivo: 0,
+    ventasTransferencia: 0,
+    totalSaeta: 0,
+    comisionSaeta: 0,
+    ingresosExtra: 0,
+    egresos: 0
+  });
+  const [procesando, setProcesando] = useState(false);
+  const [cargando, setCargando] = useState(true);
+
+  // Cargar datos de la caja y ventas
+  const cargarDatosCierre = async () => {
+    try {
+      setCargando(true);
+      const token = localStorage.getItem('token');
+
+      console.log('🔄 ===== INICIANDO CARGA DE DATOS PARA CIERRE =====');
+      console.log('🔑 Caja ID:', cajaId);
+      console.log('🔑 Token disponible:', !!token);
+
+      // 1. Obtener datos de la caja ACTUAL
+      console.log('📦 Obteniendo datos de caja...');
+      const responseCaja = await fetch(`http://localhost:8000/api/cajas/${cajaId}/`, {
+        headers: { 'Authorization': `Token ${token}` }
+      });
+
+      if (!responseCaja.ok) {
+        console.error('❌ Error cargando caja:', responseCaja.status, responseCaja.statusText);
+        throw new Error('Error cargando caja');
+      }
+      
+      const caja = await responseCaja.json();
+      console.log('✅ Datos de caja actual:', caja);
+      console.log('📅 Fecha apertura caja:', caja.fecha_hs_apertura);
+
+      // 2. Obtener SOLO las ventas de ESTA caja específica
+      const urlVentas = `http://localhost:8000/api/ventas/?caja=${cajaId}`;
+      console.log('🔗 URL de ventas:', urlVentas);
+      
+      const responseVentas = await fetch(urlVentas, {
+        headers: { 'Authorization': `Token ${token}` }
+      });
+
+      let ventas = [];
+      if (responseVentas.ok) {
+        ventas = await responseVentas.json();
+        console.log('💰 VENTAS ENCONTRADAS - Cantidad:', ventas.length);
+        console.log('📋 Detalle completo de ventas:', ventas);
+        
+        // Log detallado de cada venta
+        ventas.forEach((venta, index) => {
+          console.log(`   ${index + 1}. Venta ID: ${venta.id}, Total: $${venta.total_venta}, Método: ${venta.tipo_pago_venta}, Fecha: ${venta.fecha_hora_venta}`);
+        });
+      } else {
+        console.log('❌ Error obteniendo ventas:', responseVentas.status, responseVentas.statusText);
+      }
+
+      // 3. Obtener ventas Saeta - FILTRAR MANUALMENTE por ventas de esta caja
+      let ventasSaeta = [];
+      try {
+        // Obtener TODAS las ventas Saeta primero
+        const responseSaeta = await fetch(`http://localhost:8000/api/ventas_saeta/`, {
+          headers: { 'Authorization': `Token ${token}` }
+        });
+
+        if (responseSaeta.ok) {
+          const todasSaeta = await responseSaeta.json();
+          console.log('📱 TODAS las ventas Saeta (sin filtrar):', todasSaeta.length);
+          
+          // FILTRAR: solo ventas Saeta que están asociadas a ventas de ESTA caja
+          ventasSaeta = todasSaeta.filter(saeta => {
+            if (saeta.venta) {
+              // Verificar si la venta asociada pertenece a esta caja
+              const ventaAsociada = ventas.find(v => v.id === saeta.venta);
+              return ventaAsociada !== undefined;
+            }
+            return false; // Si no tiene venta asociada, no contar
+          });
+          
+          console.log('🎯 VENTAS SAETA FILTRADAS (solo de esta caja):', ventasSaeta.length);
+          console.log('📋 Detalle de ventas Saeta filtradas:', ventasSaeta);
+          
+          // Log detallado de cada venta Saeta filtrada
+          ventasSaeta.forEach((saeta, index) => {
+            console.log(`   ${index + 1}. Saeta ID: ${saeta.id}, Monto: $${saeta.monto_saeta}, Venta ID: ${saeta.venta}, Fecha: ${saeta.fecha_pago_saeta}`);
+          });
+        } else {
+          console.log('❌ Error obteniendo ventas Saeta:', responseSaeta.status, responseSaeta.statusText);
+        }
+      } catch (error) {
+        console.log('❌ Error cargando ventas Saeta:', error);
+      }
+
+      // Resumen final de lo encontrado
+      console.log('📊 ===== RESUMEN DE DATOS ENCONTRADOS =====');
+      console.log('📍 Ventas normales:', ventas.length);
+      console.log('📍 Ventas Saeta (filtradas):', ventasSaeta.length);
+      console.log('📍 Ingresos extra:', caja.ingresos);
+      console.log('📍 Egresos:', caja.egresos);
+
+      // Calcular resumen
+      calcularResumen(ventas, ventasSaeta, caja);
+
+    } catch (error) {
+      console.error('❌ Error cargando datos:', error);
+      alert('Error al cargar datos para el cierre');
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const calcularResumen = (ventas, ventasSaeta, caja) => {
+    console.log('🧮 ===== INICIANDO CÁLCULO DE RESUMEN =====');
+    console.log('📥 Datos recibidos:', { 
+      ventasCount: ventas.length, 
+      saetaCount: ventasSaeta.length, 
+      cajaId: caja.id
+    });
+    
+    // ✅ CORRECCIÓN: IDENTIFICAR qué ventas normales son realmente ventas Saeta
+    const ventasIdsConSaeta = ventasSaeta.map(saeta => saeta.venta);
+    console.log('🔍 IDs de ventas que tienen Saeta asociada:', ventasIdsConSaeta);
+    
+    // ✅ FILTRAR: Separar ventas normales REALES de ventas Saeta
+    const ventasReales = ventas.filter(venta => !ventasIdsConSaeta.includes(venta.id));
+    const ventasSaetaComoNormales = ventas.filter(venta => ventasIdsConSaeta.includes(venta.id));
+    
+    console.log('📊 VENTAS SEPARADAS:');
+    console.log('   - Ventas reales (productos):', ventasReales.length);
+    console.log('   - Ventas Saeta (como normales):', ventasSaetaComoNormales.length);
+    
+    ventasReales.forEach(v => console.log(`   🛍️  Venta real ${v.id}: $${v.total_venta} (${v.tipo_pago_venta})`));
+    ventasSaetaComoNormales.forEach(v => console.log(`   📱 Venta Saeta como normal ${v.id}: $${v.total_venta} (${v.tipo_pago_venta})`));
+
+    // Ventas normales REALES - SOLO de esta caja
+    const ventasEfectivoReales = ventasReales.filter(v => v.tipo_pago_venta === 'efectivo');
+    const ventasTransferenciaReales = ventasReales.filter(v => v.tipo_pago_venta === 'transferencia');
+    
+    console.log('💵 Ventas REALES por método:');
+    console.log('   - Efectivo real:', ventasEfectivoReales.length);
+    console.log('   - Transferencia real:', ventasTransferenciaReales.length);
+
+    const totalVentasEfectivo = ventasEfectivoReales.reduce((sum, v) => {
+      const total = parseFloat(v.total_venta || 0);
+      console.log(`   💰 Venta efectivo REAL ${v.id}: $${total}`);
+      return sum + total;
+    }, 0);
+
+    const totalVentasTransferencia = ventasTransferenciaReales.reduce((sum, v) => {
+      const total = parseFloat(v.total_venta || 0);
+      console.log(`   💰 Venta transferencia REAL ${v.id}: $${total}`);
+      return sum + total;
+    }, 0);
+
+    const totalVentas = totalVentasEfectivo + totalVentasTransferencia;
+
+    // Ventas Saeta - TODAS las que están en esta caja
+    const totalSaeta = ventasSaeta.reduce((sum, s) => {
+      const monto = parseFloat(s.monto_saeta || 0);
+      console.log(`   📱 Saeta ${s.id}: $${monto}`);
+      return sum + monto;
+    }, 0);
+
+    const comisionSaeta = ventasSaeta.reduce((sum, s) => {
+      const monto = parseFloat(s.monto_saeta || 0);
+      const porcentaje = parseFloat(s.porcentaje_ganancia_saeta || 15);
+      const comision = (monto * porcentaje) / 100;
+      console.log(`   📱 Comisión Saeta ${s.id}: $${monto} * ${porcentaje}% = $${comision}`);
+      return sum + comision;
+    }, 0);
+
+    console.log('💰 TOTALES CALCULADOS:');
+    console.log('   - Total ventas efectivo REAL:', totalVentasEfectivo);
+    console.log('   - Total ventas transferencia REAL:', totalVentasTransferencia);
+    console.log('   - Total ventas general REAL:', totalVentas);
+    console.log('   - Total Saeta:', totalSaeta);
+    console.log('   - Comisión Saeta:', comisionSaeta);
+    console.log('   - Ingresos extra:', caja.ingresos);
+    console.log('   - Egresos:', caja.egresos);
+
+    // ✅ CORRECCIÓN: CALCULAR OPERACIONES - Solo ventas reales + ventas Saeta únicas
+    const totalOperaciones = ventasReales.length;
+    console.log('🔢 CÁLCULO DE OPERACIONES:');
+    console.log(`   - Ventas reales: ${ventasReales.length}`);
+    console.log(`   - Total operaciones: ${totalOperaciones}`);
+
+    setResumenVentas({
+      totalOperaciones: totalOperaciones,
+      totalVentas: totalVentas,
+      ventasEfectivo: totalVentasEfectivo,
+      ventasTransferencia: totalVentasTransferencia,
+      totalSaeta: totalSaeta,
+      comisionSaeta: comisionSaeta,
+      ingresosExtra: parseFloat(caja.ingresos || 0),
+      egresos: parseFloat(caja.egresos || 0)
+    });
+
+    console.log('✅ ===== RESUMEN GUARDADO EN ESTADO =====');
+    console.log('📊 Resumen final:', {
+      totalOperaciones,
+      totalVentas,
+      ventasEfectivo: totalVentasEfectivo,
+      ventasTransferencia: totalVentasTransferencia,
+      totalSaeta,
+      comisionSaeta,
+      ingresosExtra: caja.ingresos,
+      egresos: caja.egresos
+    });
+  };
 
   useEffect(() => {
-    cargarVentasDelDia();
-    cargarDatosCaja();
-  }, []);
-
-  const cargarVentasDelDia = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const hoy = new Date().toISOString().split('T')[0];
-      
-      const response = await fetch(`http://localhost:8000/api/ventas/?fecha=${hoy}`, {
-        headers: {
-          'Authorization': `Token ${token}`,
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setVentas(data);
-        
-        // Calcular totales por método de pago
-        const totalEfectivo = data
-          .filter(v => v.tipo_pago_venta === 'efectivo')
-          .reduce((sum, venta) => sum + parseFloat(venta.total_venta), 0);
-        
-        const totalTransferencia = data
-          .filter(v => v.tipo_pago_venta === 'transferencia')
-          .reduce((sum, venta) => sum + parseFloat(venta.total_venta), 0);
-        
-        setIngresos(totalEfectivo + totalTransferencia);
-      }
-    } catch (error) {
-      console.error('Error cargando ventas:', error);
+    if (cajaId) {
+      console.log('🎯 useEffect ejecutado - cajaId:', cajaId);
+      cargarDatosCierre();
+    } else {
+      console.log('❌ No hay cajaId proporcionado');
     }
+  }, [cajaId]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setDatosCierre(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
-  const cargarDatosCaja = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/cajas/${cajaActual?.id}/`, {
-        headers: {
-          'Authorization': `Token ${token}`,
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setMontoInicial(parseFloat(data.monto_inicial) || 0);
-      }
-    } catch (error) {
-      console.error('Error cargando datos de caja:', error);
-    }
-  };
-
+  // CÁLCULOS CORREGIDOS - LIMITAR A 10 DÍGITOS
   const calcularMontoEsperado = () => {
-    return montoInicial + ingresos - egresos;
+    const montoInicial = parseFloat(datosCaja?.saldo_inicial) || 0;
+    
+    // SOLO el efectivo real que debería estar en caja
+    const efectivoEnCaja = resumenVentas.ventasEfectivo + resumenVentas.ingresosExtra;
+    
+    // Egresos que salieron de caja
+    const egresosDeCaja = resumenVentas.egresos;
+    
+    const resultado = montoInicial + efectivoEnCaja - egresosDeCaja;
+    
+    console.log('🧮 Cálculo monto esperado:', {
+      montoInicial,
+      efectivoEnCaja,
+      egresosDeCaja,
+      resultado
+    });
+    
+    // LIMITAR a 10 dígitos (99999999.99)
+    return Math.min(resultado, 99999999.99);
   };
 
   const calcularDiferencia = () => {
-    const esperado = calcularMontoEsperado();
-    const contado = parseFloat(montoContado) || 0;
-    return contado - esperado;
+    const montoContado = parseFloat(datosCierre.monto_contado) || 0;
+    const montoEsperado = calcularMontoEsperado();
+    const resultado = montoContado - montoEsperado;
+    
+    console.log('🧮 Cálculo diferencia:', {
+      montoContado,
+      montoEsperado,
+      resultado
+    });
+    
+    // LIMITAR a 10 dígitos
+    return Math.min(Math.max(resultado, -99999999.99), 99999999.99);
+  };
+
+  const calcularTotalGeneral = () => {
+    // Para el saldo final, considerar TODOS los movimientos
+    const montoInicial = parseFloat(datosCaja?.saldo_inicial) || 0;
+    
+    // Todos los ingresos (efectivo + transferencia)
+    const ingresosTotales = resumenVentas.totalVentas + resumenVentas.ingresosExtra;
+    
+    // Todos los egresos (egresos + comisión Saeta)
+    const egresosTotales = resumenVentas.egresos + resumenVentas.comisionSaeta;
+    
+    const resultado = montoInicial + ingresosTotales - egresosTotales;
+    
+    console.log('🧮 Cálculo total general:', {
+      montoInicial,
+      ingresosTotales,
+      egresosTotales,
+      resultado
+    });
+    
+    // LIMITAR a 10 dígitos (99999999.99) - máximo permitido por Django
+    return Math.min(resultado, 99999999.99);
+  };
+
+  // FUNCIÓN PARA VALIDAR Y FORMATEAR NÚMEROS
+  const validarYFormatearNumero = (numero) => {
+    // Redondear a 2 decimales y limitar a 10 dígitos
+    const numeroRedondeado = Math.round(numero * 100) / 100;
+    return Math.min(numeroRedondeado, 99999999.99);
   };
 
   const handleConfirmarCierre = async () => {
+    console.log('🔄 ===== INICIANDO CONFIRMACIÓN DE CIERRE =====');
+    
+    if (!datosCierre.monto_contado) {
+      console.log('❌ Monto contado no ingresado');
+      alert('Por favor ingrese el monto contado');
+      return;
+    }
+
+    // Validar que el monto contado no sea demasiado grande
+    const montoContado = parseFloat(datosCierre.monto_contado);
+    if (montoContado > 99999999.99) {
+      console.log('❌ Monto contado excede límite:', montoContado);
+      alert('El monto contado es demasiado grande. El máximo permitido es $99,999,999.99');
+      return;
+    }
+
     try {
+      setProcesando(true);
       const token = localStorage.getItem('token');
-      
-      const cierreData = {
-        caja: cajaActual?.id,
-        monto_inicial: montoInicial,
-        monto_final: parseFloat(montoContado) || 0,
-        total_ventas: ingresos,
-        total_efectivo: ventas
-          .filter(v => v.tipo_pago_venta === 'efectivo')
-          .reduce((sum, venta) => sum + parseFloat(venta.total_venta), 0),
-        total_transferencia: ventas
-          .filter(v => v.tipo_pago_venta === 'transferencia')
-          .reduce((sum, venta) => sum + parseFloat(venta.total_venta), 0),
+
+      // CALCULAR Y VALIDAR TODOS LOS MONTOS
+      const saldoFinal = validarYFormatearNumero(calcularTotalGeneral());
+      const montoContadoValidado = validarYFormatearNumero(montoContado);
+
+      console.log('🔢 Montos validados para enviar:', {
+        saldoFinal,
+        montoContado: montoContadoValidado,
+        montoEsperado: calcularMontoEsperado(),
         diferencia: calcularDiferencia(),
-        observaciones: observaciones,
+        observaciones: datosCierre.observaciones
+      });
+
+      const datosParaEnviar = {
+        fecha_hs_cierre: new Date().toISOString(),
+        saldo_final: saldoFinal,
+        monto_contado: montoContadoValidado,
+        descripcion: datosCierre.observaciones,
         estado: 'cerrada'
       };
 
-      const response = await fetch('http://localhost:8000/api/cierre-caja/', {
-        method: 'POST',
+      console.log('📤 Enviando cierre de caja al servidor:', datosParaEnviar);
+
+      const response = await fetch(`http://localhost:8000/api/cajas/${cajaId}/`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Token ${token}`
         },
-        body: JSON.stringify(cierreData)
+        body: JSON.stringify(datosParaEnviar)
       });
 
       if (response.ok) {
-        onCerrarCaja();
+        const cajaActualizada = await response.json();
+        console.log('✅ Caja cerrada exitosamente:', cajaActualizada);
+        
+        // VERIFICAR que realmente se cerró
+        if (cajaActualizada.estado === 'cerrada') {
+          console.log('✅ Estado confirmado: CERRADA');
+          alert('✅ Cierre de caja registrado exitosamente');
+          if (onCierreConfirmado) {
+            onCierreConfirmado();
+          }
+        } else {
+          console.log('❌ Estado incorrecto después del cierre:', cajaActualizada.estado);
+          throw new Error('La caja no se cerró correctamente en el servidor');
+        }
       } else {
-        alert('Error al cerrar caja');
+        const errorData = await response.json();
+        console.error('❌ Error del servidor:', errorData);
+        throw new Error(`Error: ${JSON.stringify(errorData)}`);
       }
+
     } catch (error) {
-      console.error('Error:', error);
-      alert('Error de conexión');
+      console.error('❌ Error cerrando caja:', error);
+      alert('Error al registrar cierre de caja: ' + error.message);
+    } finally {
+      setProcesando(false);
     }
   };
 
-  const totalEfectivo = ventas
-    .filter(v => v.tipo_pago_venta === 'efectivo')
-    .reduce((sum, venta) => sum + parseFloat(venta.total_venta), 0);
+  if (cargando) {
+    return (
+      <div className="cierre-caja-container">
+        <div className="cargando">Cargando datos para cierre de caja...</div>
+      </div>
+    );
+  }
 
-  const totalTransferencia = ventas
-    .filter(v => v.tipo_pago_venta === 'transferencia')
-    .reduce((sum, venta) => sum + parseFloat(venta.total_venta), 0);
+  const montoEsperado = calcularMontoEsperado();
+  const diferencia = calcularDiferencia();
+  const totalGeneral = calcularTotalGeneral();
+
+  console.log('🎯 RENDERIZANDO COMPONENTE - Estado actual:', {
+    resumenVentas,
+    montoEsperado,
+    diferencia,
+    totalGeneral
+  });
 
   return (
     <div className="cierre-caja-container">
       <div className="cierre-caja-header">
         <h1>Cierre de caja</h1>
-        <div className="cierre-info">
-          <p><strong>Usuario:</strong> Luján Ramírez</p>
-          <p><strong>Fecha:</strong> {new Date().toLocaleDateString('es-ES')}</p>
-          <p><strong>Hora de cierre:</strong> {new Date().toLocaleTimeString('es-ES')}</p>
+        <h2>Usuario: {datosCaja?.empleadoNombre || 'No especificado'}</h2>
+      </div>
+    
+    {/* Información de fecha y hora */}
+      <div className="info-fecha">
+        <div className="fecha-actual">
+          <strong>Fecha:</strong> {new Date().toLocaleDateString('es-AR')}
+        </div>
+        <div className="hora-cierre">
+          <strong>Hora de cierre:</strong> {new Date().toLocaleTimeString('es-AR', { 
+            hour: '2-digit', minute: '2-digit' 
+          })}
         </div>
       </div>
 
-      <div className="cierre-content">
-        {/* Resumen de ventas */}
-        <div className="resumen-ventas">
+
+      <div className="cierre-caja-content">
+        {/* Columna izquierda - Resumen de ventas */}
+        <div className="columna-resumen">
           <h2>Resumen de ventas</h2>
-          <div className="resumen-stats">
-            <div className="stat-item">
+          
+          <div className="card-resumen">
+            <div className="fila-resumen">
               <span>Total operaciones:</span>
-              <strong>{ventas.length}</strong>
+              <strong>{resumenVentas.totalOperaciones}</strong>
             </div>
-            <div className="stat-item">
+            
+            <div className="fila-resumen total">
               <span>Total ventas:</span>
-              <strong>${ingresos.toFixed(2)}</strong>
+              <strong>${resumenVentas.totalVentas.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+            </div>
+
+            <div className="seccion-metodos-pago">
+              <h4>Método de pago:</h4>
+              <div className="fila-resumen">
+                <span>• Efectivo:</span>
+                <strong>${resumenVentas.ventasEfectivo.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+              </div>
+              <div className="fila-resumen">
+                <span>• Transferencia:</span>
+                <strong>${resumenVentas.ventasTransferencia.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+              </div>
+            </div>
+
+            {/* ✅ CORRECCIÓN: Solo mostrar "Total vendido" de Saeta en Resumen de Ventas */}
+            <div className="seccion-saeta">
+              <h4>Ventas Saeta:</h4>
+              <div className="fila-resumen">
+                <span>Total vendido:</span>
+                <strong>${resumenVentas.totalSaeta.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Método de pago */}
-        <div className="metodo-pago-resumen">
-          <h2>Método de pago:</h2>
-          <div className="metodos-list">
-            <div className="metodo-item">
-              <span>Efectivo</span>
-              <strong>${totalEfectivo.toFixed(2)}</strong>
-            </div>
-            <div className="metodo-item">
-              <span>Transferencia</span>
-              <strong>${totalTransferencia.toFixed(2)}</strong>
-            </div>
-          </div>
-          <div className="total-general">
-            <strong>TOTAL: ${ingresos.toFixed(2)}</strong>
-          </div>
-        </div>
-
-        {/* Arqueo de caja */}
-        <div className="arqueo-caja">
+        {/* Columna derecha - Arqueo de caja */}
+        <div className="columna-arqueo">
           <h2>ARQUEO DE CAJA</h2>
-          <div className="arqueo-grid">
-            <div className="arqueo-item">
+          
+          <div className="card-arqueo">
+            <div className="fila-arqueo">
               <span>Monto inicial:</span>
-              <span>${montoInicial.toFixed(2)}</span>
+              <strong>${(parseFloat(datosCaja?.saldo_inicial) || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
             </div>
-            <div className="arqueo-item">
-              <span>Ingresos:</span>
-              <span>${ingresos.toFixed(2)}</span>
+            
+            <div className="fila-arqueo ingreso">
+              <span>Ingresos extra:</span>
+              <strong>+${resumenVentas.ingresosExtra.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
             </div>
-            <div className="arqueo-item">
+            
+            <div className="fila-arqueo egreso">
               <span>Egresos:</span>
-              <input
-                type="number"
-                value={egresos}
-                onChange={(e) => setEgresos(parseFloat(e.target.value) || 0)}
-                className="egresos-input"
-              />
+              <strong>-${resumenVentas.egresos.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
             </div>
-            <div className="arqueo-item">
+
+            {/* ✅ CORRECCIÓN: Mostrar comisión Saeta y ingreso neto en Arqueo de Caja */}
+            <div className="fila-arqueo egreso">
+              <span>Comisión Saeta:</span>
+              <strong>-${resumenVentas.comisionSaeta.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+            </div>
+
+            <div className="fila-arqueo ingreso">
+              <span>Ingreso neto Saeta:</span>
+              <strong>+${(resumenVentas.totalSaeta - resumenVentas.comisionSaeta).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+            </div>
+
+            <div className="fila-arqueo total">
               <span>Monto esperado:</span>
-              <strong>${calcularMontoEsperado().toFixed(2)}</strong>
+              <strong>${montoEsperado.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
             </div>
-            <div className="arqueo-item">
-              <span>Monto contado:</span>
-              <input
-                type="number"
-                value={montoContado}
-                onChange={(e) => setMontoContado(e.target.value)}
-                className="monto-contado-input"
-                placeholder="0.00"
-              />
+
+            <div className="campo-contado">
+              <label>Monto contado:</label>
+              <div className="input-contado">
+                <span className="simbolo-peso">$</span>
+                <input
+                  type="number"
+                  name="monto_contado"
+                  value={datosCierre.monto_contado}
+                  onChange={handleChange}
+                  placeholder="0.00"
+                  step="0.01"
+                  min="0"
+                  max="99999999.99"
+                />
+              </div>
             </div>
-            <div className="arqueo-item diferencia">
+
+            <div className={`fila-arqueo diferencia ${diferencia >= 0 ? 'positiva' : 'negativa'}`}>
               <span>Diferencia:</span>
-              <strong className={calcularDiferencia() >= 0 ? 'positivo' : 'negativo'}>
-                ${calcularDiferencia().toFixed(2)}
-              </strong>
+              <strong>${diferencia.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+            </div>
+
+            <div className="fila-arqueo total-general">
+              <span>TOTAL:</span>
+              <strong>${totalGeneral.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Observaciones */}
-        <div className="observaciones">
-          <h2>Observaciones:</h2>
-          <textarea
-            value={observaciones}
-            onChange={(e) => setObservaciones(e.target.value)}
-            placeholder="Escribe aquí..."
-            className="observaciones-textarea"
-          />
-        </div>
+      {/* Sección de observaciones */}
+      <div className="seccion-observaciones">
+        <h3>Observaciones:</h3>
+        <textarea
+          name="observaciones"
+          value={datosCierre.observaciones}
+          onChange={handleChange}
+          placeholder="Escribe aquí las observaciones del cierre..."
+          rows="4"
+        />
+      </div>
 
-        {/* Acciones */}
-        <div className="acciones-cierre">
-          <button className="btn-cerrar-sesion">
-            Cerrar sesión
+      {/* Botones de acción */}
+      <div className="acciones-cierre">
+        {/* Botón Cancelar - SOLO si se proporciona onCancelar */}
+        {onCancelar && (
+          <button 
+            className="btn-cancelar-cierre"
+            onClick={onCancelar}
+            disabled={procesando}
+          >
+            Cancelar
           </button>
-          <div className="botones-cierre">
-            <button className="btn-cancelar" onClick={onCancelar}>
-              Cancelar
-            </button>
-            <button 
-              className="btn-confirmar-cierre" 
-              onClick={handleConfirmarCierre}
-              disabled={!montoContado}
-            >
-              Confirmar Cierre
-            </button>
-          </div>
-        </div>
+        )}
+  
+        <button 
+          className="btn-confirmar-cierre"
+          onClick={handleConfirmarCierre}
+          disabled={procesando}
+        > 
+          {procesando ? 'Procesando...' : 'Confirmar Cierre'}
+        </button>
       </div>
     </div>
   );
