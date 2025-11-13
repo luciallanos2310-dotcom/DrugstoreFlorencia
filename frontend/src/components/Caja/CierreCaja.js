@@ -61,7 +61,7 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
         
         // Log detallado de cada venta
         ventas.forEach((venta, index) => {
-          console.log(`   ${index + 1}. Venta ID: ${venta.id}, Total: $${venta.total_venta}, Método: ${venta.tipo_pago_venta}, Fecha: ${venta.fecha_hora_venta}`);
+          console.log(`   ${index + 1}. Venta ID: ${venta.id}, Total: $${venta.total_venta}, Método: ${venta.tipo_pago_venta}, Descripción: ${venta.descripcion}`);
         });
       } else {
         console.log('❌ Error obteniendo ventas:', responseVentas.status, responseVentas.statusText);
@@ -107,8 +107,6 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
       console.log('📊 ===== RESUMEN DE DATOS ENCONTRADOS =====');
       console.log('📍 Ventas normales:', ventas.length);
       console.log('📍 Ventas Saeta (filtradas):', ventasSaeta.length);
-      console.log('📍 Ingresos extra:', caja.ingresos);
-      console.log('📍 Egresos:', caja.egresos);
 
       // Calcular resumen
       calcularResumen(ventas, ventasSaeta, caja);
@@ -133,16 +131,53 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
     const ventasIdsConSaeta = ventasSaeta.map(saeta => saeta.venta);
     console.log('🔍 IDs de ventas que tienen Saeta asociada:', ventasIdsConSaeta);
     
-    // ✅ FILTRAR: Separar ventas normales REALES de ventas Saeta
-    const ventasReales = ventas.filter(venta => !ventasIdsConSaeta.includes(venta.id));
-    const ventasSaetaComoNormales = ventas.filter(venta => ventasIdsConSaeta.includes(venta.id));
+    // ✅ FILTRAR: Separar ventas normales REALES de ventas Saeta Y de ingresos/egresos
+    const ventasReales = ventas.filter(venta => 
+      !ventasIdsConSaeta.includes(venta.id) && 
+      !venta.descripcion?.toLowerCase().includes('ingreso') &&
+      !venta.descripcion?.toLowerCase().includes('egreso')
+    );
+    
+    const ventasSaetaComoNormales = ventas.filter(venta => 
+      ventasIdsConSaeta.includes(venta.id)
+    );
+    
+    // ✅ NUEVO: Filtrar ingresos y egresos
+    const ingresosExtra = ventas.filter(venta => 
+      venta.descripcion?.toLowerCase().includes('ingreso')
+    );
+    
+    const egresosExtra = ventas.filter(venta => 
+      venta.descripcion?.toLowerCase().includes('egreso')
+    );
     
     console.log('📊 VENTAS SEPARADAS:');
     console.log('   - Ventas reales (productos):', ventasReales.length);
     console.log('   - Ventas Saeta (como normales):', ventasSaetaComoNormales.length);
+    console.log('   - Ingresos extra:', ingresosExtra.length);
+    console.log('   - Egresos extra:', egresosExtra.length);
     
-    ventasReales.forEach(v => console.log(`   🛍️  Venta real ${v.id}: $${v.total_venta} (${v.tipo_pago_venta})`));
-    ventasSaetaComoNormales.forEach(v => console.log(`   📱 Venta Saeta como normal ${v.id}: $${v.total_venta} (${v.tipo_pago_venta})`));
+    // Log detallado de ingresos y egresos encontrados
+    ingresosExtra.forEach(ingreso => {
+      console.log(`   💰 INGRESO: ID ${ingreso.id}, Monto: $${ingreso.total_venta}, Desc: ${ingreso.descripcion}`);
+    });
+    
+    egresosExtra.forEach(egreso => {
+      console.log(`   💰 EGRESO: ID ${egreso.id}, Monto: $${egreso.total_venta}, Desc: ${egreso.descripcion}`);
+    });
+
+    // Calcular total de ingresos y egresos
+    const totalIngresosExtra = ingresosExtra.reduce((sum, ingreso) => {
+      const monto = parseFloat(ingreso.total_venta || 0);
+      console.log(`   💰 Ingreso extra ${ingreso.id}: $${monto}`);
+      return sum + monto;
+    }, 0);
+    
+    const totalEgresosExtra = egresosExtra.reduce((sum, egreso) => {
+      const monto = parseFloat(egreso.total_venta || 0);
+      console.log(`   💰 Egreso extra ${egreso.id}: $${monto}`);
+      return sum + monto;
+    }, 0);
 
     // Ventas normales REALES - SOLO de esta caja
     const ventasEfectivoReales = ventasReales.filter(v => v.tipo_pago_venta === 'efectivo');
@@ -187,8 +222,8 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
     console.log('   - Total ventas general REAL:', totalVentas);
     console.log('   - Total Saeta:', totalSaeta);
     console.log('   - Comisión Saeta:', comisionSaeta);
-    console.log('   - Ingresos extra:', caja.ingresos);
-    console.log('   - Egresos:', caja.egresos);
+    console.log('   - Ingresos extra:', totalIngresosExtra);
+    console.log('   - Egresos extra:', totalEgresosExtra);
 
     // ✅ CORRECCIÓN: CALCULAR OPERACIONES - Solo ventas reales + ventas Saeta únicas
     const totalOperaciones = ventasReales.length;
@@ -203,8 +238,8 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
       ventasTransferencia: totalVentasTransferencia,
       totalSaeta: totalSaeta,
       comisionSaeta: comisionSaeta,
-      ingresosExtra: parseFloat(caja.ingresos || 0),
-      egresos: parseFloat(caja.egresos || 0)
+      ingresosExtra: totalIngresosExtra, // ✅ Usar los calculados de las ventas
+      egresos: totalEgresosExtra // ✅ Usar los calculados de las ventas
     });
 
     console.log('✅ ===== RESUMEN GUARDADO EN ESTADO =====');
@@ -215,8 +250,8 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
       ventasTransferencia: totalVentasTransferencia,
       totalSaeta,
       comisionSaeta,
-      ingresosExtra: caja.ingresos,
-      egresos: caja.egresos
+      ingresosExtra: totalIngresosExtra,
+      egresos: totalEgresosExtra
     });
   };
 
@@ -279,7 +314,7 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
     // Para el saldo final, considerar TODOS los movimientos
     const montoInicial = parseFloat(datosCaja?.saldo_inicial) || 0;
     
-    // Todos los ingresos (efectivo + transferencia)
+    // Todos los ingresos (efectivo + transferencia + ingresos extra)
     const ingresosTotales = resumenVentas.totalVentas + resumenVentas.ingresosExtra;
     
     // Todos los egresos (egresos + comisión Saeta)
@@ -474,6 +509,7 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
               <strong>${(parseFloat(datosCaja?.saldo_inicial) || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
             </div>
             
+            {/* ✅ AHORA SÍ SE MOSTRARÁN LOS INGRESOS Y EGRESOS */}
             <div className="fila-arqueo ingreso">
               <span>Ingresos extra:</span>
               <strong>+${resumenVentas.ingresosExtra.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>

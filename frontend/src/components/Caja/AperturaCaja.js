@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaCashRegister, FaCalendarAlt, FaUser, FaCheck, FaTimes, FaClock, FaMoneyBillWave, FaStickyNote } from 'react-icons/fa';
+import { FaCashRegister, FaCalendarAlt, FaUser, FaCheck, FaTimes, FaClock, FaMoneyBillWave, FaStickyNote, FaChartLine, FaShoppingCart, FaExchangeAlt, FaMoneyBill, FaReceipt, FaList, FaBox, FaCreditCard, FaMoneyCheckAlt, FaMobileAlt } from 'react-icons/fa';
 import './AperturaCaja.css';
 import ModalConfirmacion from './ModalConfirmacion';
 
@@ -18,12 +18,30 @@ function AperturaCaja({ onAperturaConfirmada, onCancelar, cajaAbierta, datosCaja
   const [mostrarExito, setMostrarExito] = useState(false);
   const [errores, setErrores] = useState({});
   const [cajaLocalAbierta, setCajaLocalAbierta] = useState(null);
+  
+  // Estados para el detalle de ventas
+  const [ventasDelDia, setVentasDelDia] = useState([]);
+  const [detallesVentas, setDetallesVentas] = useState({});
+  const [resumenGeneral, setResumenGeneral] = useState({
+    totalVentas: 0,
+    ventasEfectivo: 0,
+    ventasTransferencia: 0,
+    ventasSaeta: 0,
+    ingresosExtra: 0,
+    egresos: 0,
+    totalOperaciones: 0
+  });
 
-  // Solo turnos mañana y tarde
   const turnos = [
     { id: 'mañana', nombre: 'Turno Mañana' },
     { id: 'tarde', nombre: 'Turno Tarde' }
   ];
+
+  // Función segura para formatear números - MOVIDA AQUÍ
+  const formatearNumero = (valor) => {
+    const numero = parseFloat(valor) || 0;
+    return numero.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
 
   // Cargar empleados desde la API
   const cargarEmpleados = async () => {
@@ -47,9 +65,162 @@ function AperturaCaja({ onAperturaConfirmada, onCancelar, cajaAbierta, datosCaja
     }
   };
 
+  // Cargar ventas del día con detalles - VERSIÓN MEJORADA
+  const cargarVentasDelDia = async () => {
+    if (!cajaAbierta || !datosCaja?.id) {
+      console.log('DEBUG - No se puede cargar ventas: cajaAbierta=', cajaAbierta, 'datosCaja.id=', datosCaja?.id);
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      
+      console.log('DEBUG - Cargando ventas para caja:', datosCaja.id);
+      
+      // Cargar TODAS las ventas de esta caja
+      const responseVentas = await fetch(`http://localhost:8000/api/ventas/?caja=${datosCaja.id}`, {
+        headers: {
+          'Authorization': `Token ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (responseVentas.ok) {
+        const todasLasVentas = await responseVentas.json();
+        console.log('DEBUG - Todas las ventas:', todasLasVentas);
+        
+        // Filtrar movimientos de caja
+        const movimientosCaja = todasLasVentas.filter(v => 
+          v.descripcion?.includes('Ingreso') || 
+          v.descripcion?.includes('Egreso')
+        );
+        
+        console.log('DEBUG - Movimientos de caja:', movimientosCaja);
+
+        // Filtrar ventas normales (sin movimientos)
+        const ventasNormales = todasLasVentas.filter(v => 
+          !v.descripcion?.includes('Ingreso') && 
+          !v.descripcion?.includes('Egreso')
+        );
+
+        console.log('DEBUG - Ventas normales:', ventasNormales);
+
+        // Ordenar TODAS las ventas por fecha (más recientes primero)
+        const ventasOrdenadas = [...ventasNormales, ...movimientosCaja].sort((a, b) => 
+          new Date(b.fecha_hora_venta) - new Date(a.fecha_hora_venta)
+        );
+
+        // Usar TODAS las ventas para el estado
+        setVentasDelDia(ventasOrdenadas);
+
+        // Cargar detalles SOLO para ventas normales (no para movimientos)
+        const nuevosDetalles = {};
+        for (const venta of ventasNormales) {
+          const detalles = await cargarDetallesVenta(venta.id);
+          if (detalles && detalles.length > 0) {
+            nuevosDetalles[venta.id] = detalles;
+          }
+        }
+        setDetallesVentas(nuevosDetalles);
+
+        // Calcular resumen general
+        calcularResumenGeneral(ventasNormales, movimientosCaja);
+      } else {
+        console.error('Error cargando ventas:', responseVentas.status);
+      }
+    } catch (error) {
+      console.error('Error cargando ventas del día:', error);
+    }
+  };
+
+  // Cargar detalles específicos de una venta - VERSIÓN CORREGIDA
+  const cargarDetallesVenta = async (ventaId) => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch(`http://localhost:8000/api/detalle_ventas/?venta=${ventaId}`, {
+        headers: {
+          'Authorization': `Token ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const detalles = await response.json();
+        console.log(`DEBUG - Detalles para venta ${ventaId}:`, detalles);
+        
+        // Filtrar solo los detalles que pertenecen a esta venta específica
+        const detallesFiltrados = detalles.filter(detalle => 
+          detalle.venta === ventaId || 
+          (detalle.venta && detalle.venta.toString() === ventaId.toString())
+        );
+        
+        console.log(`DEBUG - Detalles filtrados para venta ${ventaId}:`, detallesFiltrados);
+        return detallesFiltrados;
+      }
+      return [];
+    } catch (error) {
+      console.error(`Error cargando detalles de venta ${ventaId}:`, error);
+      return [];
+    }
+  };
+
+  // Calcular resumen general - VERSIÓN CORREGIDA
+  const calcularResumenGeneral = (ventasNormales, movimientosCaja) => {
+    let totalVentas = 0;
+    let ventasEfectivo = 0;
+    let ventasTransferencia = 0;
+    let ventasSaeta = 0;
+    let ingresosExtra = 0;
+    let egresos = 0;
+
+    // Procesar ventas normales
+    ventasNormales.forEach(venta => {
+      const monto = parseFloat(venta.total_venta) || 0;
+      totalVentas += monto;
+      
+      if (venta.descripcion?.includes('Saeta')) {
+        ventasSaeta += monto;
+      } else if (venta.tipo_pago_venta === 'efectivo') {
+        ventasEfectivo += monto;
+      } else if (venta.tipo_pago_venta === 'transferencia') {
+        ventasTransferencia += monto;
+      }
+    });
+
+    // Procesar movimientos de caja
+    movimientosCaja.forEach(movimiento => {
+      const monto = parseFloat(movimiento.total_venta) || 0;
+      if (movimiento.descripcion?.includes('Ingreso')) {
+        ingresosExtra += monto;
+      } else if (movimiento.descripcion?.includes('Egreso')) {
+        egresos += monto;
+      }
+    });
+
+    setResumenGeneral({
+      totalVentas: totalVentas || 0,
+      ventasEfectivo: ventasEfectivo || 0,
+      ventasTransferencia: ventasTransferencia || 0,
+      ventasSaeta: ventasSaeta || 0,
+      ingresosExtra: ingresosExtra || 0,
+      egresos: egresos || 0,
+      totalOperaciones: ventasNormales.length + movimientosCaja.length
+    });
+  };
+
   useEffect(() => {
     cargarEmpleados();
   }, []);
+
+  // Actualizar ventas cada 15 segundos cuando la caja está abierta
+  useEffect(() => {
+    if (cajaAbierta) {
+      cargarVentasDelDia(); // Cargar inmediatamente
+      const intervalo = setInterval(cargarVentasDelDia, 15000); // Actualizar cada 15 segundos
+      return () => clearInterval(intervalo);
+    }
+  }, [cajaAbierta, datosCaja]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -58,7 +229,6 @@ function AperturaCaja({ onAperturaConfirmada, onCancelar, cajaAbierta, datosCaja
       [name]: value
     }));
     
-    // Limpiar error del campo cuando el usuario empiece a escribir
     if (errores[name]) {
       setErrores(prev => ({
         ...prev,
@@ -91,7 +261,6 @@ function AperturaCaja({ onAperturaConfirmada, onCancelar, cajaAbierta, datosCaja
     try {
       const token = localStorage.getItem('token');
       
-      // Preparar datos para enviar a la API
       const datosParaEnviar = {
         empleado: parseInt(datosApertura.empleado),
         fecha_hs_apertura: `${datosApertura.fecha}T${datosApertura.hora}:00`,
@@ -100,8 +269,6 @@ function AperturaCaja({ onAperturaConfirmada, onCancelar, cajaAbierta, datosCaja
         descripcion: datosApertura.descripcion,
         estado: 'abierta'
       };
-
-      console.log('Enviando datos de apertura:', datosParaEnviar);
 
       const response = await fetch('http://localhost:8000/api/cajas/', {
         method: 'POST',
@@ -114,9 +281,7 @@ function AperturaCaja({ onAperturaConfirmada, onCancelar, cajaAbierta, datosCaja
 
       if (response.ok) {
         const cajaCreada = await response.json();
-        console.log('Caja abierta exitosamente:', cajaCreada);
         
-        // Preparar datos para mostrar en el estado de caja
         const datosCajaParaMostrar = {
           empleadoNombre: empleadoSeleccionado ? 
             `${empleadoSeleccionado.nombre_emp} ${empleadoSeleccionado.apellido_emp}` : '',
@@ -129,14 +294,10 @@ function AperturaCaja({ onAperturaConfirmada, onCancelar, cajaAbierta, datosCaja
           descripcion: datosApertura.descripcion
         };
 
-        // Guardar datos de caja abierta en el estado local
         setCajaLocalAbierta(datosCajaParaMostrar);
-        
-        // Mostrar modal de éxito
         setMostrarExito(true);
         setMostrarConfirmacion(false);
         
-        // Llamar a la función del padre para actualizar el estado global
         if (onAperturaConfirmada) {
           onAperturaConfirmada(datosCajaParaMostrar);
         }
@@ -157,7 +318,6 @@ function AperturaCaja({ onAperturaConfirmada, onCancelar, cajaAbierta, datosCaja
   const empleadoSeleccionado = empleados.find(emp => emp.id === parseInt(datosApertura.empleado));
   const turnoSeleccionado = turnos.find(t => t.id === datosApertura.turno);
 
-  // Preparar datos para el modal
   const datosModal = {
     empleadoNombre: empleadoSeleccionado ? `${empleadoSeleccionado.nombre_emp} ${empleadoSeleccionado.apellido_emp}` : '',
     fecha: datosApertura.fecha,
@@ -166,65 +326,421 @@ function AperturaCaja({ onAperturaConfirmada, onCancelar, cajaAbierta, datosCaja
     montoInicial: datosApertura.montoInicial
   };
 
-  // Si hay una caja abierta (ya sea local o del padre), mostrar el estado
-  const cajaActual = cajaLocalAbierta || datosCaja;
+// Componente para mostrar el detalle de ventas - VERSIÓN SIMPLIFICADA
+const DetalleVentasDelDia = () => {
+  const agruparVentas = () => {
+  const ventasAgrupadas = [];
+  const ventasProcesadas = new Set();
   
-  if (cajaAbierta && cajaActual) {
+  console.log('DEBUG - Ventas del día:', ventasDelDia);
+  
+  // Primero, crear un mapa para identificar ventas duplicadas por monto y hora (redondeado)
+  const ventasPorMontoYHora = {};
+  
+  ventasDelDia.forEach(venta => {
+    if (!venta.fecha_hora_venta || !venta.total_venta) return;
+    
+    // Redondear monto a 2 decimales y hora al minuto
+    const montoRedondeado = parseFloat(venta.total_venta).toFixed(2);
+    const horaRedondeada = new Date(venta.fecha_hora_venta);
+    horaRedondeada.setSeconds(0, 0);
+    const clave = `${montoRedondeado}_${horaRedondeada.getTime()}`;
+    
+    if (!ventasPorMontoYHora[clave]) {
+      ventasPorMontoYHora[clave] = [];
+    }
+    ventasPorMontoYHora[clave].push(venta);
+  });
+  
+  console.log('DEBUG - Ventas agrupadas por monto y hora:', ventasPorMontoYHora);
+  
+  ventasDelDia.forEach(venta => {
+    if (ventasProcesadas.has(venta.id)) {
+      return;
+    }
+    
+    ventasProcesadas.add(venta.id);
+
+    // Si es un movimiento de caja (ingreso/egreso)
+    if (venta.descripcion?.includes('Ingreso') || venta.descripcion?.includes('Egreso')) {
+      ventasAgrupadas.push({
+        id: venta.id,
+        tipo: venta.descripcion?.includes('Ingreso') ? 'ingreso' : 'egreso',
+        descripcion: venta.descripcion,
+        total: parseFloat(venta.total_venta) || 0,
+        fecha_hora: venta.fecha_hora_venta,
+        metodoPago: venta.tipo_pago_venta,
+        esMovimiento: true
+      });
+      return;
+    }
+    
+    // Calcular la clave para esta venta (igual que en la agrupación)
+    const montoRedondeado = parseFloat(venta.total_venta).toFixed(2);
+    const horaRedondeada = new Date(venta.fecha_hora_venta);
+    horaRedondeada.setSeconds(0, 0);
+    const clave = `${montoRedondeado}_${horaRedondeada.getTime()}`;
+    
+    // Verificar si esta venta tiene duplicados (mismo monto y misma hora redondeada)
+    const ventasDuplicadas = ventasPorMontoYHora[clave] || [];
+    
+    // Si hay más de una venta con el mismo monto y hora, procesar solo una
+    if (ventasDuplicadas.length > 1) {
+      console.log('DEBUG - Encontradas ventas duplicadas:', ventasDuplicadas);
+      
+      // Preferir la venta Saeta sobre la normal
+      const ventaSaeta = ventasDuplicadas.find(v => v.descripcion?.includes('Saeta'));
+      const ventaNormal = ventasDuplicadas.find(v => !v.descripcion?.includes('Saeta'));
+      
+      // Si hay una venta Saeta, usar esa y marcar las otras como procesadas
+      if (ventaSaeta) {
+        console.log('DEBUG - Usando venta Saeta y omitiendo normal');
+        
+        // Marcar todas las ventas duplicadas como procesadas
+        ventasDuplicadas.forEach(v => ventasProcesadas.add(v.id));
+        
+        const codigoVenta = ventaSaeta.codigo_venta || `V-${ventaSaeta.id.toString().padStart(3, '0')}`;
+        
+        ventasAgrupadas.push({
+          id: ventaSaeta.id,
+          codigoVenta: codigoVenta,
+          tipo: 'saeta',
+          descripcion: ventaSaeta.descripcion,
+          total: parseFloat(ventaSaeta.total_venta) || 0,
+          fecha_hora: ventaSaeta.fecha_hora_venta,
+          metodoPago: ventaSaeta.tipo_pago_venta,
+          montoRecibido: parseFloat(ventaSaeta.monto_recibido || 0),
+          vuelto: parseFloat(ventaSaeta.vuelto || 0),
+          esSaeta: true
+        });
+        return;
+      }
+    }
+    
+    // Si es una venta Saeta individual
+    if (venta.descripcion?.includes('Saeta')) {
+      const codigoVenta = venta.codigo_venta || `V-${venta.id.toString().padStart(3, '0')}`;
+      
+      ventasAgrupadas.push({
+        id: venta.id,
+        codigoVenta: codigoVenta,
+        tipo: 'saeta',
+        descripcion: venta.descripcion,
+        total: parseFloat(venta.total_venta) || 0,
+        fecha_hora: venta.fecha_hora_venta,
+        metodoPago: venta.tipo_pago_venta,
+        montoRecibido: parseFloat(venta.monto_recibido || 0),
+        vuelto: parseFloat(venta.vuelto || 0),
+        esSaeta: true
+      });
+      return;
+    }
+    
+    // Si es una venta normal que no fue procesada como duplicado
+    const productosVenta = detallesVentas[venta.id] || [];
+    const codigoVenta = venta.codigo_venta || `V-${venta.id.toString().padStart(3, '0')}`;
+    
+    const productosEstaVenta = productosVenta.filter(detalle => {
+      return detalle.venta === venta.id || 
+             (detalle.venta && detalle.venta.toString() === venta.id.toString());
+    });
+    
+    ventasAgrupadas.push({
+      id: venta.id,
+      codigoVenta: codigoVenta,
+      tipo: 'venta',
+      total: parseFloat(venta.total_venta) || 0,
+      fecha_hora: venta.fecha_hora_venta,
+      metodoPago: venta.tipo_pago_venta,
+      productos: productosEstaVenta,
+      montoRecibido: parseFloat(venta.monto_recibido || 0),
+      vuelto: parseFloat(venta.vuelto || 0),
+      descripcion: venta.descripcion
+    });
+  });
+  
+  return ventasAgrupadas.sort((a, b) => new Date(b.fecha_hora) - new Date(a.fecha_hora));
+};
+
+  const ventasAgrupadas = agruparVentas();
+
+  // Función para formatear la hora
+  const formatearHora = (fechaHora) => {
+    if (!fechaHora) return '--:--';
+    try {
+      return new Date(fechaHora).toLocaleTimeString('es-AR', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+    } catch (error) {
+      return '--:--';
+    }
+  };
+
+  return (
+    <div className="detalle-ventas-moderno">
+      <div className="detalle-header-moderno">
+        <FaReceipt className="icono-detalle" />
+        <h3>Operaciones del Día</h3>
+        <span className="badge-actualizado">Actualizado: {new Date().toLocaleTimeString('es-AR')}</span>
+      </div>
+
+      {/* Resumen en tarjetas */}
+      <div className="resumen-cards">
+        <div className="resumen-card">
+          <div className="resumen-icon total">
+            <FaMoneyBill />
+          </div>
+          <div className="resumen-info">
+            <span className="resumen-label">Total Ventas</span>
+            <span className="resumen-valor">${formatearNumero(resumenGeneral.totalVentas)}</span>
+          </div>
+        </div>
+        
+        <div className="resumen-card">
+          <div className="resumen-icon operaciones">
+            <FaList />
+          </div>
+          <div className="resumen-info">
+            <span className="resumen-label">Operaciones</span>
+            <span className="resumen-valor">{ventasAgrupadas.length}</span>
+          </div>
+        </div>
+        
+        <div className="resumen-card">
+          <div className="resumen-icon ingresos">
+            <FaChartLine />
+          </div>
+          <div className="resumen-info">
+            <span className="resumen-label">Ingresos Extra</span>
+            <span className="resumen-valor">${formatearNumero(resumenGeneral.ingresosExtra)}</span>
+          </div>
+        </div>
+        
+        <div className="resumen-card">
+          <div className="resumen-icon egresos">
+            <FaExchangeAlt />
+          </div>
+          <div className="resumen-info">
+            <span className="resumen-label">Egresos</span>
+            <span className="resumen-valor">${formatearNumero(resumenGeneral.egresos)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Lista de operaciones */}
+      <div className="lista-operaciones-moderna">
+        {ventasAgrupadas.length === 0 ? (
+          <div className="sin-operaciones">
+            <FaList className="icono-sin-operaciones" />
+            <p>No hay operaciones registradas hoy</p>
+          </div>
+        ) : (
+          ventasAgrupadas.map((operacion) => (
+            <div key={operacion.id} className={`operacion-card ${operacion.tipo}`}>
+              {/* Header de la operación */}
+              <div className="operacion-header-moderno">
+                <div className="operacion-tipo-info">
+                  {operacion.tipo === 'ingreso' && (
+                    <div className="tipo-badge ingreso">
+                      <FaMoneyCheckAlt /> INGRESO
+                    </div>
+                  )}
+                  {operacion.tipo === 'egreso' && (
+                    <div className="tipo-badge egreso">
+                      <FaExchangeAlt /> EGRESO
+                    </div>
+                  )}
+                  {operacion.tipo === 'saeta' && (
+                    <div className="tipo-badge saeta">
+                      <FaMobileAlt /> SAETA
+                    </div>
+                  )}
+                  {operacion.tipo === 'venta' && (
+                    <div className={`tipo-badge metodo-${operacion.metodoPago}`}>
+                      {operacion.metodoPago === 'efectivo' ? <FaMoneyBill /> : <FaCreditCard />}
+                      {operacion.metodoPago === 'efectivo' ? 'EFECTIVO' : 'TRANSFERENCIA'}
+                    </div>
+                  )}
+                  
+                {/*}  {(operacion.tipo === 'venta' || operacion.tipo === 'saeta') && (
+                    <span className="codigo-venta">{operacion.codigoVenta}</span>
+                  )}*/}
+                </div> 
+                
+                <div className="operacion-hora-total">
+                  <span className="hora">{formatearHora(operacion.fecha_hora)}</span>
+                  <span className="total">${formatearNumero(operacion.total)}</span>
+                </div>
+              </div>
+
+              {/* CONTENIDO ESPECÍFICO SEGÚN TIPO */}
+
+              {/* Para movimientos de caja */}
+              {(operacion.tipo === 'ingreso' || operacion.tipo === 'egreso') && (
+                <div className="operacion-descripcion">
+                  {operacion.descripcion}
+                </div>
+              )}
+
+              {/* Para ventas Saeta */}
+              {operacion.tipo === 'saeta' && (
+                <>
+                  <div className="operacion-descripcion">
+                    {operacion.descripcion}
+                  </div>
+                  
+                  {/* Información de pago si es en efectivo */}
+                  {operacion.metodoPago === 'efectivo' && (
+                    <div className="info-efectivo">
+                      <div className="info-item">
+                        <span className="info-label">Recibido:</span>
+                        <span className="info-valor">${formatearNumero(operacion.montoRecibido)}</span>
+                      </div>
+                      <div className="info-item">
+                        <span className="info-label">Vuelto:</span>
+                        <span className="info-valor">${formatearNumero(operacion.vuelto)}</span>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Para ventas normales */}
+              {operacion.tipo === 'venta' && (
+                <>
+                  {/* Detalles de productos */}
+                  {operacion.productos && operacion.productos.length > 0 ? (
+                    <div className="detalle-productos-moderno">
+                      {operacion.productos.map((producto, index) => (
+                        <div key={`${operacion.id}-${producto.id || index}`} className="producto-item-moderno">
+                          <FaBox className="icono-producto" />
+                          <span className="producto-nombre">
+                            {producto.producto_nombre || `Producto ${producto.producto_id || producto.producto || 'N/A'}`}
+                          </span>
+                          <span className="producto-cantidad">x{producto.cantidad || 1}</span>
+                          <span className="producto-precio">
+                            @${formatearNumero(producto.precio_unitario)}
+                          </span>
+                          <span className="producto-subtotal">
+                            ${formatearNumero(producto.subtotal)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="sin-productos">
+                      <span>No hay detalles de productos para esta venta</span>
+                    </div>
+                  )}
+
+                  {/* Información adicional para ventas en efectivo */}
+                  {operacion.metodoPago === 'efectivo' && (
+                    <div className="info-efectivo">
+                      <div className="info-item">
+                        <span className="info-label">Recibido:</span>
+                        <span className="info-valor">${formatearNumero(operacion.montoRecibido)}</span>
+                      </div>
+                      <div className="info-item">
+                        <span className="info-label">Vuelto:</span>
+                        <span className="info-valor">${formatearNumero(operacion.vuelto)}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Descripción adicional */}
+                  {operacion.descripcion && (
+                    <div className="nota-venta">
+                      <strong>Nota:</strong> {operacion.descripcion}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+  // Si hay una caja abierta, mostrar el estado con detalle de ventas
+  const cajaActual = cajaLocalAbierta || datosCaja;
+
+  if (cajaAbierta === true && cajaActual) {
     return (
-      <div className="estado-caja-abierta-container">
-        <div className="estado-caja-card">
-          <div className="estado-header">
-            <div className="estado-badge abierta">
+      <div className="estado-caja-moderno">
+        <div className="caja-header-moderno">
+          <div className="caja-info-principal">
+            <div className="caja-badge">
               <FaCashRegister /> Caja Actualmente Abierta
             </div>
-            <div className="info-fecha">
+            <div className="caja-fecha">
               <FaCalendarAlt /> {new Date(cajaActual.fecha_hs_apertura).toLocaleDateString('es-AR')}
             </div>
           </div>
-
-          <div className="info-caja-detalle">
-            <div className="info-item">
-              <p><FaUser /></p> 
-              <span className="label">Empleada:</span>
-              <span className="value">{cajaActual.empleadoNombre}</span>
-            </div>
-            
-            <div className="info-item">
-              <p><FaClock /></p>
-              <span className="label">Turno:</span>
-              <span className="value">{cajaActual.turnoNombre}</span>
-            </div>
-            
-            <div className="info-item"> 
-              <p><FaMoneyBillWave /></p>  
-              <span className="label">Monto Inicial:</span>
-              <span className="value">${parseFloat(cajaActual.saldo_inicial).toLocaleString('es-AR', { 
-                minimumFractionDigits: 2, 
-                maximumFractionDigits: 2 
-              })}</span>
-            </div>
-
-            {cajaActual.descripcion && (
-              <div className="info-item">
-                <FaStickyNote />
-                <span className="label">Descripción:</span>
-                <span className="value">{cajaActual.descripcion}</span>
-              </div>
-            )}
-          </div>   
-
-          <div className="acciones-caja-abierta">
-            <button 
-              className="btn-ir-ventas"
-              onClick={() => {
-                if (onAperturaConfirmada) {
-                  onAperturaConfirmada(cajaActual);
-                }
-              }}
-            >
-              Ir a Ventas
-            </button>
+          
+          <div className="usuario-info">
+            <FaUser /> Usuario: {cajaActual.empleadoNombre}
           </div>
+        </div>
+
+        <div className="info-caja-moderna">
+          <div className="info-item-moderno">
+            <FaUser className="info-icon" />
+            <div className="info-content">
+              <span className="info-label">Empleada</span>
+              <span className="info-value">{cajaActual.empleadoNombre}</span>
+            </div>
+          </div>
+          
+          <div className="info-item-moderno">
+            <FaClock className="info-icon" />
+            <div className="info-content">
+              <span className="info-label">Turno</span>
+              <span className="info-value">{cajaActual.turnoNombre}</span>
+            </div>
+          </div>
+          
+          <div className="info-item-moderno"> 
+            <FaMoneyBillWave className="info-icon" />
+            <div className="info-content">
+              <span className="info-label">Monto Inicial</span>
+              <span className="info-value">${formatearNumero(cajaActual.saldo_inicial)}</span>
+            </div>
+          </div>
+
+          {cajaActual.descripcion && (
+            <div className="info-item-moderno">
+              <FaStickyNote className="info-icon" />
+              <div className="info-content">
+                <span className="info-label">Descripción</span>
+                <span className="info-value">{cajaActual.descripcion}</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Detalle de ventas del día */}
+        <DetalleVentasDelDia />
+
+        <div className="acciones-caja-modernas">
+          <button 
+            className="btn-primario"
+            onClick={() => {
+              if (onAperturaConfirmada) {
+                onAperturaConfirmada(cajaActual);
+              }
+            }}
+          >
+            <FaShoppingCart /> Ir a Ventas
+          </button>
+          
+          <button 
+            className="btn-secundario"
+            onClick={onCancelar}
+          >
+            <FaCashRegister /> Volver a Caja
+          </button>
         </div>
       </div>
     );

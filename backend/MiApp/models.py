@@ -166,6 +166,7 @@ class Venta(models.Model):
     ]
     
     caja = models.ForeignKey('Caja', on_delete=models.PROTECT)
+    codigo_venta = models.CharField(max_length=20, unique=True, blank=True, null=True, verbose_name="Código de Venta")
     fecha_hora_venta = models.DateTimeField(auto_now_add=True)
     total_venta = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     estado_venta = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='completada')
@@ -177,15 +178,51 @@ class Venta(models.Model):
     actualizado_en = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Venta {self.id} - ${self.total_venta}"
+        return f"{self.codigo_venta} - ${self.total_venta}"
 
     def save(self, *args, **kwargs):
+        # Generar código de venta automáticamente si no existe
+        if not self.codigo_venta:
+            self.codigo_venta = self.generar_codigo_venta()
+        
         # Calcular vuelto solo si es pago en efectivo
         if self.tipo_pago_venta == 'efectivo' and self.monto_recibido > 0:
             self.vuelto = max(self.monto_recibido - self.total_venta, 0)
         else:
             self.vuelto = 0
         super().save(*args, **kwargs)
+
+    def generar_codigo_venta(self):
+        """Generar código de venta automático: V-001, V-002, etc."""
+        # Buscar la última venta con código
+        ultima_venta = Venta.objects.filter(codigo_venta__isnull=False).order_by('-id').first()
+        
+        if ultima_venta and ultima_venta.codigo_venta:
+            try:
+                # Extraer el número del código existente
+                ultimo_numero = int(ultima_venta.codigo_venta.split('-')[1])
+                nuevo_numero = ultimo_numero + 1
+            except (IndexError, ValueError):
+                # Si hay error en el formato, empezar desde 1
+                nuevo_numero = 1
+        else:
+            # Primera venta
+            nuevo_numero = 1
+        
+        return f"V-{nuevo_numero:03d}"
+
+    @property
+    def es_saeta(self):
+        """Verificar si es una venta Saeta"""
+        return self.descripcion and 'Saeta' in self.descripcion
+
+    @property
+    def es_movimiento_caja(self):
+        """Verificar si es un movimiento de caja (ingreso/egreso)"""
+        return self.descripcion and ('Ingreso' in self.descripcion or 'Egreso' in self.descripcion)
+
+    class Meta:
+        ordering = ['-fecha_hora_venta']
 
 class DetalleVenta(models.Model):
     venta = models.ForeignKey('Venta', on_delete=models.CASCADE, related_name='detalles')
@@ -196,26 +233,31 @@ class DetalleVenta(models.Model):
     creado_en = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        # CORRECCIÓN: Verificar si producto existe antes de acceder a sus atributos
-        if self.producto:
-            producto_nombre = self.producto.nombre_prod
-        else:
-            producto_nombre = "Saeta"
-        return f"Detalle {self.id} - {producto_nombre}"
+        producto_nombre = self.producto_nombre
+        return f"{producto_nombre} - x{self.cantidad}"
 
     def save(self, *args, **kwargs):
         # Calcular subtotal automáticamente
         self.subtotal = self.cantidad * self.precio_unitario
         super().save(*args, **kwargs)
 
+    @property
+    def producto_nombre(self):
+        """Obtener nombre del producto de manera segura"""
+        if self.producto:
+            return self.producto.nombre_prod
+        elif self.venta and self.venta.descripcion and 'Saeta' in self.venta.descripcion:
+            return "Recarga Saeta"
+        else:
+            return "Producto no especificado"
+
     class Meta:
         verbose_name = 'Detalle de Venta'
         verbose_name_plural = 'Detalles de Ventas'
-
-# En models.py - Modifica el modelo VentaSaeta
+        
 class VentaSaeta(models.Model):
-    detalle_venta = models.ForeignKey('DetalleVenta', on_delete=models.CASCADE, null=True, blank=True)  # Hacer opcional
-    venta = models.ForeignKey('Venta', on_delete=models.CASCADE, null=True, blank=True)  # NUEVO CAMPO
+    detalle_venta = models.ForeignKey('DetalleVenta', on_delete=models.CASCADE, null=True, blank=True)
+    venta = models.ForeignKey('Venta', on_delete=models.CASCADE, null=True, blank=True)
     monto_saeta = models.DecimalField(max_digits=10, decimal_places=2)
     fecha_pago_saeta = models.DateField()
     porcentaje_ganancia_saeta = models.DecimalField(max_digits=5, decimal_places=2)
@@ -224,3 +266,9 @@ class VentaSaeta(models.Model):
 
     def __str__(self):
         return f"Saeta {self.id} - ${self.monto_saeta}"
+
+    def save(self, *args, **kwargs):
+        # Calcular ganancia automáticamente si no está establecida
+        if not self.ganancia_drugstore and self.porcentaje_ganancia_saeta:
+            self.ganancia_drugstore = (self.monto_saeta * self.porcentaje_ganancia_saeta) / 100
+        super().save(*args, **kwargs)

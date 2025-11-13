@@ -14,7 +14,7 @@ function ModalConfirmacion({
 
   const getTitulo = () => {
     switch(tipo) {
-      case 'confirmar': return 'Confirmar Venta Saeta';
+      case 'confirmar': return 'Confirmar';
       case 'cancelar': return 'Cancelar Venta';
       case 'exito': return '¡Venta Exitosa!';
       case 'error': return 'Error en Venta';

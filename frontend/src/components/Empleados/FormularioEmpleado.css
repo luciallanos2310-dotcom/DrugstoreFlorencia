@@ -3,16 +3,27 @@
   max-width: 1000px;
   margin: 0 auto;
   background-color: white;
+  height: 100vh; /* Altura completa de la ventana */
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto; /* Scroll vertical */
+ /* Altura máxima menos el header y padding */
+  padding-right: 10px; /* Espacio para el scroll */
 }
 
 .formulario-empleado-card {
   border-radius: 8px;
   padding: 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Evita que el contenido se desborde */
 }
 
 .formulario-header {
-  margin-bottom: 30px;
+  margin-bottom: 20px;
   text-align: left;
+  flex-shrink: 0; /* Evita que el header se reduzca */
 }
 
 .formulario-header h1 {
@@ -30,12 +41,34 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+  flex: 1;
+  
+}
+
+/* Personalización del scroll */
+.formulario-empleado::-webkit-scrollbar {
+  width: 8px;
+}
+
+.formulario-empleado::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.formulario-empleado::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.formulario-empleado::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 .form-columnas {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 30px;
+  min-height: min-content; /* Permite que crezca según el contenido */
 }
 
 .columna-izquierda,
@@ -110,6 +143,7 @@
   margin-bottom: 20px;
   text-align: center;
   font-weight: 600;
+  flex-shrink: 0; /* Evita que se reduzca con el scroll */
 }
 
 .mensaje-validacion {
@@ -185,8 +219,13 @@
   display: flex;
   justify-content: flex-end;
   gap: 15px;
-  margin-top: 10px;
+  margin-top: 20px;
   border-top: 1px solid #eee;
+  padding-top: 20px;
+  flex-shrink: 0; /* Fija los botones en la parte inferior */
+  background: white;
+  position: sticky;
+  bottom: 0;
 }
 
 .btn-cancelar,
@@ -262,6 +301,8 @@
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
   max-width: 400px;
   width: 90%;
+  max-height: 90vh; /* Altura máxima para el modal */
+  overflow-y: auto; /* Scroll en el modal si es necesario */
 }
 
 .modal-password {
@@ -385,5 +426,30 @@
   .modal-password {
     max-width: 90%;
     padding: 20px;
+  }
+  
+  .formulario-empleado {
+    max-height: calc(100vh - 150px); /* Ajuste para móviles */
+  }
+  
+  .formulario-acciones {
+    flex-direction: column;
+    position: relative;
+  }
+}
+
+/* Para pantallas muy pequeñas */
+@media (max-width: 480px) {
+  .formulario-empleado-card {
+    padding: 15px;
+  }
+  
+  .formulario-empleado {
+    gap: 15px;
+  }
+  
+  .columna-izquierda,
+  .columna-derecha {
+    gap: 15px;
   }
 }

@@ -8,7 +8,7 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
     monto_saeta: '',
     fecha_pago_saeta: new Date().toISOString().split('T')[0],
     porcentaje_ganancia_saeta: 15,
-    descripcion: ''
+    descripcion: 'Venta Saeta - Recarga de saldo'
   });
   const [calculando, setCalculando] = useState(false);
   const [gananciaDrugstore, setGananciaDrugstore] = useState(0);
@@ -29,8 +29,8 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
       setFormData({
         monto_saeta: '',
         fecha_pago_saeta: new Date().toISOString().split('T')[0],
-        porcentaje_ganancia_saeta: 15,
-        descripcion: ''
+        porcentaje_ganancia_saeta: 85,
+        descripcion: 'Venta Saeta - Recarga de saldo'
       });
       setGananciaDrugstore(0);
       setMontoParaSaeta(0);
@@ -86,7 +86,7 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
 
       console.log('🔄 Iniciando creación de venta Saeta para caja:', cajaId);
 
-      // ✅ 1. PRIMERO crear una VENTA para Saeta
+      // ✅ CREAR SOLO UNA VENTA - LA VENTA SAETA
       const ventaData = {
         caja: cajaId,
         total_venta: montoTotal,
@@ -94,10 +94,10 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
         monto_recibido: montoTotal,
         vuelto: 0,
         estado_venta: 'completada',
-        descripcion: 'Venta Saeta - Recarga de saldo'
+        descripcion: formData.descripcion // USAR LA DESCRIPCIÓN DEL FORMULARIO
       };
 
-      console.log('📤 Creando venta para Saeta:', ventaData);
+      console.log('📤 Creando venta Saeta:', ventaData);
 
       const responseVenta = await fetch('http://localhost:8000/api/ventas/', {
         method: 'POST',
@@ -114,9 +114,9 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
       }
 
       const ventaCreada = await responseVenta.json();
-      console.log('✅ Venta creada para Saeta:', ventaCreada);
+      console.log('✅ Venta Saeta creada:', ventaCreada);
 
-      // ✅ 2. LUEGO crear el DetalleVenta
+      // ✅ CREAR EL DETALLE DE VENTA SAETA
       const detalleData = {
         venta: ventaCreada.id,
         producto: null,
@@ -137,6 +137,7 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
       });
 
       if (!responseDetalle.ok) {
+        // Si falla el detalle, eliminar la venta creada
         await fetch(`http://localhost:8000/api/ventas/${ventaCreada.id}/`, {
           method: 'DELETE',
           headers: { 'Authorization': `Token ${token}` }
@@ -147,7 +148,7 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
       const detalleCreado = await responseDetalle.json();
       console.log('✅ Detalle venta creado:', detalleCreado);
 
-      // ✅ 3. FINALMENTE crear la VentaSaeta
+      // ✅ CREAR EL REGISTRO ESPECÍFICO DE VENTA SAETA
       const ventaSaetaData = {
         detalle_venta: detalleCreado.id,
         venta: ventaCreada.id,
@@ -155,10 +156,10 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
         fecha_pago_saeta: formData.fecha_pago_saeta,
         porcentaje_ganancia_saeta: porcentajeSaeta,
         ganancia_drugstore: gananciaDrugstore,
-        descripcion: formData.descripcion || 'Recarga Saeta'
+        descripcion: formData.descripcion
       };
 
-      console.log('📤 Creando venta Saeta:', ventaSaetaData);
+      console.log('📤 Creando registro específico de venta Saeta:', ventaSaetaData);
 
       const responseSaeta = await fetch('http://localhost:8000/api/ventas_saeta/', {
         method: 'POST',
@@ -171,7 +172,7 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
 
       if (responseSaeta.ok) {
         const ventaSaetaCreada = await responseSaeta.json();
-        console.log('✅ Venta Saeta creada:', ventaSaetaCreada);
+        console.log('✅ Registro Saeta creado:', ventaSaetaCreada);
         
         // Notificar a Ventas.js
         if (onVentaSaetaCreada) {
@@ -188,7 +189,7 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
         
       } else {
         const errorData = await responseSaeta.json();
-        console.error('❌ Error creando venta Saeta:', errorData);
+        console.error('❌ Error creando registro Saeta:', errorData);
         
         // Limpiar recursos creados en caso de error
         await fetch(`http://localhost:8000/api/detalle_ventas/${detalleCreado.id}/`, {
@@ -200,7 +201,7 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
           headers: { 'Authorization': `Token ${token}` }
         });
         
-        mostrarError('Error al crear venta Saeta: ' + JSON.stringify(errorData));
+        mostrarError('Error al crear registro Saeta: ' + JSON.stringify(errorData));
       }
     } catch (error) {
       console.error('❌ Error creando venta Saeta:', error);
@@ -324,6 +325,7 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
                 onChange={handleChange}
                 className="campo-textarea-saeta"
                 rows="3"
+                placeholder="Venta Saeta - Recarga de saldo"
               />
             </div>
           </div>

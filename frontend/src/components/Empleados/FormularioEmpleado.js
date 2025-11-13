@@ -402,31 +402,20 @@ function FormularioEmpleado({ modo, empleado, onGuardar, onCancelar }) {
                 />
                 {errores.domicilio_emp && <span className="mensaje-error">{errores.domicilio_emp}</span>}
               </div>
-
-              {modo === 'crear' && (
-                <div className="campo-grupo">
-                  <label htmlFor="password">Contraseña:</label>
-                  <div className="password-input-container">
-                    <input
-                      type={mostrarPassword ? "text" : "password"}
-                      id="password"
-                      name="password"
-                      value={formData.password}
-                      onChange={handleChange}
-                      placeholder="Ingrese la contraseña"
-                      className={errores.password ? 'error' : ''}
-                    />
-                    <button
-                      type="button"
-                      className="btn-mostrar-password"
-                      onClick={() => setMostrarPassword(!mostrarPassword)}
-                    >
-                      {mostrarPassword ? <FaEyeSlash /> : <FaEye />}
-                    </button>
-                  </div>
-                  {errores.password && <span className="mensaje-error">{errores.password}</span>}
-                </div>
-              )}
+              <div className="campo-grupo">
+                <label htmlFor="email">Email:</label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="usuario@email.com"
+                  className={errores.email ? 'error' : ''}
+                />
+                {errores.email && <span className="mensaje-error">{errores.email}</span>}
+              </div>
+              
             </div>
 
             {/* Columna derecha */}
@@ -459,20 +448,30 @@ function FormularioEmpleado({ modo, empleado, onGuardar, onCancelar }) {
                 {errores.telefono_emp && <span className="mensaje-error">{errores.telefono_emp}</span>}
               </div>
 
-              <div className="campo-grupo">
-                <label htmlFor="email">Email:</label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="usuario@email.com"
-                  className={errores.email ? 'error' : ''}
-                />
-                {errores.email && <span className="mensaje-error">{errores.email}</span>}
-              </div>
-
+              {modo === 'crear' && (
+                <div className="campo-grupo">
+                  <label htmlFor="password">Contraseña:</label>
+                  <div className="password-input-container">
+                    <input
+                      type={mostrarPassword ? "text" : "password"}
+                      id="password"
+                      name="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      placeholder="Ingrese la contraseña"
+                      className={errores.password ? 'error' : ''}
+                    />
+                    <button
+                      type="button"
+                      className="btn-mostrar-password"
+                      onClick={() => setMostrarPassword(!mostrarPassword)}
+                    >
+                      {mostrarPassword ? <FaEyeSlash /> : <FaEye />}
+                    </button>
+                  </div>
+                  {errores.password && <span className="mensaje-error">{errores.password}</span>}
+                </div>
+              )}
               {modo === 'crear' && (
                 <div className="campo-grupo">
                   <label htmlFor="confirmarPassword">Confirmar Contraseña:</label>
