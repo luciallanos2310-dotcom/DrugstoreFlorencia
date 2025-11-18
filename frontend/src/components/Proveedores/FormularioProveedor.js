@@ -10,7 +10,7 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
     telefono_prov: '',
     correo_prov: '',
     direccion_prov: '',
-    descripcion: '',
+    descripcion: '', // ✅ CAMBIAR de 'descripcion' a 'observaciones'
     dni_proveedor: ''
   });
 
@@ -49,8 +49,8 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
         tipo_prov: proveedorEditar.tipo_prov || '',
         telefono_prov: proveedorEditar.telefono_prov || '',
         correo_prov: proveedorEditar.correo_prov || '',
-        direccion_prov: proveedorEditar.direccion_prov || '',
-        descripcion: proveedorEditar.descripcion || '',
+        direccion_prov: proveedorEditar.direccion_prov || '', // ✅ Esto debería cargar la dirección
+        descripcion: proveedorEditar.descripcion || '', // ✅ CAMBIAR a 'observaciones'
         dni_proveedor: proveedorEditar.dni_proveedor || ''
       });
     } else {
@@ -61,7 +61,7 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
         telefono_prov: '',
         correo_prov: '',
         direccion_prov: '',
-        descripcion: '',
+        descripcion: '', // ✅ CAMBIAR a 'observaciones'
         dni_proveedor: ''
       });
     }
@@ -184,7 +184,7 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
       telefono_prov: proveedorEditar.telefono_prov || '',
       correo_prov: proveedorEditar.correo_prov || '',
       direccion_prov: proveedorEditar.direccion_prov || '',
-      descripcion: proveedorEditar.descripcion || '',
+      descripcion: proveedorEditar.descripcion || '', // ✅ CAMBIAR a 'observaciones'
       dni_proveedor: proveedorEditar.dni_proveedor || ''
     };
 
@@ -215,7 +215,7 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
         telefono_prov: form.telefono_prov.trim() || null,
         correo_prov: form.correo_prov.trim() || null,
         direccion_prov: form.direccion_prov.trim() || null,
-        descripcion: form.descripcion.trim() || null,
+        descripcion: form.descripcion.trim() || null, // ✅ CAMBIAR a 'observaciones'
         dni_proveedor: form.dni_proveedor.trim() || null
       };
 
@@ -256,7 +256,8 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
           'telefono_prov': 'teléfono',
           'correo_prov': 'email', 
           'dni_proveedor': 'DNI',
-          'direccion_prov': 'dirección'
+          'direccion_prov': 'dirección',
+          'descripcion': 'descripcion' // ✅ AGREGAR observaciones
         };
 
         for (const [campo, mensaje] of Object.entries(mapeoErrores)) {
@@ -308,11 +309,11 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
 
   // ✅ VERIFICACIÓN MEJORADA: Solo verificar errores de campos con valor
   const hayErroresVisibles = () => {
-  return Object.keys(errores).some(key => {
-    // Solo considerar errores que realmente existen en el objeto de errores
-    return errores[key] && errores[key].trim() !== '';
-  });
-};
+    return Object.keys(errores).some(key => {
+      // Solo considerar errores que realmente existen en el objeto de errores
+      return errores[key] && errores[key].trim() !== '';
+    });
+  };
 
   const camposRequeridosLlenos = form.nombre_prov.trim() && form.tipo_prov.trim();
   const puedeGuardar = camposRequeridosLlenos && !hayErroresVisibles() && (modo === 'crear' || hayCambios());
@@ -321,10 +322,6 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
     <div className="formulario-container">
       <h2>{modo === 'crear' ? 'Agregar Proveedor' : 'Editar Proveedor'}</h2>
       <p>Complete los siguientes datos para {modo === 'crear' ? 'registrar un proveedor nuevo' : 'editar el proveedor seleccionado'}.</p>
-
-      <div className="alertas-validacion">
-        <p><strong>⚠️ Importante:</strong> Los campos marcados con * son obligatorios.</p>
-      </div>
 
       <form className="formulario-proveedor" onSubmit={(e) => e.preventDefault()}>
         <div className="form-grid">
@@ -440,11 +437,11 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
         </div>
 
         <div className="campo-form campo-completo">
-          <label>Observaciones</label>
+          <label>Descripcion</label>
           <textarea 
-            name="descripcion" 
+            name="descripcion" // ✅ CAMBIAR de 'descripcion' a 'observaciones'
             placeholder="Información adicional sobre el proveedor..." 
-            value={form.descripcion} 
+            value={form.descripcion} // ✅ CAMBIAR de 'descripcion' a 'observaciones'
             onChange={handleChange}
             rows="3"
           ></textarea>

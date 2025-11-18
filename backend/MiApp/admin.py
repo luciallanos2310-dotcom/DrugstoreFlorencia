@@ -16,9 +16,50 @@ class ProductoAdmin(admin.ModelAdmin):
 
 @admin.register(Proveedor)
 class ProveedorAdmin(admin.ModelAdmin):
-    list_display = ['id', 'nombre_prov', 'tipo_prov', 'telefono_prov', 'dni_proveedor', 'estado']
+    list_display = [
+        'id', 
+        'nombre_prov', 
+        'tipo_prov', 
+        'telefono_prov', 
+        'correo_prov',  # ✅ AGREGAR EMAIL
+        'direccion_prov', 
+        'dni_proveedor', 
+        'estado_display'  # ✅ USAR LA PROPERTY
+    ]
+    
     list_filter = ['tipo_prov', 'estado']
-    search_fields = ['nombre_prov']
+    search_fields = ['nombre_prov', 'dni_proveedor', 'telefono_prov', 'correo_prov', 'direccion_prov']
+    
+    # ✅ AGREGAR CAMPOS DE SOLO LECTURA PARA PROPIEDADES
+    readonly_fields = ['estado_display']
+    
+    fieldsets = (
+        ('Información Básica', {
+            'fields': (
+                'nombre_prov', 
+                'tipo_prov', 
+                'dni_proveedor', 
+                'estado',
+                'estado_display'
+            )
+        }),
+        ('Información de Contacto', {
+            'fields': (
+                'telefono_prov', 
+                'correo_prov', 
+                'direccion_prov'
+            )
+        }),
+        ('Información Adicional', {
+            'fields': (
+                'descripcion',
+            )
+        }),
+    )
+    
+    def estado_display(self, obj):
+        return obj.estado_display
+    estado_display.short_description = 'Estado'
 
 from django.contrib import admin
 from .models import Caja

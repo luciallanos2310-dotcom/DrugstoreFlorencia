@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaSave, FaTimes, FaLock, FaCheck, FaTimes as FaClose, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaSave, FaTimes, FaLock, FaCheck, FaTimes as FaClose, FaEye, FaEyeSlash, FaKey } from 'react-icons/fa';
 import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal';
 import '../Empleados/FormularioEmpleado.css';
 
@@ -17,20 +17,34 @@ function FormularioEmpleado({ modo, empleado, onGuardar, onCancelar }) {
     observaciones: ''
   });
 
-  const [mostrarPassword, setMostrarPassword] = useState(false);
-  const [mostrarModalPassword, setMostrarModalPassword] = useState(false);
-  const [passwordModalData, setPasswordModalData] = useState({
+  // Estados para el modal de contraseña en creación
+  const [mostrarModalPasswordCreacion, setMostrarModalPasswordCreacion] = useState(false);
+  const [passwordCreacionData, setPasswordCreacionData] = useState({
+    password: '',
+    confirmarPassword: ''
+  });
+  const [mostrarPasswordModalCreacion, setMostrarPasswordModalCreacion] = useState({
+    password: false,
+    confirmarPassword: false
+  });
+
+  // Estados para el modal de cambio de contraseña en edición
+  const [mostrarModalPasswordEdicion, setMostrarModalPasswordEdicion] = useState(false);
+  const [passwordEdicionData, setPasswordEdicionData] = useState({
     passwordActual: '',
     nuevaPassword: '',
     confirmarNuevaPassword: ''
   });
-  const [mostrarPasswordModal, setMostrarPasswordModal] = useState({
+  const [mostrarPasswordModalEdicion, setMostrarPasswordModalEdicion] = useState({
     passwordActual: false,
     nuevaPassword: false,
     confirmarNuevaPassword: false
   });
+
   const [errores, setErrores] = useState({});
-  const [erroresModal, setErroresModal] = useState({});
+  const [erroresModalCreacion, setErroresModalCreacion] = useState({});
+  const [erroresModalEdicion, setErroresModalEdicion] = useState({});
+  
   const [validacionPassword, setValidacionPassword] = useState({
     longitud: false,
     mayuscula: false,
@@ -38,6 +52,7 @@ function FormularioEmpleado({ modo, empleado, onGuardar, onCancelar }) {
     numero: false,
     especial: false
   });
+  
   const [coincidePassword, setCoincidePassword] = useState(null);
   const [passwordActualCorrecta, setPasswordActualCorrecta] = useState(null);
   const [cargando, setCargando] = useState(false);
@@ -87,86 +102,132 @@ function FormularioEmpleado({ modo, empleado, onGuardar, onCancelar }) {
     }
   }, [empleado, modo]);
 
-  // Función mejorada para validar campos únicos
-  // Función mejorada para validar campos únicos
-const validarCampoUnico = async (campo, valor) => {
-  // ✅ NO validar campos únicos en modo edición
-  if (modo !== 'crear') {
-    setErroresUnicos(prev => ({ ...prev, [campo]: null }));
-    setValidandoCampo(prev => ({ ...prev, [campo]: false }));
-    return;
-  }
-  
-  if (!valor || valor.trim() === '') {
-    setErroresUnicos(prev => ({ ...prev, [campo]: null }));
-    setValidandoCampo(prev => ({ ...prev, [campo]: false }));
-    return;
-  }
+  // Función para abrir modal de contraseña en creación
+  const abrirModalPasswordCreacion = () => {
+    setMostrarModalPasswordCreacion(true);
+    setPasswordCreacionData({
+      password: formData.password || '',
+      confirmarPassword: formData.confirmarPassword || ''
+    });
+    setErroresModalCreacion({});
+    setCoincidePassword(null);
+    setValidacionPassword({
+      longitud: false,
+      mayuscula: false,
+      minuscula: false,
+      numero: false,
+      especial: false
+    });
+  };
 
-  setValidandoCampo(prev => ({ ...prev, [campo]: true }));
+  // Función para guardar contraseña desde el modal de creación
+  const guardarPasswordCreacion = () => {
+    setFormData(prev => ({
+      ...prev,
+      password: passwordCreacionData.password,
+      confirmarPassword: passwordCreacionData.confirmarPassword
+    }));
+    setMostrarModalPasswordCreacion(false);
+  };
 
-  try {
-    const token = localStorage.getItem('token');
-    const parametros = new URLSearchParams();
+  // Función para abrir modal de cambio de contraseña en edición
+  const abrirModalPasswordEdicion = () => {
+    setMostrarModalPasswordEdicion(true);
+    setPasswordEdicionData({
+      passwordActual: '',
+      nuevaPassword: '',
+      confirmarNuevaPassword: ''
+    });
+    setErroresModalEdicion({});
+    setPasswordActualCorrecta(null);
+    setCoincidePassword(null);
+    setValidacionPassword({
+      longitud: false,
+      mayuscula: false,
+      minuscula: false,
+      numero: false,
+      especial: false
+    });
+  };
+
+  // Resto de las funciones (validarCampoUnico, efectos, etc.) se mantienen igual...
+  const validarCampoUnico = async (campo, valor) => {
+    if (modo !== 'crear') {
+      setErroresUnicos(prev => ({ ...prev, [campo]: null }));
+      setValidandoCampo(prev => ({ ...prev, [campo]: false }));
+      return;
+    }
     
-    switch(campo) {
-      case 'dni':
-        if (valor.length >= 7) {
-          parametros.append('dni', valor);
-        } else {
-          setValidandoCampo(prev => ({ ...prev, [campo]: false }));
-          return;
-        }
-        break;
-      case 'telefono':
-        if (valor.length >= 6) {
-          parametros.append('telefono', valor);
-        } else {
-          setValidandoCampo(prev => ({ ...prev, [campo]: false }));
-          return;
-        }
-        break;
-      case 'email':
-        if (valor.includes('@')) {
-          parametros.append('email', valor);
-        } else {
-          setValidandoCampo(prev => ({ ...prev, [campo]: false }));
-          return;
-        }
-        break;
-      case 'nombreCompleto':
-        if (formData.nombre_emp.length >= 2 && formData.apellido_emp.length >= 2) {
-          parametros.append('nombre', formData.nombre_emp);
-          parametros.append('apellido', formData.apellido_emp);
-        } else {
-          setValidandoCampo(prev => ({ ...prev, [campo]: false }));
-          return;
-        }
-        break;
+    if (!valor || valor.trim() === '') {
+      setErroresUnicos(prev => ({ ...prev, [campo]: null }));
+      setValidandoCampo(prev => ({ ...prev, [campo]: false }));
+      return;
     }
 
-    if (parametros.toString()) {
-      const response = await fetch(`/api/empleados/verificar-campos/?${parametros.toString()}`, {
-        headers: {
-          'Authorization': `Token ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+    setValidandoCampo(prev => ({ ...prev, [campo]: true }));
 
-      if (response.ok) {
-        const data = await response.json();
-        setErroresUnicos(prev => ({
-          ...prev,
-          [campo]: data.errores?.[campo] || null
-        }));
+    try {
+      const token = localStorage.getItem('token');
+      const parametros = new URLSearchParams();
+      
+      switch(campo) {
+        case 'dni':
+          if (valor.length >= 7) {
+            parametros.append('dni', valor);
+          } else {
+            setValidandoCampo(prev => ({ ...prev, [campo]: false }));
+            return;
+          }
+          break;
+        case 'telefono':
+          if (valor.length >= 6) {
+            parametros.append('telefono', valor);
+          } else {
+            setValidandoCampo(prev => ({ ...prev, [campo]: false }));
+            return;
+          }
+          break;
+        case 'email':
+          if (valor.includes('@')) {
+            parametros.append('email', valor);
+          } else {
+            setValidandoCampo(prev => ({ ...prev, [campo]: false }));
+            return;
+          }
+          break;
+        case 'nombreCompleto':
+          if (formData.nombre_emp.length >= 2 && formData.apellido_emp.length >= 2) {
+            parametros.append('nombre', formData.nombre_emp);
+            parametros.append('apellido', formData.apellido_emp);
+          } else {
+            setValidandoCampo(prev => ({ ...prev, [campo]: false }));
+            return;
+          }
+          break;
       }
+
+      if (parametros.toString()) {
+        const response = await fetch(`/api/empleados/verificar-campos/?${parametros.toString()}`, {
+          headers: {
+            'Authorization': `Token ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setErroresUnicos(prev => ({
+            ...prev,
+            [campo]: data.errores?.[campo] || null
+          }));
+        }
+      }
+    } catch (error) {
+      console.error(`Error validando campo ${campo}:`, error);
+    } finally {
+      setValidandoCampo(prev => ({ ...prev, [campo]: false }));
     }
-  } catch (error) {
-    console.error(`Error validando campo ${campo}:`, error);
-  } finally {
-    setValidandoCampo(prev => ({ ...prev, [campo]: false }));
-  }
-};
+  };
 
   // Efectos separados para cada campo que necesita validación en tiempo real
   useEffect(() => {
@@ -195,7 +256,6 @@ const validarCampoUnico = async (campo, valor) => {
       if (formData.nombre_emp.trim().length >= 2 && formData.apellido_emp.trim().length >= 2) {
         validarCampoUnico('nombreCompleto', `${formData.nombre_emp} ${formData.apellido_emp}`);
       } else {
-        // Limpiar error si no hay suficiente información
         setErroresUnicos(prev => ({ ...prev, nombreCompleto: null }));
         setValidandoCampo(prev => ({ ...prev, nombreCompleto: false }));
       }
@@ -203,15 +263,17 @@ const validarCampoUnico = async (campo, valor) => {
     return () => clearTimeout(timeoutId);
   }, [formData.nombre_emp, formData.apellido_emp, modo]);
 
-  // Efecto para validar la nueva contraseña en tiempo real
+  // Efecto para validar la contraseña en tiempo real (para modal de creación)
   useEffect(() => {
-    if (passwordModalData.nuevaPassword) {
+    const password = modo === 'crear' ? passwordCreacionData.password : passwordEdicionData.nuevaPassword;
+    
+    if (password) {
       setValidacionPassword({
-        longitud: passwordModalData.nuevaPassword.length >= 8,
-        mayuscula: /[A-Z]/.test(passwordModalData.nuevaPassword),
-        minuscula: /[a-z]/.test(passwordModalData.nuevaPassword),
-        numero: /[0-9]/.test(passwordModalData.nuevaPassword),
-        especial: /[!@#$%^&*(),.?":{}|<>]/.test(passwordModalData.nuevaPassword)
+        longitud: password.length >= 8,
+        mayuscula: /[A-Z]/.test(password),
+        minuscula: /[a-z]/.test(password),
+        numero: /[0-9]/.test(password),
+        especial: /[!@#$%^&*(),.?":{}|<>]/.test(password)
       });
     } else {
       setValidacionPassword({
@@ -222,21 +284,30 @@ const validarCampoUnico = async (campo, valor) => {
         especial: false
       });
     }
-  }, [passwordModalData.nuevaPassword]);
+  }, [passwordCreacionData.password, passwordEdicionData.nuevaPassword, modo]);
 
   // Efecto para verificar coincidencia de contraseñas
   useEffect(() => {
-    if (passwordModalData.confirmarNuevaPassword) {
-      setCoincidePassword(passwordModalData.nuevaPassword === passwordModalData.confirmarNuevaPassword);
+    if (modo === 'crear') {
+      if (passwordCreacionData.confirmarPassword) {
+        setCoincidePassword(passwordCreacionData.password === passwordCreacionData.confirmarPassword);
+      } else {
+        setCoincidePassword(null);
+      }
     } else {
-      setCoincidePassword(null);
+      if (passwordEdicionData.confirmarNuevaPassword) {
+        setCoincidePassword(passwordEdicionData.nuevaPassword === passwordEdicionData.confirmarNuevaPassword);
+      } else {
+        setCoincidePassword(null);
+      }
     }
-  }, [passwordModalData.nuevaPassword, passwordModalData.confirmarNuevaPassword]);
+  }, [passwordCreacionData.password, passwordCreacionData.confirmarPassword, 
+      passwordEdicionData.nuevaPassword, passwordEdicionData.confirmarNuevaPassword, modo]);
 
-  // Efecto para verificar contraseña actual contra la API
+  // Efecto para verificar contraseña actual contra la API (solo para edición)
   useEffect(() => {
     const verificarPasswordActual = async () => {
-      if (passwordModalData.passwordActual && empleado) {
+      if (passwordEdicionData.passwordActual && empleado) {
         setVerificandoPassword(true);
         try {
           const token = localStorage.getItem('token');
@@ -249,7 +320,7 @@ const validarCampoUnico = async (campo, valor) => {
             },
             body: JSON.stringify({
               empleado_id: empleado.id,
-              password_actual: passwordModalData.passwordActual
+              password_actual: passwordEdicionData.passwordActual
             })
           });
 
@@ -271,11 +342,13 @@ const validarCampoUnico = async (campo, valor) => {
     };
 
     const timeoutId = setTimeout(() => {
-      verificarPasswordActual();
+      if (modo === 'editar') {
+        verificarPasswordActual();
+      }
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [passwordModalData.passwordActual, empleado]);
+  }, [passwordEdicionData.passwordActual, empleado, modo]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -284,7 +357,6 @@ const validarCampoUnico = async (campo, valor) => {
       [name]: value
     }));
     
-    // Limpiar errores normales
     if (errores[name]) {
       setErrores(prev => ({
         ...prev,
@@ -292,7 +364,6 @@ const validarCampoUnico = async (campo, valor) => {
       }));
     }
 
-    // Limpiar errores únicos específicos cuando el usuario modifica el campo
     if (name === 'dni_emp' && erroresUnicos.dni) {
       setErroresUnicos(prev => ({ ...prev, dni: null }));
     }
@@ -307,73 +378,91 @@ const validarCampoUnico = async (campo, valor) => {
     }
   };
 
-  const handleChangeModal = (e) => {
+  const handleChangeModalCreacion = (e) => {
     const { name, value } = e.target;
-    setPasswordModalData(prev => ({
+    setPasswordCreacionData(prev => ({
       ...prev,
       [name]: value
     }));
     
-    if (erroresModal[name]) {
-      setErroresModal(prev => ({
+    if (erroresModalCreacion[name]) {
+      setErroresModalCreacion(prev => ({
         ...prev,
         [name]: ''
       }));
     }
   };
 
-  const toggleMostrarPasswordModal = (campo) => {
-    setMostrarPasswordModal(prev => ({
+  const handleChangeModalEdicion = (e) => {
+    const { name, value } = e.target;
+    setPasswordEdicionData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    if (erroresModalEdicion[name]) {
+      setErroresModalEdicion(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  const toggleMostrarPasswordModalCreacion = (campo) => {
+    setMostrarPasswordModalCreacion(prev => ({
       ...prev,
       [campo]: !prev[campo]
     }));
   };
 
-  // FUNCIÓN MEJORADA: Verificar campos únicos antes de enviar
-  // FUNCIÓN MEJORADA: Verificar campos únicos antes de enviar
-const verificarCamposUnicos = async () => {
-  // ✅ NO validar campos únicos en modo edición
-  if (modo !== 'crear') {
-    console.log('🔍 Modo edición - omitiendo validación de campos únicos');
-    return {};
-  }
+  const toggleMostrarPasswordModalEdicion = (campo) => {
+    setMostrarPasswordModalEdicion(prev => ({
+      ...prev,
+      [campo]: !prev[campo]
+    }));
+  };
 
-  try {
-    const token = localStorage.getItem('token');
-    const parametros = new URLSearchParams();
-    
-    if (formData.dni_emp) parametros.append('dni', formData.dni_emp);
-    if (formData.telefono_emp) parametros.append('telefono', formData.telefono_emp);
-    if (formData.email) parametros.append('email', formData.email);
-    
-    // ✅ AGREGAR VALIDACIÓN ESPECÍFICA PARA NOMBRE Y APELLIDO
-    if (formData.nombre_emp.trim() && formData.apellido_emp.trim()) {
-      parametros.append('nombre', formData.nombre_emp.trim());
-      parametros.append('apellido', formData.apellido_emp.trim());
-    }
-
-    console.log('🔍 Verificando campos únicos con parámetros:', parametros.toString());
-
-    const response = await fetch(`/api/empleados/verificar-campos/?${parametros.toString()}`, {
-      headers: {
-        'Authorization': `Token ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      console.log('📋 Resultado validación campos únicos:', data);
-      return data.errores || {};
-    } else {
-      console.error('Error en respuesta de validación:', response.status);
+  const verificarCamposUnicos = async () => {
+    if (modo !== 'crear') {
+      console.log('🔍 Modo edición - omitiendo validación de campos únicos');
       return {};
     }
-  } catch (error) {
-    console.error('Error verificando campos únicos:', error);
-    return {};
-  }
-};
+
+    try {
+      const token = localStorage.getItem('token');
+      const parametros = new URLSearchParams();
+      
+      if (formData.dni_emp) parametros.append('dni', formData.dni_emp);
+      if (formData.telefono_emp) parametros.append('telefono', formData.telefono_emp);
+      if (formData.email) parametros.append('email', formData.email);
+      
+      if (formData.nombre_emp.trim() && formData.apellido_emp.trim()) {
+        parametros.append('nombre', formData.nombre_emp.trim());
+        parametros.append('apellido', formData.apellido_emp.trim());
+      }
+
+      console.log('🔍 Verificando campos únicos con parámetros:', parametros.toString());
+
+      const response = await fetch(`/api/empleados/verificar-campos/?${parametros.toString()}`, {
+        headers: {
+          'Authorization': `Token ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('📋 Resultado validación campos únicos:', data);
+        return data.errores || {};
+      } else {
+        console.error('Error en respuesta de validación:', response.status);
+        return {};
+      }
+    } catch (error) {
+      console.error('Error verificando campos únicos:', error);
+      return {};
+    }
+  };
 
   const validarFormulario = () => {
     const nuevosErrores = {};
@@ -381,7 +470,6 @@ const verificarCamposUnicos = async () => {
     if (!formData.nombre_emp.trim()) nuevosErrores.nombre_emp = 'El nombre es requerido';
     if (!formData.apellido_emp.trim()) nuevosErrores.apellido_emp = 'El apellido es requerido';
     
-    // VALIDACIÓN MEJORADA PARA DNI
     if (!formData.dni_emp) {
       nuevosErrores.dni_emp = 'El DNI es requerido';
     } else if (isNaN(formData.dni_emp) || parseInt(formData.dni_emp) <= 0) {
@@ -390,7 +478,6 @@ const verificarCamposUnicos = async () => {
       nuevosErrores.dni_emp = 'El DNI debe tener entre 7 y 8 dígitos';
     }
 
-    // VALIDACIÓN MEJORADA PARA TELÉFONO
     if (!formData.telefono_emp.trim()) {
       nuevosErrores.telefono_emp = 'El teléfono es requerido';
     } else if (!/^[\d\s+\-()]+$/.test(formData.telefono_emp)) {
@@ -402,28 +489,45 @@ const verificarCamposUnicos = async () => {
     if (!formData.email.trim()) nuevosErrores.email = 'El email es requerido';
     else if (!/\S+@\S+\.\S+/.test(formData.email)) nuevosErrores.email = 'El email no es válido';
     
-    if (modo === 'crear' && !formData.password) {
-      nuevosErrores.password = 'La contraseña es requerida';
-    }
-    
-    if (modo === 'crear' && formData.password !== formData.confirmarPassword) {
-      nuevosErrores.confirmarPassword = 'Las contraseñas no coinciden';
-    }
+    // En creación, la contraseña es opcional (puede configurarse desde el modal)
+    // No se valida aquí porque es opcional
 
     setErrores(nuevosErrores);
     return Object.keys(nuevosErrores).length === 0;
   };
 
-  const validarModalPassword = () => {
+  const validarModalPasswordCreacion = () => {
     const nuevosErrores = {};
 
-    if (!passwordModalData.passwordActual) {
+    if (!passwordCreacionData.password) {
+      nuevosErrores.password = 'La contraseña es requerida';
+    } else {
+      const todasCumplidas = Object.values(validacionPassword).every(v => v);
+      if (!todasCumplidas) {
+        nuevosErrores.password = 'La contraseña no cumple con todos los requisitos de seguridad';
+      }
+    }
+    
+    if (!passwordCreacionData.confirmarPassword) {
+      nuevosErrores.confirmarPassword = 'Debe confirmar la contraseña';
+    } else if (!coincidePassword) {
+      nuevosErrores.confirmarPassword = 'Las contraseñas no coinciden';
+    }
+
+    setErroresModalCreacion(nuevosErrores);
+    return Object.keys(nuevosErrores).length === 0;
+  };
+
+  const validarModalPasswordEdicion = () => {
+    const nuevosErrores = {};
+
+    if (!passwordEdicionData.passwordActual) {
       nuevosErrores.passwordActual = 'La contraseña actual es requerida';
     } else if (!passwordActualCorrecta) {
       nuevosErrores.passwordActual = 'La contraseña actual es incorrecta';
     }
 
-    if (!passwordModalData.nuevaPassword) {
+    if (!passwordEdicionData.nuevaPassword) {
       nuevosErrores.nuevaPassword = 'La nueva contraseña es requerida';
     } else {
       const todasCumplidas = Object.values(validacionPassword).every(v => v);
@@ -432,112 +536,89 @@ const verificarCamposUnicos = async () => {
       }
     }
     
-    if (!passwordModalData.confirmarNuevaPassword) {
+    if (!passwordEdicionData.confirmarNuevaPassword) {
       nuevosErrores.confirmarNuevaPassword = 'Debe confirmar la nueva contraseña';
     } else if (!coincidePassword) {
       nuevosErrores.confirmarNuevaPassword = 'Las contraseñas no coinciden';
     }
 
-    setErroresModal(nuevosErrores);
+    setErroresModalEdicion(nuevosErrores);
     return Object.keys(nuevosErrores).length === 0;
   };
 
-  // MODIFICADO: handleSubmit para validar campos únicos antes de mostrar modal
-  // MODIFICADO: handleSubmit para validar campos únicos SOLO en creación
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  
-  console.log('🔍 Iniciando validación del formulario...');
-  console.log('📝 Modo:', modo);
-  
-  if (!validarFormulario()) {
-    console.log('❌ Validación básica falló');
-    return;
-  }
-
-  console.log('✅ Validación básica exitosa');
-
-  // ✅ SOLO VERIFICAR CAMPOS ÚNICOS EN MODO CREACIÓN
-  if (modo === 'crear') {
-    console.log('🔍 Verificando campos únicos...');
-    setCargando(true);
-    try {
-      const erroresUnicos = await verificarCamposUnicos();
-      console.log('📋 Errores únicos encontrados:', erroresUnicos);
-      
-      // Verificar si hay errores de campos únicos
-      if (Object.keys(erroresUnicos).length > 0) {
-        setErroresUnicos(erroresUnicos);
-        setCargando(false);
-        
-        // Mostrar mensaje de error específico
-        const primerError = Object.values(erroresUnicos)[0];
-        setMensajeModal(`❌ ${primerError}`);
-        setMostrarModalError(true);
-        return;
-      }
-    } catch (error) {
-      console.error('Error validando campos únicos:', error);
-      setMensajeModal('Error al validar los datos. Intente nuevamente.');
-      setMostrarModalError(true);
-      setCargando(false);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    console.log('🔍 Iniciando validación del formulario...');
+    console.log('📝 Modo:', modo);
+    
+    if (!validarFormulario()) {
+      console.log('❌ Validación básica falló');
       return;
-    } finally {
-      setCargando(false);
     }
-  }
-  
-  // ✅ CONTINUAR CON EL MODAL DE CONFIRMACIÓN (tanto para crear como editar)
-  const datosParaEnviar = { ...formData };
-  if (modo === 'editar') {
-    delete datosParaEnviar.password;
-    delete datosParaEnviar.confirmarPassword;
-  }
-  
-  setDatosParaGuardar(datosParaEnviar);
-  setMensajeModal(
-    modo === 'crear' 
-      ? `¿Está seguro que desea crear el empleado ${formData.nombre_emp} ${formData.apellido_emp}?`
-      : `¿Está seguro que desea actualizar los datos del empleado ${formData.nombre_emp} ${formData.apellido_emp}?`
-  );
-  setMostrarModalGuardar(true);
-};
 
-  // NUEVA FUNCIÓN: Confirmar guardado de empleado
+    console.log('✅ Validación básica exitosa');
+
+    if (modo === 'crear') {
+      console.log('🔍 Verificando campos únicos...');
+      setCargando(true);
+      try {
+        const erroresUnicos = await verificarCamposUnicos();
+        console.log('📋 Errores únicos encontrados:', erroresUnicos);
+        
+        if (Object.keys(erroresUnicos).length > 0) {
+          setErroresUnicos(erroresUnicos);
+          setCargando(false);
+          
+          const primerError = Object.values(erroresUnicos)[0];
+          setMensajeModal(`❌ ${primerError}`);
+          setMostrarModalError(true);
+          return;
+        }
+      } catch (error) {
+        console.error('Error validando campos únicos:', error);
+        setMensajeModal('Error al validar los datos. Intente nuevamente.');
+        setMostrarModalError(true);
+        setCargando(false);
+        return;
+      } finally {
+        setCargando(false);
+      }
+    }
+    
+    const datosParaEnviar = { ...formData };
+    if (modo === 'editar') {
+      delete datosParaEnviar.password;
+      delete datosParaEnviar.confirmarPassword;
+    }
+    
+    setDatosParaGuardar(datosParaEnviar);
+    setMensajeModal(
+      modo === 'crear' 
+        ? `¿Está seguro que desea crear el empleado ${formData.nombre_emp} ${formData.apellido_emp}?`
+        : `¿Está seguro que desea actualizar los datos del empleado ${formData.nombre_emp} ${formData.apellido_emp}?`
+    );
+    setMostrarModalGuardar(true);
+  };
+
   const confirmarGuardarEmpleado = () => {
     setMostrarModalGuardar(false);
     console.log('📤 Enviando datos al componente padre:', datosParaGuardar);
     onGuardar(datosParaGuardar);
   };
 
-  const handleCambiarPassword = () => {
-    setMostrarModalPassword(true);
-    setPasswordModalData({
-      passwordActual: '',
-      nuevaPassword: '',
-      confirmarNuevaPassword: ''
-    });
-    setErroresModal({});
-    setPasswordActualCorrecta(null);
-    setCoincidePassword(null);
-    setValidacionPassword({
-      longitud: false,
-      mayuscula: false,
-      minuscula: false,
-      numero: false,
-      especial: false
-    });
-    setMostrarPasswordModal({
-      passwordActual: false,
-      nuevaPassword: false,
-      confirmarNuevaPassword: false
-    });
-  };
-
-  const handleSubmitPassword = async (e) => {
+  const handleSubmitPasswordCreacion = (e) => {
     e.preventDefault();
     
-    if (validarModalPassword()) {
+    if (validarModalPasswordCreacion()) {
+      guardarPasswordCreacion();
+    }
+  };
+
+  const handleSubmitPasswordEdicion = async (e) => {
+    e.preventDefault();
+    
+    if (validarModalPasswordEdicion()) {
       setMostrarModalConfirmar(true);
     }
   };
@@ -549,7 +630,6 @@ const handleSubmit = async (e) => {
     try {
       const token = localStorage.getItem('token');
       
-      // Llamar a la API para cambiar la contraseña
       const response = await fetch('/api/cambiar-password/', {
         method: 'POST',
         headers: {
@@ -558,18 +638,17 @@ const handleSubmit = async (e) => {
         },
         body: JSON.stringify({
           empleado_id: empleado.id,
-          password_actual: passwordModalData.passwordActual,
-          nueva_password: passwordModalData.nuevaPassword
+          password_actual: passwordEdicionData.passwordActual,
+          nueva_password: passwordEdicionData.nuevaPassword
         })
       });
 
       if (response.ok) {
-        // Mostrar modal de éxito
         setMensajeModal('¡Contraseña actualizada exitosamente!');
         setMostrarModalExito(true);
         setTimeout(() => {
-          setMostrarModalPassword(false);
-          setPasswordModalData({
+          setMostrarModalPasswordEdicion(false);
+          setPasswordEdicionData({
             passwordActual: '',
             nuevaPassword: '',
             confirmarNuevaPassword: ''
@@ -597,10 +676,8 @@ const handleSubmit = async (e) => {
   const titulo = getTitulo();
   const textoBoton = modo === 'crear' ? 'Crear Empleado' : 'Guardar Cambios';
 
-  // Verificar si hay errores de campos únicos (solo en modo creación)
   const tieneErroresUnicos = modo === 'crear' && Object.values(erroresUnicos).some(error => error !== null);
 
-  // Función para renderizar el estado de validación de cada campo
   const renderEstadoValidacion = (campo) => {
     if (validandoCampo[campo]) {
       return <span className="mensaje-validando">🔍 Verificando...</span>;
@@ -698,7 +775,6 @@ const handleSubmit = async (e) => {
                   className={errores.apellido_emp || erroresUnicos.nombreCompleto ? 'error' : ''}
                 />
                 {errores.apellido_emp && <span className="mensaje-error">{errores.apellido_emp}</span>}
-                {/* El mensaje de nombreCompleto se muestra en el campo nombre */}
               </div>
 
               <div className="campo-grupo">
@@ -731,52 +807,31 @@ const handleSubmit = async (e) => {
                 {renderEstadoValidacion('email')}
               </div>
 
+              {/* Botón para abrir modal de contraseña en creación */}
               {modo === 'crear' && (
                 <div className="campo-grupo">
-                  <label htmlFor="password">Contraseña:</label>
-                  <div className="password-input-container">
-                    <input
-                      type={mostrarPassword ? "text" : "password"}
-                      id="password"
-                      name="password"
-                      value={formData.password}
-                      onChange={handleChange}
-                      placeholder="Ingrese la contraseña"
-                      className={errores.password ? 'error' : ''}
-                    />
-                    <button
-                      type="button"
-                      className="btn-mostrar-password"
-                      onClick={() => setMostrarPassword(!mostrarPassword)}
-                    >
-                      {mostrarPassword ? <FaEyeSlash /> : <FaEye />}
-                    </button>
-                  </div>
-                  {errores.password && <span className="mensaje-error">{errores.password}</span>}
-                </div>
-              )}
-              {modo === 'crear' && (
-                <div className="campo-grupo">
-                  <label htmlFor="confirmarPassword">Confirmar Contraseña:</label>
-                  <input
-                    type={mostrarPassword ? "text" : "password"}
-                    id="confirmarPassword"
-                    name="confirmarPassword"
-                    value={formData.confirmarPassword}
-                    onChange={handleChange}
-                    placeholder="Confirme la contraseña"
-                    className={errores.confirmarPassword ? 'error' : ''}
-                  />
-                  {errores.confirmarPassword && <span className="mensaje-error">{errores.confirmarPassword}</span>}
+                  <button
+                    type="button"
+                    className="btn-cambiar-password"
+                    onClick={abrirModalPasswordCreacion}
+                  >
+                    <FaKey /> {formData.password ? 'Contraseña Configurada' : 'Configurar Contraseña'}
+                  </button>
+                  {formData.password && (
+                    <span className="mensaje-exito" style={{fontSize: '12px', display: 'block', marginTop: '5px'}}>
+                      ✅ Contraseña configurada
+                    </span>
+                  )}
                 </div>
               )}
 
+              {/* Botón para abrir modal de cambio de contraseña en edición */}
               {modo === 'editar' && (
                 <div className="campo-grupo">
                   <button
                     type="button"
                     className="btn-cambiar-password"
-                    onClick={handleCambiarPassword}
+                    onClick={abrirModalPasswordEdicion}
                   >
                     <FaLock /> Cambiar Contraseña
                   </button>
@@ -824,8 +879,6 @@ const handleSubmit = async (e) => {
             </button>
           </div>
 
-          {/* Mensaje de advertencia si hay errores únicos */}
-          {/* Mensaje de advertencia si hay errores únicos (solo en creación) */}
           {modo === 'crear' && tieneErroresUnicos && (
             <div className="advertencia-campos-unicos">
               ⚠️ Existen campos duplicados. Por favor, corrija los errores marcados en rojo antes de continuar.
@@ -834,45 +887,162 @@ const handleSubmit = async (e) => {
         </form>
       </div>
       
-      {/* Modal de cambio de contraseña */}
-      {mostrarModalPassword && (
+      {/* Modal de configuración de contraseña (para creación) */}
+      {mostrarModalPasswordCreacion && (
+        <div className="modal-overlay">
+          <div className="modal-contenedor modal-password">
+            <div className="modal-header">
+              <h3>Configurar Contraseña</h3>
+              <button 
+                className="btn-cerrar-modal"
+                onClick={() => setMostrarModalPasswordCreacion(false)}
+              >
+                <FaClose />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSubmitPasswordCreacion} className="modal-body">
+              <div className="campo-grupo">
+                <label htmlFor="password">Contraseña:</label>
+                <div className="password-input-container">
+                  <input
+                    type={mostrarPasswordModalCreacion.password ? "text" : "password"}
+                    id="password"
+                    name="password"
+                    value={passwordCreacionData.password}
+                    onChange={handleChangeModalCreacion}
+                    placeholder="Ingrese la contraseña"
+                    className={erroresModalCreacion.password ? 'error' : ''}
+                  />
+                  <button
+                    type="button"
+                    className="btn-mostrar-password"
+                    onClick={() => toggleMostrarPasswordModalCreacion('password')}
+                  >
+                    {mostrarPasswordModalCreacion.password ? <FaEyeSlash /> : <FaEye />}
+                  </button>
+                </div>
+                {erroresModalCreacion.password && (
+                  <span className="mensaje-error">{erroresModalCreacion.password}</span>
+                )}
+                
+                {/* Indicadores de validación de contraseña */}
+                {passwordCreacionData.password && (
+                  <div className="indicadores-password">
+                    <div className={`indicador ${validacionPassword.longitud ? 'valido' : 'invalido'}`}>
+                      {validacionPassword.longitud ? <FaCheck /> : <FaClose />}
+                      Mínimo 8 caracteres
+                    </div>
+                    <div className={`indicador ${validacionPassword.mayuscula ? 'valido' : 'invalido'}`}>
+                      {validacionPassword.mayuscula ? <FaCheck /> : <FaClose />}
+                      Una mayúscula
+                    </div>
+                    <div className={`indicador ${validacionPassword.minuscula ? 'valido' : 'invalido'}`}>
+                      {validacionPassword.minuscula ? <FaCheck /> : <FaClose />}
+                      Una minúscula
+                    </div>
+                    <div className={`indicador ${validacionPassword.numero ? 'valido' : 'invalido'}`}>
+                      {validacionPassword.numero ? <FaCheck /> : <FaClose />}
+                      Un número
+                    </div>
+                    <div className={`indicador ${validacionPassword.especial ? 'valido' : 'invalido'}`}>
+                      {validacionPassword.especial ? <FaCheck /> : <FaClose />}
+                      Un carácter especial
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="campo-grupo">
+                <label htmlFor="confirmarPassword">Confirmar Contraseña:</label>
+                <div className="password-input-container">
+                  <input
+                    type={mostrarPasswordModalCreacion.confirmarPassword ? "text" : "password"}
+                    id="confirmarPassword"
+                    name="confirmarPassword"
+                    value={passwordCreacionData.confirmarPassword}
+                    onChange={handleChangeModalCreacion}
+                    placeholder="Confirme la contraseña"
+                    className={erroresModalCreacion.confirmarPassword ? 'error' : ''}
+                  />
+                  <button
+                    type="button"
+                    className="btn-mostrar-password"
+                    onClick={() => toggleMostrarPasswordModalCreacion('confirmarPassword')}
+                  >
+                    {mostrarPasswordModalCreacion.confirmarPassword ? <FaEyeSlash /> : <FaEye />}
+                  </button>
+                </div>
+                {erroresModalCreacion.confirmarPassword && (
+                  <span className="mensaje-error">{erroresModalCreacion.confirmarPassword}</span>
+                )}
+                {passwordCreacionData.confirmarPassword && coincidePassword !== null && (
+                  <span className={coincidePassword ? 'mensaje-exito' : 'mensaje-error'}>
+                    {coincidePassword ? '✅ Las contraseñas coinciden' : '❌ Las contraseñas no coinciden'}
+                  </span>
+                )}
+              </div>
+            </form>
+            
+            <div className="modal-footer">
+              <button 
+                type="button" 
+                className="btn-cancelar"
+                onClick={() => setMostrarModalPasswordCreacion(false)}
+              >
+                <FaTimes /> Cancelar
+              </button>
+              <button 
+                type="button" 
+                className="btn-guardar"
+                onClick={handleSubmitPasswordCreacion}
+              >
+                <FaSave /> Guardar Contraseña
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de cambio de contraseña (para edición) */}
+      {mostrarModalPasswordEdicion && (
         <div className="modal-overlay">
           <div className="modal-contenedor modal-password">
             <div className="modal-header">
               <h3>Cambiar Contraseña</h3>
               <button 
                 className="btn-cerrar-modal"
-                onClick={() => setMostrarModalPassword(false)}
+                onClick={() => setMostrarModalPasswordEdicion(false)}
               >
                 <FaClose />
               </button>
             </div>
             
-            <form onSubmit={handleSubmitPassword} className="modal-body">
+            <form onSubmit={handleSubmitPasswordEdicion} className="modal-body">
               <div className="campo-grupo">
                 <label htmlFor="passwordActual">Contraseña Actual:</label>
                 <div className="password-input-container">
                   <input
-                    type={mostrarPasswordModal.passwordActual ? "text" : "password"}
+                    type={mostrarPasswordModalEdicion.passwordActual ? "text" : "password"}
                     id="passwordActual"
                     name="passwordActual"
-                    value={passwordModalData.passwordActual}
-                    onChange={handleChangeModal}
+                    value={passwordEdicionData.passwordActual}
+                    onChange={handleChangeModalEdicion}
                     placeholder="Ingrese su contraseña actual"
-                    className={erroresModal.passwordActual ? 'error' : ''}
+                    className={erroresModalEdicion.passwordActual ? 'error' : ''}
                   />
                   <button
                     type="button"
                     className="btn-mostrar-password"
-                    onClick={() => toggleMostrarPasswordModal('passwordActual')}
+                    onClick={() => toggleMostrarPasswordModalEdicion('passwordActual')}
                   >
-                    {mostrarPasswordModal.passwordActual ? <FaEyeSlash /> : <FaEye />}
+                    {mostrarPasswordModalEdicion.passwordActual ? <FaEyeSlash /> : <FaEye />}
                   </button>
                 </div>
-                {erroresModal.passwordActual && (
-                  <span className="mensaje-error">{erroresModal.passwordActual}</span>
+                {erroresModalEdicion.passwordActual && (
+                  <span className="mensaje-error">{erroresModalEdicion.passwordActual}</span>
                 )}
-                {passwordModalData.passwordActual && passwordActualCorrecta !== null && (
+                {passwordEdicionData.passwordActual && passwordActualCorrecta !== null && (
                   <span className={passwordActualCorrecta ? 'mensaje-exito' : 'mensaje-error'}>
                     {passwordActualCorrecta ? '✅ Contraseña correcta' : '❌ Contraseña incorrecta'}
                   </span>
@@ -883,28 +1053,28 @@ const handleSubmit = async (e) => {
                 <label htmlFor="nuevaPassword">Nueva Contraseña:</label>
                 <div className="password-input-container">
                   <input
-                    type={mostrarPasswordModal.nuevaPassword ? "text" : "password"}
+                    type={mostrarPasswordModalEdicion.nuevaPassword ? "text" : "password"}
                     id="nuevaPassword"
                     name="nuevaPassword"
-                    value={passwordModalData.nuevaPassword}
-                    onChange={handleChangeModal}
+                    value={passwordEdicionData.nuevaPassword}
+                    onChange={handleChangeModalEdicion}
                     placeholder="Ingrese la nueva contraseña"
-                    className={erroresModal.nuevaPassword ? 'error' : ''}
+                    className={erroresModalEdicion.nuevaPassword ? 'error' : ''}
                   />
                   <button
                     type="button"
                     className="btn-mostrar-password"
-                    onClick={() => toggleMostrarPasswordModal('nuevaPassword')}
+                    onClick={() => toggleMostrarPasswordModalEdicion('nuevaPassword')}
                   >
-                    {mostrarPasswordModal.nuevaPassword ? <FaEyeSlash /> : <FaEye />}
+                    {mostrarPasswordModalEdicion.nuevaPassword ? <FaEyeSlash /> : <FaEye />}
                   </button>
                 </div>
-                {erroresModal.nuevaPassword && (
-                  <span className="mensaje-error">{erroresModal.nuevaPassword}</span>
+                {erroresModalEdicion.nuevaPassword && (
+                  <span className="mensaje-error">{erroresModalEdicion.nuevaPassword}</span>
                 )}
                 
                 {/* Indicadores de validación de contraseña */}
-                {passwordModalData.nuevaPassword && (
+                {passwordEdicionData.nuevaPassword && (
                   <div className="indicadores-password">
                     <div className={`indicador ${validacionPassword.longitud ? 'valido' : 'invalido'}`}>
                       {validacionPassword.longitud ? <FaCheck /> : <FaClose />}
@@ -934,26 +1104,26 @@ const handleSubmit = async (e) => {
                 <label htmlFor="confirmarNuevaPassword">Confirmar Nueva Contraseña:</label>
                 <div className="password-input-container">
                   <input
-                    type={mostrarPasswordModal.confirmarNuevaPassword ? "text" : "password"}
+                    type={mostrarPasswordModalEdicion.confirmarNuevaPassword ? "text" : "password"}
                     id="confirmarNuevaPassword"
                     name="confirmarNuevaPassword"
-                    value={passwordModalData.confirmarNuevaPassword}
-                    onChange={handleChangeModal}
+                    value={passwordEdicionData.confirmarNuevaPassword}
+                    onChange={handleChangeModalEdicion}
                     placeholder="Confirme la nueva contraseña"
-                    className={erroresModal.confirmarNuevaPassword ? 'error' : ''}
+                    className={erroresModalEdicion.confirmarNuevaPassword ? 'error' : ''}
                   />
                   <button
                     type="button"
                     className="btn-mostrar-password"
-                    onClick={() => toggleMostrarPasswordModal('confirmarNuevaPassword')}
+                    onClick={() => toggleMostrarPasswordModalEdicion('confirmarNuevaPassword')}
                   >
-                    {mostrarPasswordModal.confirmarNuevaPassword ? <FaEyeSlash /> : <FaEye />}
+                    {mostrarPasswordModalEdicion.confirmarNuevaPassword ? <FaEyeSlash /> : <FaEye />}
                   </button>
                 </div>
-                {erroresModal.confirmarNuevaPassword && (
-                  <span className="mensaje-error">{erroresModal.confirmarNuevaPassword}</span>
+                {erroresModalEdicion.confirmarNuevaPassword && (
+                  <span className="mensaje-error">{erroresModalEdicion.confirmarNuevaPassword}</span>
                 )}
-                {passwordModalData.confirmarNuevaPassword && coincidePassword !== null && (
+                {passwordEdicionData.confirmarNuevaPassword && coincidePassword !== null && (
                   <span className={coincidePassword ? 'mensaje-exito' : 'mensaje-error'}>
                     {coincidePassword ? '✅ Las contraseñas coinciden' : '❌ Las contraseñas no coinciden'}
                   </span>
@@ -965,14 +1135,14 @@ const handleSubmit = async (e) => {
               <button 
                 type="button" 
                 className="btn-cancelar"
-                onClick={() => setMostrarModalPassword(false)}
+                onClick={() => setMostrarModalPasswordEdicion(false)}
               >
                 <FaTimes /> Cancelar
               </button>
               <button 
                 type="button" 
                 className="btn-guardar"
-                onClick={handleSubmitPassword}
+                onClick={handleSubmitPasswordEdicion}
                 disabled={cargando}
               >
                 {cargando ? (

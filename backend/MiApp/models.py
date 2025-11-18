@@ -133,39 +133,57 @@ class Compra(models.Model):
     codigo_compra = models.CharField(max_length=50, unique=True)
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
     proveedores = models.ManyToManyField(Proveedor)
-    categoria_prod = models.CharField(max_length=100, blank=True)
+    
+    # ✅ ESENCIAL: Lote para control de vencimientos
+    lote = models.CharField(max_length=100, unique=True, blank=True, null=True)
+    
+    # ✅ MANTENER: Fecha cuando llegó la mercadería
     fecha_entrada = models.DateField()
+    
+    # ✅ OPCIONAL: Fecha de vencimiento del lote
     fecha_vencimiento = models.DateField(null=True, blank=True)
+    
     cantidad = models.IntegerField()
     precio_total = models.DecimalField(max_digits=10, decimal_places=2)
     precio_venta = models.DecimalField(max_digits=10, decimal_places=2)
     descripcion = models.TextField(blank=True, null=True)
-    fecha_actualizacion = models.DateTimeField(auto_now=True)
+    
+    # ⚠️ OPCIONAL: Si no necesitas auditoría de cambios
+    # fecha_actualizacion = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.codigo_compra} - {self.producto.nombre_prod}"
+        lote_display = self.lote or "Sin lote"
+        return f"{self.codigo_compra} - {self.producto.nombre_prod} - {lote_display}"
 
     def save(self, *args, **kwargs):
-        if not self.pk:
-            self.producto.comprar(
-                self.cantidad, 
-                self.precio_total, 
-                self.precio_venta
-            )
-        else:
-            compra_anterior = Compra.objects.get(pk=self.pk)
-            diferencia = self.cantidad - compra_anterior.cantidad
-            if diferencia != 0:
-                self.producto.comprar(diferencia)
+        # Generar lote automáticamente si no existe
+        if not self.lote:
+            self.lote = f"LOTE-{self.codigo_compra}"
         
-        if not self.categoria_prod:
-            self.categoria_prod = self.producto.categoria_prod
+        # Usar fecha actual si no se especifica fecha_entrada
+        if not self.fecha_entrada:
+            self.fecha_entrada = timezone.now().date()
             
         super().save(*args, **kwargs)
 
-    def delete(self, *args, **kwargs):
-        self.producto.vender(self.cantidad)
-        super().delete(*args, **kwargs)
+    @property
+    def esta_vencido(self):
+        """Verificar si el lote está vencido"""
+        if self.fecha_vencimiento:
+            return timezone.now().date() > self.fecha_vencimiento
+        return False
+
+    @property
+    def dias_restantes_vencimiento(self):
+        """Días restantes para vencimiento"""
+        if self.fecha_vencimiento:
+            hoy = timezone.now().date()
+            dias = (self.fecha_vencimiento - hoy).days
+            return max(dias, 0)  # No mostrar negativos
+        return None
+
+    class Meta:
+        ordering = ['-fecha_entrada']
 
 # models.py - Modelos mejorados para Ventas
 class Venta(models.Model):

@@ -11,13 +11,14 @@ function Empleados({ usuario }) {
   const [empleadoEditando, setEmpleadoEditando] = useState(null);
   const [mostrarTodos, setMostrarTodos] = useState(false);
   const [busqueda, setBusqueda] = useState('');
-  const [empleadosExpandidos, setEmpleadosExpandidos] = useState({});
   const [cargando, setCargando] = useState(false);
   
-  // Estados para modales universales
+  // Estados para modales
   const [mostrarModalEliminar, setMostrarModalEliminar] = useState(false);
   const [mostrarModalExito, setMostrarModalExito] = useState(false);
   const [mostrarModalError, setMostrarModalError] = useState(false);
+  const [mostrarModalDetalles, setMostrarModalDetalles] = useState(false);
+  const [empleadoSeleccionado, setEmpleadoSeleccionado] = useState(null);
   const [empleadoAEliminar, setEmpleadoAEliminar] = useState(null);
   const [mensajeModal, setMensajeModal] = useState('');
 
@@ -67,12 +68,10 @@ function Empleados({ usuario }) {
   const mostrarEmpleados = busqueda || mostrarTodos;
   const empleadosAMostrar = mostrarEmpleados ? empleadosFiltrados : [];
 
-  // Función para expandir/contraer información de un empleado
-  const toggleExpandirEmpleado = (empleadoId) => {
-    setEmpleadosExpandidos(prev => ({
-      ...prev,
-      [empleadoId]: !prev[empleadoId]
-    }));
+  // Función para mostrar detalles del empleado en modal
+  const mostrarDetallesEmpleado = (empleado) => {
+    setEmpleadoSeleccionado(empleado);
+    setMostrarModalDetalles(true);
   };
 
   // Obtener email del empleado
@@ -247,7 +246,6 @@ function Empleados({ usuario }) {
       {/* Buscador */}
       <div className="buscador-empleados">
         <div className="buscador-contenedor">
-          <FaSearch className="icono-busqueda" />
           <input
             type="text"
             placeholder="Buscar empleados por nombre, apellido, DNI o email..."
@@ -307,9 +305,7 @@ function Empleados({ usuario }) {
           </div>
         ) : (
           empleadosAMostrar.map(empleado => {
-            const estaExpandido = empleadosExpandidos[empleado.id];
             const email = obtenerEmail(empleado);
-            const observaciones = obtenerObservaciones(empleado);
             
             return (
               <div key={empleado.id} className="tarjeta-empleado">
@@ -317,12 +313,12 @@ function Empleados({ usuario }) {
                   <h2>{empleado.nombre_emp} {empleado.apellido_emp}</h2>
                   <div className="empleado-acciones">
                     <button 
-                      className="btn-expandir"
-                      onClick={() => toggleExpandirEmpleado(empleado.id)}
-                      title={estaExpandido ? 'Ver menos información' : 'Ver más información'}
+                      className="btn-ver-detalles"
+                      onClick={() => mostrarDetallesEmpleado(empleado)}
+                      title="Ver detalles completos"
                       disabled={cargando}
                     >
-                      {estaExpandido ? <FaEyeSlash /> : <FaEye />}
+                      <FaEye />
                     </button>
                     <button 
                       className="btn-editar"
@@ -359,30 +355,73 @@ function Empleados({ usuario }) {
                       <strong>Email:</strong> {email}
                     </div>
                   </div>
-
-                  {/* Información expandida - solo visible cuando se expande */}
-                  {estaExpandido && (
-                    <div className="info-expandida">
-                      <div className="info-item">
-                        <strong>DNI:</strong> {empleado.dni_emp}
-                      </div>
-                      <div className="info-item">
-                        <strong>Dirección:</strong> {empleado.domicilio_emp || 'No especificado'}
-                      </div>
-                      <div className="info-item observaciones">
-                        <strong>Observaciones:</strong> 
-                        <div className="texto-observaciones">
-                          {observaciones}
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             );
           })
         )}
       </div>
+
+      {/* MODAL DE DETALLES DEL EMPLEADO */}
+      {mostrarModalDetalles && empleadoSeleccionado && (
+        <div className="modal-overlay" onClick={() => setMostrarModalDetalles(false)}>
+          <div className="modal-contenido" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Detalles del Empleado</h2>
+              <button 
+                className="btn-cerrar-modal"
+                onClick={() => setMostrarModalDetalles(false)}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="detalles-empleado">
+                <div className="detalle-item">
+                  <strong>Nombre completo:</strong>
+                  <span>{empleadoSeleccionado.nombre_emp} {empleadoSeleccionado.apellido_emp}</span>
+                </div>
+                
+                <div className="detalle-item">
+                  <strong>Cargo:</strong>
+                  <span className={`badge-cargo ${empleadoSeleccionado.tipo_usuario}`}>
+                    {empleadoSeleccionado.tipo_usuario === 'jefa' ? 'Jefa/Encargada' : 'Empleada'}
+                  </span>
+                </div>
+                
+                <div className="detalle-item">
+                  <strong>DNI:</strong>
+                  <span>{empleadoSeleccionado.dni_emp}</span>
+                </div>
+                
+                <div className="detalle-item">
+                  <strong>Teléfono:</strong>
+                  <span>{empleadoSeleccionado.telefono_emp || 'No especificado'}</span>
+                </div>
+                
+                <div className="detalle-item">
+                  <strong>Email:</strong>
+                  <span>{obtenerEmail(empleadoSeleccionado)}</span>
+                </div>
+                
+                <div className="detalle-item">
+                  <strong>Dirección:</strong>
+                  <span>{empleadoSeleccionado.domicilio_emp || 'No especificado'}</span>
+                </div>
+                
+                <div className="detalle-item observaciones">
+                  <strong>Observaciones:</strong>
+                  <div className="texto-observaciones">
+                    {obtenerObservaciones(empleadoSeleccionado)}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* MODAL DE CONFIRMACIÓN DE ELIMINACIÓN */}
       <ModalConfirmacionUniversal

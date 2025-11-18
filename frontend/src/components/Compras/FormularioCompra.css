@@ -542,3 +542,172 @@
 .formulario-compras-container::-webkit-scrollbar-thumb:hover {
   background: #ff8c8c;
 }
+
+/* ✅ ESTILOS PARA TIPO DE PRODUCTO */
+.seccion-tipo-producto {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.seccion-tipo-producto h3 {
+  margin-bottom: 1rem;
+  color: #2c3e50;
+  font-size: 1.1rem;
+}
+
+.opciones-tipo-producto {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.opcion-tipo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e9ecef;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.opcion-tipo:hover {
+  border-color: #3498db;
+}
+
+.opcion-tipo input[type="radio"] {
+  display: none;
+}
+
+.radio-custom {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #bdc3c7;
+  border-radius: 50%;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.opcion-tipo input[type="radio"]:checked + .radio-custom {
+  border-color: #3498db;
+  background: #3498db;
+}
+
+.opcion-tipo input[type="radio"]:checked + .radio-custom::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background: white;
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.opcion-tipo input[type="radio"]:checked ~ span {
+  color: #3498db;
+  font-weight: 600;
+}
+
+/* ✅ ESTILOS PARA PRODUCTO EXISTENTE */
+.seccion-producto-existente {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.buscador-producto-existente .btn-buscador {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px dashed #bdc3c7;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: left;
+  color: #7f8c8d;
+}
+
+.buscador-producto-existente .btn-buscador:hover {
+  border-color: #3498db;
+  color: #3498db;
+}
+
+.producto-seleccionado-info {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  display: flex;
+  justify-content: between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.info-producto {
+  flex: 1;
+}
+
+.info-producto strong {
+  display: block;
+  color: #2c3e50;
+  margin-bottom: 0.25rem;
+}
+
+.info-producto span {
+  display: block;
+  font-size: 0.85rem;
+  color: #7f8c8d;
+  margin-bottom: 0.125rem;
+}
+
+.btn-cambiar-producto {
+  padding: 0.5rem 1rem;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.btn-cambiar-producto:hover {
+  background: #c0392b;
+}
+
+/* ✅ ESTILOS PARA EL CAMPO LOTE */
+.campo-form input[name="lote"] {
+  background: #f8f9fa;
+  border: 1px solid #ced4da;
+}
+
+.campo-form input[name="lote"]:focus {
+  background: white;
+  border-color: #3498db;
+}
+
+/* ✅ MEJORAS RESPONSIVAS */
+@media (max-width: 768px) {
+  .opciones-tipo-producto {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .producto-seleccionado-info {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .btn-cambiar-producto {
+    align-self: flex-end;
+  }
+}

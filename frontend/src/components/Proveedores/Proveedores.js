@@ -414,6 +414,7 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
       />
 
       {proveedorDetalles && (
+        console.log('Datos del proveedor en detalles:', proveedorDetalles), 
         <div className="modal-overlay-detalles" onClick={() => setProveedorDetalles(null)}>
           <div className="modal-detalles-grande" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header-detalles">
@@ -507,7 +508,7 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
                     <FaStickyNote />
                   </div>
                   <div className="contenido-detalle-grande">
-                    <label>Observaciones</label>
+                    <label>Descripcion</label>
                     <div className="observaciones-detalle-grande">
                       {proveedorDetalles.descripcion || 'No hay observaciones'}
                     </div>
