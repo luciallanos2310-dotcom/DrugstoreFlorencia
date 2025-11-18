@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaSearch, FaPlus, FaMinus, FaTimes } from 'react-icons/fa';
-import ModalConfirmacion from '../Ventas/ModalConfirmacion';
+import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal';
 import VentasSaeta from './VentasSaeta';
 import IngresosEgresos from '../Caja/IngresosEgresos';
 import CierreCaja from '../Caja/CierreCaja';
@@ -670,7 +670,6 @@ function Ventas({ datosCaja, onCerrarCaja }) {
                 <div className="monto-input-container">
                   <label>Monto Recibido</label>
                   <div className="input-wrapper">
-                   {/* <span className="simbolo-peso">$</span> */}
                     <input
                       type="number"
                       value={montoRecibido}
@@ -707,47 +706,52 @@ function Ventas({ datosCaja, onCerrarCaja }) {
         <DetalleVenta />
       </div>
 
-      {/* Modales de venta normal */}
-      <ModalConfirmacion
+      {/* Modales de venta normal - VERSIÓN UNIVERSAL */}
+      <ModalConfirmacionUniversal
         mostrar={mostrarModalConfirmar}
         tipo="confirmar"
         mensaje="¿Está seguro que desea confirmar el cobro?"
         onConfirmar={handleConfirmarCobro}
         onCancelar={() => setMostrarModalConfirmar(false)}
-        datosVenta={datosParaModal}
+        datosAdicionales={datosParaModal}
+        mostrarResumen={true}
+        modo="venta"
       />
 
-      <ModalConfirmacion
+      <ModalConfirmacionUniversal
         mostrar={mostrarModalCancelar}
         tipo="cancelar"
         mensaje="¿Está seguro que desea cancelar el cobro? Se perderán todos los productos seleccionados."
         onConfirmar={handleCancelarCobro}
         onCancelar={() => setMostrarModalCancelar(false)}
+        modo="venta"
       />
 
-      <ModalConfirmacion
+      <ModalConfirmacionUniversal
         mostrar={mostrarModalExito}
         tipo="exito"
         mensaje="¡Venta procesada exitosamente!"
         onConfirmar={() => setMostrarModalExito(false)}
         onCancelar={() => setMostrarModalExito(false)}
+        modo="venta"
       />
 
-      {/* ✅ Modal de confirmación para cerrar caja */}
-      <ModalConfirmacion
+      {/* ✅ Modal de confirmación para cerrar caja - VERSIÓN UNIVERSAL */}
+      <ModalConfirmacionUniversal
         mostrar={mostrarModalCerrarCaja}
-        tipo="cierre_caja"
+        tipo="confirmar"
         mensaje="¿Está seguro que desea cerrar la caja?"
         onConfirmar={handleConfirmarCierreCaja}
         onCancelar={() => {
           console.log('❌ Cierre de caja cancelado');
           setMostrarModalCerrarCaja(false);
         }}
-        datosApertura={{
+        datosAdicionales={{
           empleadoNombre: datosCaja?.empleadoNombre,
           turnoNombre: datosCaja?.turnoNombre,
           montoInicial: datosCaja?.montoInicial || datosCaja?.saldo_inicial
         }}
+        modo="caja"
       />
 
       {/* Modal de Ventas Saeta */}

@@ -209,6 +209,107 @@
   animation: modalAppear 0.3s ease-out;
 }
 
+/* Estilos para el resumen Saeta */
+.resumen-saeta-modal {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 15px;
+  margin: 15px 0;
+}
+
+.resumen-saeta-modal h4 {
+  margin: 0 0 12px 0;
+  color: #2c3e50;
+  font-size: 16px;
+  font-weight: 600;
+  border-bottom: 2px solid #3498db;
+  padding-bottom: 8px;
+}
+
+.resumen-saeta-modal p {
+  margin: 8px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.resumen-saeta-modal strong {
+  color: #495057;
+  font-weight: 500;
+}
+
+.resumen-saeta-modal .valor {
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+/* En ModalConfirmacionUniversal.css */
+.resumen-cierre {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 15px;
+  margin: 15px 0;
+}
+
+.resumen-cierre h4 {
+  margin: 0 0 12px 0;
+  color: #2c3e50;
+  font-size: 16px;
+  font-weight: 600;
+  border-bottom: 2px solid #3498db;
+  padding-bottom: 8px;
+}
+
+.resumen-cierre p {
+  margin: 8px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.diferencia-positiva {
+  color: #27ae60;
+  font-weight: bold;
+}
+
+.diferencia-negativa {
+  color: #e74c3c;
+  font-weight: bold;
+}
+
+/* Estilos para el resumen de empleados */
+.resumen-empleado {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 15px;
+  margin: 15px 0;
+}
+
+.resumen-empleado h4 {
+  margin: 0 0 12px 0;
+  color: #2c3e50;
+  font-size: 16px;
+  font-weight: 600;
+  border-bottom: 2px solid #3498db;
+  padding-bottom: 8px;
+}
+
+.resumen-empleado p {
+  margin: 8px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.resumen-empleado strong {
+  color: #495057;
+  font-weight: 500;
+  min-width: 80px;
+}
+
 @keyframes modalAppear {
   from {
     opacity: 0;

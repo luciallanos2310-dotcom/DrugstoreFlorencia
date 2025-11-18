@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import ModalConfirmacion from './ModalConfirmacion';
+import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal'; // ✅ Cambiado a modal universal
 import './VentasSaeta.css';
 
 function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
@@ -272,7 +272,12 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
     // 🔥 ELIMINADO: finally block para evitar resetear calculando cuando hay éxito
   };
 
+  // ✅ DATOS PARA EL MODAL DE CONFIRMACIÓN
   const datosParaModal = {
+    total: parseFloat(formData.monto_saeta) || 0,
+    montoRecibido: parseFloat(formData.monto_saeta) || 0,
+    vuelto: 0,
+    // Mantener estos datos adicionales por si los necesitas
     montoTotal: parseFloat(formData.monto_saeta) || 0,
     porcentajeSaeta: parseFloat(formData.porcentaje_ganancia_saeta) || 0,
     montoParaSaeta: montoParaSaeta,
@@ -401,7 +406,7 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
           </button>
           <button 
             className="btn-confirmar-saeta"
-            onClick={() => setMostrarModalConfirmar(true)}
+            onClick={() => setMostrarModalConfirmar(true)} // ✅ AGREGADO: Mostrar modal de confirmación
             disabled={calculando || !formData.monto_saeta || !cajaId}
           >
             {calculando ? 'Procesando...' : 'Confirmar Venta Saeta'}
@@ -409,21 +414,23 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
         </div>
       </div>
 
-      {/* Modal de Confirmación */}
-      <ModalConfirmacion
+      {/* ✅ Modal de Confirmación - VERSIÓN UNIVERSAL */}
+      <ModalConfirmacionUniversal
         mostrar={mostrarModalConfirmar}
-        tipo="confirmar_saeta"
+        tipo="confirmar"
         mensaje="¿Está seguro que desea registrar esta venta Saeta?"
         onConfirmar={handleConfirmarVentaSaeta}
         onCancelar={() => {
           setMostrarModalConfirmar(false);
           setCalculando(false); // 🔥 Resetear estado al cancelar
         }}
-        datosVenta={datosParaModal}
+        datosAdicionales={datosParaModal}
+        mostrarResumen={true}
+        modo="saeta" // ✅ Especificar que es para Saeta
       />
 
-      {/* Modal de Éxito */}
-      <ModalConfirmacion
+      {/* ✅ Modal de Éxito - VERSIÓN UNIVERSAL */}
+      <ModalConfirmacionUniversal
         mostrar={mostrarModalExito}
         tipo="exito"
         mensaje="¡Venta Saeta registrada exitosamente!"
@@ -435,10 +442,11 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
           setMostrarModalExito(false);
           handleCerrarPrincipal();
         }}
+        modo="saeta"
       />
 
-      {/* Modal de Error */}
-      <ModalConfirmacion
+      {/* ✅ Modal de Error - VERSIÓN UNIVERSAL */}
+      <ModalConfirmacionUniversal
         mostrar={mostrarModalError}
         tipo="error"
         mensaje={mensajeError}
@@ -450,6 +458,7 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
           setMostrarModalError(false);
           setCalculando(false); // 🔥 Resetear estado al cerrar error
         }}
+        modo="saeta"
       />
     </div>
   );

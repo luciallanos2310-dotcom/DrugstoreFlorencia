@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import ModalConfirmacion from '../Caja/ModalConfirmacion'; // ✅ Asegúrate de importar el modal
+import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal'; // ✅ Cambiado a modal universal
 import './CierreCaja.css';
 
 function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
@@ -125,17 +125,139 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
   };
 
   const calcularResumen = (ventas, ventasSaeta, caja) => {
-    // ... (mantén todo el código existente de calcularResumen igual)
-    // Solo copio una parte para mantener la estructura
-    const ventasIdsConSaeta = ventasSaeta.map(saeta => saeta.venta);
+    console.log('🧮 ===== INICIANDO CÁLCULO DE RESUMEN =====');
+    console.log('📥 Datos recibidos:', { 
+      ventasCount: ventas.length, 
+      saetaCount: ventasSaeta.length, 
+      cajaId: caja.id
+    });
     
+    // ✅ CORRECCIÓN: IDENTIFICAR qué ventas normales son realmente ventas Saeta
+    const ventasIdsConSaeta = ventasSaeta.map(saeta => saeta.venta);
+    console.log('🔍 IDs de ventas que tienen Saeta asociada:', ventasIdsConSaeta);
+    
+    // ✅ FILTRAR: Separar ventas normales REALES de ventas Saeta Y de ingresos/egresos
     const ventasReales = ventas.filter(venta => 
       !ventasIdsConSaeta.includes(venta.id) && 
       !venta.descripcion?.toLowerCase().includes('ingreso') &&
       !venta.descripcion?.toLowerCase().includes('egreso')
     );
     
-    // ... resto del código de calcularResumen
+    const ventasSaetaComoNormales = ventas.filter(venta => 
+      ventasIdsConSaeta.includes(venta.id)
+    );
+    
+    // ✅ NUEVO: Filtrar ingresos y egresos
+    const ingresosExtra = ventas.filter(venta => 
+      venta.descripcion?.toLowerCase().includes('ingreso')
+    );
+    
+    const egresosExtra = ventas.filter(venta => 
+      venta.descripcion?.toLowerCase().includes('egreso')
+    );
+    
+    console.log('📊 VENTAS SEPARADAS:');
+    console.log('   - Ventas reales (productos):', ventasReales.length);
+    console.log('   - Ventas Saeta (como normales):', ventasSaetaComoNormales.length);
+    console.log('   - Ingresos extra:', ingresosExtra.length);
+    console.log('   - Egresos extra:', egresosExtra.length);
+    
+    // Log detallado de ingresos y egresos encontrados
+    ingresosExtra.forEach(ingreso => {
+      console.log(`   💰 INGRESO: ID ${ingreso.id}, Monto: $${ingreso.total_venta}, Desc: ${ingreso.descripcion}`);
+    });
+    
+    egresosExtra.forEach(egreso => {
+      console.log(`   💰 EGRESO: ID ${egreso.id}, Monto: $${egreso.total_venta}, Desc: ${egreso.descripcion}`);
+    });
+
+    // Calcular total de ingresos y egresos
+    const totalIngresosExtra = ingresosExtra.reduce((sum, ingreso) => {
+      const monto = parseFloat(ingreso.total_venta || 0);
+      console.log(`   💰 Ingreso extra ${ingreso.id}: $${monto}`);
+      return sum + monto;
+    }, 0);
+    
+    const totalEgresosExtra = egresosExtra.reduce((sum, egreso) => {
+      const monto = parseFloat(egreso.total_venta || 0);
+      console.log(`   💰 Egreso extra ${egreso.id}: $${monto}`);
+      return sum + monto;
+    }, 0);
+
+    // Ventas normales REALES - SOLO de esta caja
+    const ventasEfectivoReales = ventasReales.filter(v => v.tipo_pago_venta === 'efectivo');
+    const ventasTransferenciaReales = ventasReales.filter(v => v.tipo_pago_venta === 'transferencia');
+    
+    console.log('💵 Ventas REALES por método:');
+    console.log('   - Efectivo real:', ventasEfectivoReales.length);
+    console.log('   - Transferencia real:', ventasTransferenciaReales.length);
+
+    const totalVentasEfectivo = ventasEfectivoReales.reduce((sum, v) => {
+      const total = parseFloat(v.total_venta || 0);
+      console.log(`   💰 Venta efectivo REAL ${v.id}: $${total}`);
+      return sum + total;
+    }, 0);
+
+    const totalVentasTransferencia = ventasTransferenciaReales.reduce((sum, v) => {
+      const total = parseFloat(v.total_venta || 0);
+      console.log(`   💰 Venta transferencia REAL ${v.id}: $${total}`);
+      return sum + total;
+    }, 0);
+
+    const totalVentas = totalVentasEfectivo + totalVentasTransferencia;
+
+    // Ventas Saeta - TODAS las que están en esta caja
+    const totalSaeta = ventasSaeta.reduce((sum, s) => {
+      const monto = parseFloat(s.monto_saeta || 0);
+      console.log(`   📱 Saeta ${s.id}: $${monto}`);
+      return sum + monto;
+    }, 0);
+
+    const comisionSaeta = ventasSaeta.reduce((sum, s) => {
+      const monto = parseFloat(s.monto_saeta || 0);
+      const porcentaje = parseFloat(s.porcentaje_ganancia_saeta || 15);
+      const comision = (monto * porcentaje) / 100;
+      console.log(`   📱 Comisión Saeta ${s.id}: $${monto} * ${porcentaje}% = $${comision}`);
+      return sum + comision;
+    }, 0);
+
+    console.log('💰 TOTALES CALCULADOS:');
+    console.log('   - Total ventas efectivo REAL:', totalVentasEfectivo);
+    console.log('   - Total ventas transferencia REAL:', totalVentasTransferencia);
+    console.log('   - Total ventas general REAL:', totalVentas);
+    console.log('   - Total Saeta:', totalSaeta);
+    console.log('   - Comisión Saeta:', comisionSaeta);
+    console.log('   - Ingresos extra:', totalIngresosExtra);
+    console.log('   - Egresos extra:', totalEgresosExtra);
+
+    // ✅ CORRECCIÓN: CALCULAR OPERACIONES - Solo ventas reales + ventas Saeta únicas
+    const totalOperaciones = ventasReales.length;
+    console.log('🔢 CÁLCULO DE OPERACIONES:');
+    console.log(`   - Ventas reales: ${ventasReales.length}`);
+    console.log(`   - Total operaciones: ${totalOperaciones}`);
+
+    setResumenVentas({
+      totalOperaciones: totalOperaciones,
+      totalVentas: totalVentas,
+      ventasEfectivo: totalVentasEfectivo,
+      ventasTransferencia: totalVentasTransferencia,
+      totalSaeta: totalSaeta,
+      comisionSaeta: comisionSaeta,
+      ingresosExtra: totalIngresosExtra, // ✅ Usar los calculados de las ventas
+      egresos: totalEgresosExtra // ✅ Usar los calculados de las ventas
+    });
+
+    console.log('✅ ===== RESUMEN GUARDADO EN ESTADO =====');
+    console.log('📊 Resumen final:', {
+      totalOperaciones,
+      totalVentas,
+      ventasEfectivo: totalVentasEfectivo,
+      ventasTransferencia: totalVentasTransferencia,
+      totalSaeta,
+      comisionSaeta,
+      ingresosExtra: totalIngresosExtra,
+      egresos: totalEgresosExtra
+    });
   };
 
   useEffect(() => {
@@ -469,18 +591,20 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
         </button>
       </div>
 
-      {/* ✅ MODAL DE CONFIRMACIÓN DE CIERRE */}
-      <ModalConfirmacion
+      {/* ✅ MODAL DE CONFIRMACIÓN DE CIERRE - VERSIÓN UNIVERSAL */}
+      <ModalConfirmacionUniversal
         mostrar={mostrarModalConfirmar}
         tipo="confirmar"
         mensaje="¿Está seguro que desea confirmar el cierre de caja?"
         onConfirmar={handleConfirmarCierre}
         onCancelar={() => setMostrarModalConfirmar(false)}
-        datosVenta={datosParaModalConfirmacion}
+        datosAdicionales={datosParaModalConfirmacion}
+        mostrarResumen={true}
+        modo="caja"
       />
 
-      {/* ✅ MODAL DE ÉXITO */}
-      <ModalConfirmacion
+      {/* ✅ MODAL DE ÉXITO - VERSIÓN UNIVERSAL */}
+      <ModalConfirmacionUniversal
         mostrar={mostrarModalExito}
         tipo="exito"
         mensaje="¡Cierre de caja registrado exitosamente!"
@@ -496,15 +620,17 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
             onCierreConfirmado();
           }
         }}
+        modo="caja"
       />
 
-      {/* ✅ MODAL DE CONFIRMACIÓN DE CANCELACIÓN */}
-      <ModalConfirmacion
+      {/* ✅ MODAL DE CONFIRMACIÓN DE CANCELACIÓN - VERSIÓN UNIVERSAL */}
+      <ModalConfirmacionUniversal
         mostrar={mostrarModalCancelar}
         tipo="cancelar"
         mensaje="¿Está seguro que desea cancelar el cierre de caja? Los datos ingresados se perderán."
         onConfirmar={handleConfirmarCancelacion}
         onCancelar={() => setMostrarModalCancelar(false)}
+        modo="caja"
       />
     </div>
   );

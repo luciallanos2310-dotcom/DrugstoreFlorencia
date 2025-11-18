@@ -1,8 +1,7 @@
-// src/components/Empleados/Empleados.js
 import React, { useState, useEffect } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaSearch, FaEye, FaEyeSlash } from 'react-icons/fa';
-import FormularioEmpleado from '../Empleados/FormularioEmpleado';
-import ModalConfirmacion from '../Empleados/ModalConfirmacion';
+import FormularioEmpleado from './FormularioEmpleado';
+import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal';
 import './Empleados.css';
 
 function Empleados({ usuario }) {
@@ -13,16 +12,19 @@ function Empleados({ usuario }) {
   const [mostrarTodos, setMostrarTodos] = useState(false);
   const [busqueda, setBusqueda] = useState('');
   const [empleadosExpandidos, setEmpleadosExpandidos] = useState({});
-  const [modalConfirmacion, setModalConfirmacion] = useState({
-    mostrar: false,
-    tipo: '',
-    empleado: null,
-    mensaje: ''
-  });
+  const [cargando, setCargando] = useState(false);
+  
+  // Estados para modales universales
+  const [mostrarModalEliminar, setMostrarModalEliminar] = useState(false);
+  const [mostrarModalExito, setMostrarModalExito] = useState(false);
+  const [mostrarModalError, setMostrarModalError] = useState(false);
+  const [empleadoAEliminar, setEmpleadoAEliminar] = useState(null);
+  const [mensajeModal, setMensajeModal] = useState('');
 
   // Cargar empleados desde la API
   const cargarEmpleados = async () => {
     try {
+      setCargando(true);
       const token = localStorage.getItem('token');
       const response = await fetch('/api/empleados/', {
         headers: {
@@ -36,9 +38,15 @@ function Empleados({ usuario }) {
         setEmpleados(data);
       } else {
         console.error('Error cargando empleados:', response.status);
+        setMensajeModal('Error al cargar los empleados');
+        setMostrarModalError(true);
       }
     } catch (error) {
       console.error('Error cargando empleados:', error);
+      setMensajeModal('Error de conexión al cargar empleados');
+      setMostrarModalError(true);
+    } finally {
+      setCargando(false);
     }
   };
 
@@ -67,7 +75,7 @@ function Empleados({ usuario }) {
     }));
   };
 
-  // Obtener email del empleado - FIX para el problema del email
+  // Obtener email del empleado
   const obtenerEmail = (empleado) => {
     return empleado.email || empleado.user?.email || 'No especificado';
   };
@@ -90,18 +98,16 @@ function Empleados({ usuario }) {
   };
 
   const handleEliminarEmpleado = (empleado) => {
-    setModalConfirmacion({
-      mostrar: true,
-      tipo: 'eliminar',
-      empleado: empleado,
-      mensaje: `¿Está seguro que desea eliminar al empleado ${empleado.nombre_emp} ${empleado.apellido_emp}? Esta acción no se puede deshacer.`
-    });
+    setEmpleadoAEliminar(empleado);
+    setMensajeModal(`¿Está seguro que desea eliminar al empleado ${empleado.nombre_emp} ${empleado.apellido_emp}? Esta acción no se puede deshacer.`);
+    setMostrarModalEliminar(true);
   };
 
   const confirmarEliminacion = async () => {
     try {
+      setCargando(true);
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/empleados/${modalConfirmacion.empleado.id}/`, {
+      const response = await fetch(`/api/empleados/${empleadoAEliminar.id}/`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Token ${token}`,
@@ -111,34 +117,28 @@ function Empleados({ usuario }) {
 
       if (response.ok) {
         await cargarEmpleados();
-        setModalConfirmacion({
-          mostrar: true,
-          tipo: 'exito',
-          empleado: null,
-          mensaje: 'Empleado eliminado exitosamente'
-        });
+        setMostrarModalEliminar(false);
+        setMensajeModal('Empleado eliminado exitosamente');
+        setMostrarModalExito(true);
       } else {
         const errorData = await response.json();
-        setModalConfirmacion({
-          mostrar: true,
-          tipo: 'error',
-          empleado: null,
-          mensaje: `Error al eliminar empleado: ${errorData.error}`
-        });
+        setMostrarModalEliminar(false);
+        setMensajeModal(`Error al eliminar empleado: ${errorData.error || 'Error desconocido'}`);
+        setMostrarModalError(true);
       }
     } catch (error) {
       console.error('Error eliminando empleado:', error);
-      setModalConfirmacion({
-        mostrar: true,
-        tipo: 'error',
-        empleado: null,
-        mensaje: 'Error de conexión al eliminar empleado'
-      });
+      setMostrarModalEliminar(false);
+      setMensajeModal('Error de conexión al eliminar empleado');
+      setMostrarModalError(true);
+    } finally {
+      setCargando(false);
     }
   };
 
   const handleGuardarEmpleado = async (datosEmpleado) => {
     try {
+      setCargando(true);
       const token = localStorage.getItem('token');
       const url = modoFormulario === 'crear' 
         ? '/api/empleados/' 
@@ -146,17 +146,24 @@ function Empleados({ usuario }) {
       
       const method = modoFormulario === 'crear' ? 'POST' : 'PUT';
       
+      // Preparar datos para enviar
       const datosParaEnviar = {
-        nombre_emp: datosEmpleado.nombre_emp,
-        apellido_emp: datosEmpleado.apellido_emp,
+        nombre_emp: datosEmpleado.nombre_emp.trim(),
+        apellido_emp: datosEmpleado.apellido_emp.trim(),
         dni_emp: parseInt(datosEmpleado.dni_emp),
-        telefono_emp: datosEmpleado.telefono_emp,
-        domicilio_emp: datosEmpleado.domicilio_emp,
+        telefono_emp: datosEmpleado.telefono_emp.trim(),
+        domicilio_emp: datosEmpleado.domicilio_emp.trim(),
         tipo_usuario: datosEmpleado.tipo_usuario,
-        email: datosEmpleado.email,
-        observaciones: datosEmpleado.observaciones,
-        ...(modoFormulario === 'crear' && { password: datosEmpleado.password })
+        email: datosEmpleado.email.trim(),
+        observaciones: datosEmpleado.observaciones?.trim() || '',
+        ...(modoFormulario === 'crear' && { 
+          password: datosEmpleado.password 
+        })
       };
+
+      console.log('📤 Enviando datos al servidor:', datosParaEnviar);
+      console.log('🔗 URL:', url);
+      console.log('🔧 Método:', method);
 
       const response = await fetch(url, {
         method: method,
@@ -167,46 +174,37 @@ function Empleados({ usuario }) {
         body: JSON.stringify(datosParaEnviar)
       });
 
-      const responseData = await response.json();
+      console.log('📥 Respuesta del servidor - Status:', response.status);
 
-      if (response.ok) {
-        setMostrarFormulario(false);
-        await cargarEmpleados();
-        setModalConfirmacion({
-          mostrar: true,
-          tipo: 'exito',
-          empleado: null,
-          mensaje: modoFormulario === 'crear' 
-            ? 'Empleado creado exitosamente' 
-            : 'Empleado actualizado exitosamente'
-        });
-      } else {
-        const errorMsg = responseData.error || 'Error al guardar empleado';
-        setModalConfirmacion({
-          mostrar: true,
-          tipo: 'error',
-          empleado: null,
-          mensaje: `Error: ${errorMsg}`
-        });
+      if (!response.ok) {
+        // Obtener el error detallado del servidor
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          errorData = { error: 'Error desconocido del servidor' };
+        }
+        console.error('❌ Error del servidor:', errorData);
+        throw new Error(`Error ${response.status}: ${JSON.stringify(errorData)}`);
       }
-    } catch (error) {
-      console.error('Error guardando empleado:', error);
-      setModalConfirmacion({
-        mostrar: true,
-        tipo: 'error',
-        empleado: null,
-        mensaje: 'Error de conexión al guardar empleado'
-      });
-    }
-  };
 
-  const cerrarModal = () => {
-    setModalConfirmacion({ 
-      mostrar: false, 
-      tipo: '', 
-      empleado: null, 
-      mensaje: '' 
-    });
+      const responseData = await response.json();
+      console.log('✅ Respuesta exitosa:', responseData);
+
+      setMostrarFormulario(false);
+      await cargarEmpleados();
+      setMensajeModal(modoFormulario === 'crear' 
+        ? 'Empleado creado exitosamente' 
+        : 'Empleado actualizado exitosamente');
+      setMostrarModalExito(true);
+
+    } catch (error) {
+      console.error('❌ Error guardando empleado:', error);
+      setMensajeModal(`Error: ${error.message}`);
+      setMostrarModalError(true);
+    } finally {
+      setCargando(false);
+    }
   };
 
   const limpiarBusqueda = () => {
@@ -239,8 +237,9 @@ function Empleados({ usuario }) {
           <button 
             className="btn-nuevo-empleado"
             onClick={handleCrearEmpleado}
+            disabled={cargando}
           >
-            <FaPlus /> Agregar nuevo empleado
+            <FaPlus /> {cargando ? 'Cargando...' : 'Agregar nuevo empleado'}
           </button>
         </div>
       </div>
@@ -255,12 +254,14 @@ function Empleados({ usuario }) {
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             className="input-busqueda"
+            disabled={cargando}
           />
           {busqueda && (
             <button 
               className="btn-limpiar-busqueda"
               onClick={limpiarBusqueda}
               title="Limpiar búsqueda"
+              disabled={cargando}
             >
               ×
             </button>
@@ -282,16 +283,21 @@ function Empleados({ usuario }) {
           <button 
             className="btn-mostrar-todos"
             onClick={() => setMostrarTodos(!mostrarTodos)}
-            disabled={empleadosFiltrados.length === 0}
+            disabled={empleadosFiltrados.length === 0 || cargando}
           >
             {mostrarTodos ? 'Mostrar menos' : `Mostrar todos los empleados (${empleadosFiltrados.length})`}
           </button>
         </div>
       )}
 
-      {/* Lista de empleados - MEJORADO */}
+      {/* Lista de empleados */}
       <div className="lista-empleados">
-        {!mostrarEmpleados ? (
+        {cargando && !mostrarFormulario ? (
+          <div className="cargando-empleados">
+            <div className="loading-spinner"></div>
+            Cargando empleados...
+          </div>
+        ) : !mostrarEmpleados ? (
           <div className="sin-resultados">
             {!busqueda && "Presiona 'Mostrar todos los empleados' para ver la lista completa"}
           </div>
@@ -314,6 +320,7 @@ function Empleados({ usuario }) {
                       className="btn-expandir"
                       onClick={() => toggleExpandirEmpleado(empleado.id)}
                       title={estaExpandido ? 'Ver menos información' : 'Ver más información'}
+                      disabled={cargando}
                     >
                       {estaExpandido ? <FaEyeSlash /> : <FaEye />}
                     </button>
@@ -321,6 +328,7 @@ function Empleados({ usuario }) {
                       className="btn-editar"
                       onClick={() => handleEditarEmpleado(empleado)}
                       title="Editar empleado"
+                      disabled={cargando}
                     >
                       <FaEdit />
                     </button>
@@ -328,6 +336,7 @@ function Empleados({ usuario }) {
                       className="btn-eliminar"
                       onClick={() => handleEliminarEmpleado(empleado)}
                       title="Eliminar empleado"
+                      disabled={cargando}
                     >
                       <FaTrash />
                     </button>
@@ -375,12 +384,34 @@ function Empleados({ usuario }) {
         )}
       </div>
 
-      <ModalConfirmacion
-        mostrar={modalConfirmacion.mostrar}
-        tipo={modalConfirmacion.tipo}
-        mensaje={modalConfirmacion.mensaje}
+      {/* MODAL DE CONFIRMACIÓN DE ELIMINACIÓN */}
+      <ModalConfirmacionUniversal
+        mostrar={mostrarModalEliminar}
+        tipo="eliminar"
+        mensaje={mensajeModal}
         onConfirmar={confirmarEliminacion}
-        onCancelar={cerrarModal}
+        onCancelar={() => setMostrarModalEliminar(false)}
+        modo="empleado"
+      />
+
+      {/* MODAL DE ÉXITO */}
+      <ModalConfirmacionUniversal
+        mostrar={mostrarModalExito}
+        tipo="exito"
+        mensaje={mensajeModal}
+        onConfirmar={() => setMostrarModalExito(false)}
+        onCancelar={() => setMostrarModalExito(false)}
+        modo="empleado"
+      />
+
+      {/* MODAL DE ERROR */}
+      <ModalConfirmacionUniversal
+        mostrar={mostrarModalError}
+        tipo="error"
+        mensaje={mensajeModal}
+        onConfirmar={() => setMostrarModalError(false)}
+        onCancelar={() => setMostrarModalError(false)}
+        modo="empleado"
       />
     </div>
   );

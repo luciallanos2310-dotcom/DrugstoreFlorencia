@@ -1,7 +1,6 @@
-// src/components/Empleados/FormularioEmpleado.js
 import React, { useState, useEffect } from 'react';
 import { FaSave, FaTimes, FaLock, FaCheck, FaTimes as FaClose, FaEye, FaEyeSlash } from 'react-icons/fa';
-import ModalConfirmacion from './ModalConfirmacion';
+import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal';
 import '../Empleados/FormularioEmpleado.css';
 
 function FormularioEmpleado({ modo, empleado, onGuardar, onCancelar }) {
@@ -32,7 +31,6 @@ function FormularioEmpleado({ modo, empleado, onGuardar, onCancelar }) {
   });
   const [errores, setErrores] = useState({});
   const [erroresModal, setErroresModal] = useState({});
-  const [mensajeExito, setMensajeExito] = useState('');
   const [validacionPassword, setValidacionPassword] = useState({
     longitud: false,
     mayuscula: false,
@@ -44,8 +42,33 @@ function FormularioEmpleado({ modo, empleado, onGuardar, onCancelar }) {
   const [passwordActualCorrecta, setPasswordActualCorrecta] = useState(null);
   const [cargando, setCargando] = useState(false);
   const [verificandoPassword, setVerificandoPassword] = useState(false);
-  const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
+  
+  // Estados para modales
+  const [mostrarModalConfirmar, setMostrarModalConfirmar] = useState(false);
   const [mostrarModalExito, setMostrarModalExito] = useState(false);
+  const [mostrarModalError, setMostrarModalError] = useState(false);
+  const [mensajeModal, setMensajeModal] = useState('');
+  
+  // Estado para el modal de confirmación de guardar empleado
+  const [mostrarModalGuardar, setMostrarModalGuardar] = useState(false);
+  const [datosParaGuardar, setDatosParaGuardar] = useState(null);
+
+  // Estados para validaciones en tiempo real
+  const [validandoCampos, setValidandoCampos] = useState(false);
+  const [erroresUnicos, setErroresUnicos] = useState({
+    dni: null,
+    telefono: null,
+    email: null,
+    nombreCompleto: null
+  });
+
+  // Estado para controlar qué campos se están validando
+  const [validandoCampo, setValidandoCampo] = useState({
+    dni: false,
+    telefono: false,
+    email: false,
+    nombreCompleto: false
+  });
 
   useEffect(() => {
     if (empleado && modo === 'editar') {
@@ -63,6 +86,122 @@ function FormularioEmpleado({ modo, empleado, onGuardar, onCancelar }) {
       });
     }
   }, [empleado, modo]);
+
+  // Función mejorada para validar campos únicos
+  // Función mejorada para validar campos únicos
+const validarCampoUnico = async (campo, valor) => {
+  // ✅ NO validar campos únicos en modo edición
+  if (modo !== 'crear') {
+    setErroresUnicos(prev => ({ ...prev, [campo]: null }));
+    setValidandoCampo(prev => ({ ...prev, [campo]: false }));
+    return;
+  }
+  
+  if (!valor || valor.trim() === '') {
+    setErroresUnicos(prev => ({ ...prev, [campo]: null }));
+    setValidandoCampo(prev => ({ ...prev, [campo]: false }));
+    return;
+  }
+
+  setValidandoCampo(prev => ({ ...prev, [campo]: true }));
+
+  try {
+    const token = localStorage.getItem('token');
+    const parametros = new URLSearchParams();
+    
+    switch(campo) {
+      case 'dni':
+        if (valor.length >= 7) {
+          parametros.append('dni', valor);
+        } else {
+          setValidandoCampo(prev => ({ ...prev, [campo]: false }));
+          return;
+        }
+        break;
+      case 'telefono':
+        if (valor.length >= 6) {
+          parametros.append('telefono', valor);
+        } else {
+          setValidandoCampo(prev => ({ ...prev, [campo]: false }));
+          return;
+        }
+        break;
+      case 'email':
+        if (valor.includes('@')) {
+          parametros.append('email', valor);
+        } else {
+          setValidandoCampo(prev => ({ ...prev, [campo]: false }));
+          return;
+        }
+        break;
+      case 'nombreCompleto':
+        if (formData.nombre_emp.length >= 2 && formData.apellido_emp.length >= 2) {
+          parametros.append('nombre', formData.nombre_emp);
+          parametros.append('apellido', formData.apellido_emp);
+        } else {
+          setValidandoCampo(prev => ({ ...prev, [campo]: false }));
+          return;
+        }
+        break;
+    }
+
+    if (parametros.toString()) {
+      const response = await fetch(`/api/empleados/verificar-campos/?${parametros.toString()}`, {
+        headers: {
+          'Authorization': `Token ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setErroresUnicos(prev => ({
+          ...prev,
+          [campo]: data.errores?.[campo] || null
+        }));
+      }
+    }
+  } catch (error) {
+    console.error(`Error validando campo ${campo}:`, error);
+  } finally {
+    setValidandoCampo(prev => ({ ...prev, [campo]: false }));
+  }
+};
+
+  // Efectos separados para cada campo que necesita validación en tiempo real
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      validarCampoUnico('dni', formData.dni_emp);
+    }, 800);
+    return () => clearTimeout(timeoutId);
+  }, [formData.dni_emp, modo]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      validarCampoUnico('telefono', formData.telefono_emp);
+    }, 800);
+    return () => clearTimeout(timeoutId);
+  }, [formData.telefono_emp, modo]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      validarCampoUnico('email', formData.email);
+    }, 800);
+    return () => clearTimeout(timeoutId);
+  }, [formData.email, modo]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (formData.nombre_emp.trim().length >= 2 && formData.apellido_emp.trim().length >= 2) {
+        validarCampoUnico('nombreCompleto', `${formData.nombre_emp} ${formData.apellido_emp}`);
+      } else {
+        // Limpiar error si no hay suficiente información
+        setErroresUnicos(prev => ({ ...prev, nombreCompleto: null }));
+        setValidandoCampo(prev => ({ ...prev, nombreCompleto: false }));
+      }
+    }, 800);
+    return () => clearTimeout(timeoutId);
+  }, [formData.nombre_emp, formData.apellido_emp, modo]);
 
   // Efecto para validar la nueva contraseña en tiempo real
   useEffect(() => {
@@ -131,7 +270,6 @@ function FormularioEmpleado({ modo, empleado, onGuardar, onCancelar }) {
       }
     };
 
-    // Debounce para evitar muchas llamadas a la API
     const timeoutId = setTimeout(() => {
       verificarPasswordActual();
     }, 500);
@@ -146,11 +284,26 @@ function FormularioEmpleado({ modo, empleado, onGuardar, onCancelar }) {
       [name]: value
     }));
     
+    // Limpiar errores normales
     if (errores[name]) {
       setErrores(prev => ({
         ...prev,
         [name]: ''
       }));
+    }
+
+    // Limpiar errores únicos específicos cuando el usuario modifica el campo
+    if (name === 'dni_emp' && erroresUnicos.dni) {
+      setErroresUnicos(prev => ({ ...prev, dni: null }));
+    }
+    if (name === 'telefono_emp' && erroresUnicos.telefono) {
+      setErroresUnicos(prev => ({ ...prev, telefono: null }));
+    }
+    if (name === 'email' && erroresUnicos.email) {
+      setErroresUnicos(prev => ({ ...prev, email: null }));
+    }
+    if ((name === 'nombre_emp' || name === 'apellido_emp') && erroresUnicos.nombreCompleto) {
+      setErroresUnicos(prev => ({ ...prev, nombreCompleto: null }));
     }
   };
 
@@ -176,14 +329,76 @@ function FormularioEmpleado({ modo, empleado, onGuardar, onCancelar }) {
     }));
   };
 
+  // FUNCIÓN MEJORADA: Verificar campos únicos antes de enviar
+  // FUNCIÓN MEJORADA: Verificar campos únicos antes de enviar
+const verificarCamposUnicos = async () => {
+  // ✅ NO validar campos únicos en modo edición
+  if (modo !== 'crear') {
+    console.log('🔍 Modo edición - omitiendo validación de campos únicos');
+    return {};
+  }
+
+  try {
+    const token = localStorage.getItem('token');
+    const parametros = new URLSearchParams();
+    
+    if (formData.dni_emp) parametros.append('dni', formData.dni_emp);
+    if (formData.telefono_emp) parametros.append('telefono', formData.telefono_emp);
+    if (formData.email) parametros.append('email', formData.email);
+    
+    // ✅ AGREGAR VALIDACIÓN ESPECÍFICA PARA NOMBRE Y APELLIDO
+    if (formData.nombre_emp.trim() && formData.apellido_emp.trim()) {
+      parametros.append('nombre', formData.nombre_emp.trim());
+      parametros.append('apellido', formData.apellido_emp.trim());
+    }
+
+    console.log('🔍 Verificando campos únicos con parámetros:', parametros.toString());
+
+    const response = await fetch(`/api/empleados/verificar-campos/?${parametros.toString()}`, {
+      headers: {
+        'Authorization': `Token ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log('📋 Resultado validación campos únicos:', data);
+      return data.errores || {};
+    } else {
+      console.error('Error en respuesta de validación:', response.status);
+      return {};
+    }
+  } catch (error) {
+    console.error('Error verificando campos únicos:', error);
+    return {};
+  }
+};
+
   const validarFormulario = () => {
     const nuevosErrores = {};
 
     if (!formData.nombre_emp.trim()) nuevosErrores.nombre_emp = 'El nombre es requerido';
     if (!formData.apellido_emp.trim()) nuevosErrores.apellido_emp = 'El apellido es requerido';
-    if (!formData.dni_emp) nuevosErrores.dni_emp = 'El DNI es requerido';
-    if (!formData.telefono_emp.trim()) nuevosErrores.telefono_emp = 'El teléfono es requerido';
+    
+    // VALIDACIÓN MEJORADA PARA DNI
+    if (!formData.dni_emp) {
+      nuevosErrores.dni_emp = 'El DNI es requerido';
+    } else if (isNaN(formData.dni_emp) || parseInt(formData.dni_emp) <= 0) {
+      nuevosErrores.dni_emp = 'El DNI debe ser un número válido';
+    } else if (formData.dni_emp.length < 7 || formData.dni_emp.length > 8) {
+      nuevosErrores.dni_emp = 'El DNI debe tener entre 7 y 8 dígitos';
+    }
+
+    // VALIDACIÓN MEJORADA PARA TELÉFONO
+    if (!formData.telefono_emp.trim()) {
+      nuevosErrores.telefono_emp = 'El teléfono es requerido';
+    } else if (!/^[\d\s+\-()]+$/.test(formData.telefono_emp)) {
+      nuevosErrores.telefono_emp = 'El teléfono debe contener solo números y caracteres válidos';
+    }
+
     if (!formData.domicilio_emp.trim()) nuevosErrores.domicilio_emp = 'La dirección es requerida';
+    
     if (!formData.email.trim()) nuevosErrores.email = 'El email es requerido';
     else if (!/\S+@\S+\.\S+/.test(formData.email)) nuevosErrores.email = 'El email no es válido';
     
@@ -227,18 +442,72 @@ function FormularioEmpleado({ modo, empleado, onGuardar, onCancelar }) {
     return Object.keys(nuevosErrores).length === 0;
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    if (validarFormulario()) {
-      // Enviar datos sin la contraseña en modo edición
-      const datosParaEnviar = { ...formData };
-      if (modo === 'editar') {
-        delete datosParaEnviar.password;
-        delete datosParaEnviar.confirmarPassword;
+  // MODIFICADO: handleSubmit para validar campos únicos antes de mostrar modal
+  // MODIFICADO: handleSubmit para validar campos únicos SOLO en creación
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  console.log('🔍 Iniciando validación del formulario...');
+  console.log('📝 Modo:', modo);
+  
+  if (!validarFormulario()) {
+    console.log('❌ Validación básica falló');
+    return;
+  }
+
+  console.log('✅ Validación básica exitosa');
+
+  // ✅ SOLO VERIFICAR CAMPOS ÚNICOS EN MODO CREACIÓN
+  if (modo === 'crear') {
+    console.log('🔍 Verificando campos únicos...');
+    setCargando(true);
+    try {
+      const erroresUnicos = await verificarCamposUnicos();
+      console.log('📋 Errores únicos encontrados:', erroresUnicos);
+      
+      // Verificar si hay errores de campos únicos
+      if (Object.keys(erroresUnicos).length > 0) {
+        setErroresUnicos(erroresUnicos);
+        setCargando(false);
+        
+        // Mostrar mensaje de error específico
+        const primerError = Object.values(erroresUnicos)[0];
+        setMensajeModal(`❌ ${primerError}`);
+        setMostrarModalError(true);
+        return;
       }
-      onGuardar(datosParaEnviar);
+    } catch (error) {
+      console.error('Error validando campos únicos:', error);
+      setMensajeModal('Error al validar los datos. Intente nuevamente.');
+      setMostrarModalError(true);
+      setCargando(false);
+      return;
+    } finally {
+      setCargando(false);
     }
+  }
+  
+  // ✅ CONTINUAR CON EL MODAL DE CONFIRMACIÓN (tanto para crear como editar)
+  const datosParaEnviar = { ...formData };
+  if (modo === 'editar') {
+    delete datosParaEnviar.password;
+    delete datosParaEnviar.confirmarPassword;
+  }
+  
+  setDatosParaGuardar(datosParaEnviar);
+  setMensajeModal(
+    modo === 'crear' 
+      ? `¿Está seguro que desea crear el empleado ${formData.nombre_emp} ${formData.apellido_emp}?`
+      : `¿Está seguro que desea actualizar los datos del empleado ${formData.nombre_emp} ${formData.apellido_emp}?`
+  );
+  setMostrarModalGuardar(true);
+};
+
+  // NUEVA FUNCIÓN: Confirmar guardado de empleado
+  const confirmarGuardarEmpleado = () => {
+    setMostrarModalGuardar(false);
+    console.log('📤 Enviando datos al componente padre:', datosParaGuardar);
+    onGuardar(datosParaGuardar);
   };
 
   const handleCambiarPassword = () => {
@@ -269,13 +538,13 @@ function FormularioEmpleado({ modo, empleado, onGuardar, onCancelar }) {
     e.preventDefault();
     
     if (validarModalPassword()) {
-      setMostrarConfirmacion(true);
+      setMostrarModalConfirmar(true);
     }
   };
 
   const confirmarCambioPassword = async () => {
     setCargando(true);
-    setMostrarConfirmacion(false);
+    setMostrarModalConfirmar(false);
     
     try {
       const token = localStorage.getItem('token');
@@ -295,7 +564,8 @@ function FormularioEmpleado({ modo, empleado, onGuardar, onCancelar }) {
       });
 
       if (response.ok) {
-        // Mostrar modal de éxito en lugar del mensaje inline
+        // Mostrar modal de éxito
+        setMensajeModal('¡Contraseña actualizada exitosamente!');
         setMostrarModalExito(true);
         setTimeout(() => {
           setMostrarModalPassword(false);
@@ -304,19 +574,16 @@ function FormularioEmpleado({ modo, empleado, onGuardar, onCancelar }) {
             nuevaPassword: '',
             confirmarNuevaPassword: ''
           });
-          setMostrarModalExito(false);
         }, 2000);
       } else {
         const errorData = await response.json();
-        setErroresModal({
-          general: errorData.error || 'Error al cambiar la contraseña'
-        });
+        setMensajeModal(errorData.error || 'Error al cambiar la contraseña');
+        setMostrarModalError(true);
       }
     } catch (error) {
       console.error('Error al cambiar contraseña:', error);
-      setErroresModal({
-        general: 'Error de conexión al cambiar contraseña'
-      });
+      setMensajeModal('Error de conexión al cambiar contraseña');
+      setMostrarModalError(true);
     } finally {
       setCargando(false);
     }
@@ -330,6 +597,22 @@ function FormularioEmpleado({ modo, empleado, onGuardar, onCancelar }) {
   const titulo = getTitulo();
   const textoBoton = modo === 'crear' ? 'Crear Empleado' : 'Guardar Cambios';
 
+  // Verificar si hay errores de campos únicos (solo en modo creación)
+  const tieneErroresUnicos = modo === 'crear' && Object.values(erroresUnicos).some(error => error !== null);
+
+  // Función para renderizar el estado de validación de cada campo
+  const renderEstadoValidacion = (campo) => {
+    if (validandoCampo[campo]) {
+      return <span className="mensaje-validando">🔍 Verificando...</span>;
+    }
+    
+    if (erroresUnicos[campo]) {
+      return <span className="mensaje-error-unico">❌ {erroresUnicos[campo]}</span>;
+    }
+    
+    return null;
+  };
+
   return (
     <div className="formulario-empleado-container">
       <div className="formulario-empleado-card">
@@ -337,12 +620,6 @@ function FormularioEmpleado({ modo, empleado, onGuardar, onCancelar }) {
           <h1>{titulo}</h1>
           <p>Complete los siguientes campos para {modo === 'crear' ? 'registrar' : 'editar'} un {formData.tipo_usuario === 'jefa' ? 'jefa/encargada' : 'empleada'} en el sistema.</p>
         </div>
-
-        {mensajeExito && (
-          <div className="mensaje-exito">
-            {mensajeExito}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} className="formulario-empleado">
           <div className="form-columnas">
@@ -357,9 +634,10 @@ function FormularioEmpleado({ modo, empleado, onGuardar, onCancelar }) {
                   value={formData.nombre_emp}
                   onChange={handleChange}
                   placeholder="Nombre completo"
-                  className={errores.nombre_emp ? 'error' : ''}
+                  className={errores.nombre_emp || erroresUnicos.nombreCompleto ? 'error' : ''}
                 />
                 {errores.nombre_emp && <span className="mensaje-error">{errores.nombre_emp}</span>}
+                {renderEstadoValidacion('nombreCompleto')}
               </div>
 
               <div className="campo-grupo">
@@ -371,9 +649,10 @@ function FormularioEmpleado({ modo, empleado, onGuardar, onCancelar }) {
                   value={formData.dni_emp}
                   onChange={handleChange}
                   placeholder="Documento Nacional de Identidad"
-                  className={errores.dni_emp ? 'error' : ''}
+                  className={errores.dni_emp || erroresUnicos.dni ? 'error' : ''}
                 />
                 {errores.dni_emp && <span className="mensaje-error">{errores.dni_emp}</span>}
+                {renderEstadoValidacion('dni')}
               </div>
 
               <div className="campo-grupo">
@@ -402,19 +681,6 @@ function FormularioEmpleado({ modo, empleado, onGuardar, onCancelar }) {
                 />
                 {errores.domicilio_emp && <span className="mensaje-error">{errores.domicilio_emp}</span>}
               </div>
-              <div className="campo-grupo">
-                <label htmlFor="email">Email:</label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="usuario@email.com"
-                  className={errores.email ? 'error' : ''}
-                />
-                {errores.email && <span className="mensaje-error">{errores.email}</span>}
-              </div>
               
             </div>
 
@@ -429,9 +695,10 @@ function FormularioEmpleado({ modo, empleado, onGuardar, onCancelar }) {
                   value={formData.apellido_emp}
                   onChange={handleChange}
                   placeholder="Apellido completo"
-                  className={errores.apellido_emp ? 'error' : ''}
+                  className={errores.apellido_emp || erroresUnicos.nombreCompleto ? 'error' : ''}
                 />
                 {errores.apellido_emp && <span className="mensaje-error">{errores.apellido_emp}</span>}
+                {/* El mensaje de nombreCompleto se muestra en el campo nombre */}
               </div>
 
               <div className="campo-grupo">
@@ -443,9 +710,25 @@ function FormularioEmpleado({ modo, empleado, onGuardar, onCancelar }) {
                   value={formData.telefono_emp}
                   onChange={handleChange}
                   placeholder="Ej: +54 9 11 1234 5678"
-                  className={errores.telefono_emp ? 'error' : ''}
+                  className={errores.telefono_emp || erroresUnicos.telefono ? 'error' : ''}
                 />
                 {errores.telefono_emp && <span className="mensaje-error">{errores.telefono_emp}</span>}
+                {renderEstadoValidacion('telefono')}
+              </div>
+
+              <div className="campo-grupo">
+                <label htmlFor="email">Email:</label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="usuario@email.com"
+                  className={errores.email || erroresUnicos.email ? 'error' : ''}
+                />
+                {errores.email && <span className="mensaje-error">{errores.email}</span>}
+                {renderEstadoValidacion('email')}
               </div>
 
               {modo === 'crear' && (
@@ -518,29 +801,54 @@ function FormularioEmpleado({ modo, empleado, onGuardar, onCancelar }) {
             <button type="button" className="btn-cancelar" onClick={onCancelar}>
               <FaTimes /> Cancelar
             </button>
-            <button type="submit" className="btn-guardar">
-              <FaSave /> {textoBoton}
+            <button 
+              type="submit" 
+              className="btn-guardar"
+              disabled={validandoCampos || cargando || tieneErroresUnicos}
+            >
+              {validandoCampos ? (
+                <>
+                  <div className="loading-spinner"></div>
+                  Validando...
+                </>
+              ) : cargando ? (
+                <>
+                  <div className="loading-spinner"></div>
+                  Procesando...
+                </>
+              ) : (
+                <>
+                  <FaSave /> {textoBoton}
+                </>
+              )}
             </button>
           </div>
+
+          {/* Mensaje de advertencia si hay errores únicos */}
+          {/* Mensaje de advertencia si hay errores únicos (solo en creación) */}
+          {modo === 'crear' && tieneErroresUnicos && (
+            <div className="advertencia-campos-unicos">
+              ⚠️ Existen campos duplicados. Por favor, corrija los errores marcados en rojo antes de continuar.
+            </div>
+          )}
         </form>
       </div>
-
-      {/* Modal para cambiar contraseña */}
+      
+      {/* Modal de cambio de contraseña */}
       {mostrarModalPassword && (
         <div className="modal-overlay">
           <div className="modal-contenedor modal-password">
             <div className="modal-header">
               <h3>Cambiar Contraseña</h3>
+              <button 
+                className="btn-cerrar-modal"
+                onClick={() => setMostrarModalPassword(false)}
+              >
+                <FaClose />
+              </button>
             </div>
-
-            {erroresModal.general && (
-              <div className="mensaje-error-general">
-                {erroresModal.general}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmitPassword} className="modal-form">
-              {/* Contraseña Actual */}
+            
+            <form onSubmit={handleSubmitPassword} className="modal-body">
               <div className="campo-grupo">
                 <label htmlFor="passwordActual">Contraseña Actual:</label>
                 <div className="password-input-container">
@@ -551,9 +859,7 @@ function FormularioEmpleado({ modo, empleado, onGuardar, onCancelar }) {
                     value={passwordModalData.passwordActual}
                     onChange={handleChangeModal}
                     placeholder="Ingrese su contraseña actual"
-                    className={`campo-input ${erroresModal.passwordActual ? 'error' : ''} ${
-                      passwordActualCorrecta ? 'valido' : ''
-                    }`}
+                    className={erroresModal.passwordActual ? 'error' : ''}
                   />
                   <button
                     type="button"
@@ -563,24 +869,16 @@ function FormularioEmpleado({ modo, empleado, onGuardar, onCancelar }) {
                     {mostrarPasswordModal.passwordActual ? <FaEyeSlash /> : <FaEye />}
                   </button>
                 </div>
-                {verificandoPassword && (
-                  <div className="mensaje-validacion verificando">
-                    Verificando contraseña...
-                  </div>
+                {erroresModal.passwordActual && (
+                  <span className="mensaje-error">{erroresModal.passwordActual}</span>
                 )}
-                {passwordActualCorrecta !== null && !verificandoPassword && (
-                  <div className={`mensaje-validacion ${passwordActualCorrecta ? 'valido' : 'error'}`}>
-                    {passwordActualCorrecta ? (
-                      <><FaCheck /> Contraseña correcta</>
-                    ) : (
-                      <><FaClose /> Contraseña incorrecta</>
-                    )}
-                  </div>
+                {passwordModalData.passwordActual && passwordActualCorrecta !== null && (
+                  <span className={passwordActualCorrecta ? 'mensaje-exito' : 'mensaje-error'}>
+                    {passwordActualCorrecta ? '✅ Contraseña correcta' : '❌ Contraseña incorrecta'}
+                  </span>
                 )}
-                {erroresModal.passwordActual && <span className="mensaje-error">{erroresModal.passwordActual}</span>}
               </div>
 
-              {/* Nueva Contraseña */}
               <div className="campo-grupo">
                 <label htmlFor="nuevaPassword">Nueva Contraseña:</label>
                 <div className="password-input-container">
@@ -591,7 +889,7 @@ function FormularioEmpleado({ modo, empleado, onGuardar, onCancelar }) {
                     value={passwordModalData.nuevaPassword}
                     onChange={handleChangeModal}
                     placeholder="Ingrese la nueva contraseña"
-                    className={`campo-input ${erroresModal.nuevaPassword ? 'error' : ''}`}
+                    className={erroresModal.nuevaPassword ? 'error' : ''}
                   />
                   <button
                     type="button"
@@ -601,53 +899,37 @@ function FormularioEmpleado({ modo, empleado, onGuardar, onCancelar }) {
                     {mostrarPasswordModal.nuevaPassword ? <FaEyeSlash /> : <FaEye />}
                   </button>
                 </div>
+                {erroresModal.nuevaPassword && (
+                  <span className="mensaje-error">{erroresModal.nuevaPassword}</span>
+                )}
                 
-                {/* Indicadores de seguridad de contraseña */}
+                {/* Indicadores de validación de contraseña */}
                 {passwordModalData.nuevaPassword && (
-                  <div className="indicadores-seguridad">
-                    <div className="indicadores-columnas">
-                      <div className="columna-indicadores">
-                        <div className="requisito-contraseña">
-                          <span className={`indicador ${validacionPassword.longitud ? 'cumplido' : 'incumplido'}`}>
-                            {validacionPassword.longitud ? <FaCheck /> : <FaClose />}
-                          </span>
-                          Mínimo 8 caracteres
-                        </div>
-                        <div className="requisito-contraseña">
-                          <span className={`indicador ${validacionPassword.mayuscula ? 'cumplido' : 'incumplido'}`}>
-                            {validacionPassword.mayuscula ? <FaCheck /> : <FaClose />}
-                          </span>
-                          1 letra mayúscula
-                        </div>
-                        <div className="requisito-contraseña">
-                          <span className={`indicador ${validacionPassword.minuscula ? 'cumplido' : 'incumplido'}`}>
-                            {validacionPassword.minuscula ? <FaCheck /> : <FaClose />}
-                          </span>
-                          1 letra minúscula
-                        </div>
-                      </div>
-                      <div className="columna-indicadores">
-                        <div className="requisito-contraseña">
-                          <span className={`indicador ${validacionPassword.numero ? 'cumplido' : 'incumplido'}`}>
-                            {validacionPassword.numero ? <FaCheck /> : <FaClose />}
-                          </span>
-                          1 número
-                        </div>
-                        <div className="requisito-contraseña">
-                          <span className={`indicador ${validacionPassword.especial ? 'cumplido' : 'incumplido'}`}>
-                            {validacionPassword.especial ? <FaCheck /> : <FaClose />}
-                          </span>
-                          1 carácter especial
-                        </div>
-                      </div>
+                  <div className="indicadores-password">
+                    <div className={`indicador ${validacionPassword.longitud ? 'valido' : 'invalido'}`}>
+                      {validacionPassword.longitud ? <FaCheck /> : <FaClose />}
+                      Mínimo 8 caracteres
+                    </div>
+                    <div className={`indicador ${validacionPassword.mayuscula ? 'valido' : 'invalido'}`}>
+                      {validacionPassword.mayuscula ? <FaCheck /> : <FaClose />}
+                      Una mayúscula
+                    </div>
+                    <div className={`indicador ${validacionPassword.minuscula ? 'valido' : 'invalido'}`}>
+                      {validacionPassword.minuscula ? <FaCheck /> : <FaClose />}
+                      Una minúscula
+                    </div>
+                    <div className={`indicador ${validacionPassword.numero ? 'valido' : 'invalido'}`}>
+                      {validacionPassword.numero ? <FaCheck /> : <FaClose />}
+                      Un número
+                    </div>
+                    <div className={`indicador ${validacionPassword.especial ? 'valido' : 'invalido'}`}>
+                      {validacionPassword.especial ? <FaCheck /> : <FaClose />}
+                      Un carácter especial
                     </div>
                   </div>
                 )}
-                
-                {erroresModal.nuevaPassword && <span className="mensaje-error">{erroresModal.nuevaPassword}</span>}
               </div>
 
-              {/* Confirmar Nueva Contraseña */}
               <div className="campo-grupo">
                 <label htmlFor="confirmarNuevaPassword">Confirmar Nueva Contraseña:</label>
                 <div className="password-input-container">
@@ -658,9 +940,7 @@ function FormularioEmpleado({ modo, empleado, onGuardar, onCancelar }) {
                     value={passwordModalData.confirmarNuevaPassword}
                     onChange={handleChangeModal}
                     placeholder="Confirme la nueva contraseña"
-                    className={`campo-input ${erroresModal.confirmarNuevaPassword ? 'error' : ''} ${
-                      coincidePassword ? 'valido' : ''
-                    }`}
+                    className={erroresModal.confirmarNuevaPassword ? 'error' : ''}
                   />
                   <button
                     type="button"
@@ -670,61 +950,83 @@ function FormularioEmpleado({ modo, empleado, onGuardar, onCancelar }) {
                     {mostrarPasswordModal.confirmarNuevaPassword ? <FaEyeSlash /> : <FaEye />}
                   </button>
                 </div>
-                {coincidePassword !== null && (
-                  <div className={`mensaje-validacion ${coincidePassword ? 'valido' : 'error'}`}>
-                    {coincidePassword ? (
-                      <><FaCheck /> Las contraseñas coinciden</>
-                    ) : (
-                      <><FaClose /> Las contraseñas no coinciden</>
-                    )}
-                  </div>
+                {erroresModal.confirmarNuevaPassword && (
+                  <span className="mensaje-error">{erroresModal.confirmarNuevaPassword}</span>
                 )}
-                {erroresModal.confirmarNuevaPassword && <span className="mensaje-error">{erroresModal.confirmarNuevaPassword}</span>}
-              </div>
-
-              <div className="modal-acciones">
-                <button 
-                  type="button" 
-                  className="btn-cancelar"
-                  onClick={() => setMostrarModalPassword(false)}
-                  disabled={cargando}
-                >
-                  <FaTimes /> Cancelar
-                </button>
-                <button 
-                  type="submit" 
-                  className="btn-guardar"
-                  disabled={cargando}
-                >
-                  {cargando ? (
-                    <div className="loading-spinner"></div>
-                  ) : (
-                    <FaLock />
-                  )}
-                  {cargando ? 'Cambiando...' : 'Cambiar Contraseña'}
-                </button>
+                {passwordModalData.confirmarNuevaPassword && coincidePassword !== null && (
+                  <span className={coincidePassword ? 'mensaje-exito' : 'mensaje-error'}>
+                    {coincidePassword ? '✅ Las contraseñas coinciden' : '❌ Las contraseñas no coinciden'}
+                  </span>
+                )}
               </div>
             </form>
+            
+            <div className="modal-footer">
+              <button 
+                type="button" 
+                className="btn-cancelar"
+                onClick={() => setMostrarModalPassword(false)}
+              >
+                <FaTimes /> Cancelar
+              </button>
+              <button 
+                type="button" 
+                className="btn-guardar"
+                onClick={handleSubmitPassword}
+                disabled={cargando}
+              >
+                {cargando ? (
+                  <>
+                    <div className="loading-spinner"></div>
+                    Procesando...
+                  </>
+                ) : (
+                  <>
+                    <FaSave /> Cambiar Contraseña
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Modal de confirmación para cambiar contraseña */}
-      <ModalConfirmacion
-        mostrar={mostrarConfirmacion}
+      <ModalConfirmacionUniversal
+        mostrar={mostrarModalGuardar}
+        tipo="confirmar"
+        mensaje={mensajeModal}
+        onConfirmar={confirmarGuardarEmpleado}
+        onCancelar={() => setMostrarModalGuardar(false)}
+        datosAdicionales={formData}
+        mostrarResumen={true}
+        modo="empleado"
+      />
+
+      <ModalConfirmacionUniversal
+        mostrar={mostrarModalConfirmar}
         tipo="confirmar"
         mensaje="¿Está seguro que desea cambiar la contraseña?"
         onConfirmar={confirmarCambioPassword}
-        onCancelar={() => setMostrarConfirmacion(false)}
+        onCancelar={() => setMostrarModalConfirmar(false)}
+        modo="empleado"
       />
 
-      {/* Modal de éxito después del cambio de contraseña */}
-      <ModalConfirmacion
+      <ModalConfirmacionUniversal
         mostrar={mostrarModalExito}
         tipo="exito"
-        mensaje="¡Contraseña actualizada exitosamente!"
+        mensaje={mensajeModal}
         onConfirmar={() => setMostrarModalExito(false)}
         onCancelar={() => setMostrarModalExito(false)}
+        modo="empleado"
+      />
+
+      <ModalConfirmacionUniversal
+        mostrar={mostrarModalError}
+        tipo="error"
+        mensaje={mensajeModal}
+        onConfirmar={() => setMostrarModalError(false)}
+        onCancelar={() => setMostrarModalError(false)}
+        modo="empleado"
       />
     </div>
   );

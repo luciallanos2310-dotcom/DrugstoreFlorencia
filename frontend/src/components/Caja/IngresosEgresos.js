@@ -1,9 +1,5 @@
 import React, { useState } from 'react';
-<<<<<<< Updated upstream
 import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal';
-=======
-import ModalConfirmacion from '../Caja/ModalConfirmacion';
->>>>>>> Stashed changes
 import './IngresosEgresos.css';
 
 function IngresosEgresos({ cajaId, onRegistroAgregado }) {
@@ -196,56 +192,8 @@ function IngresosEgresos({ cajaId, onRegistroAgregado }) {
         </div>
       )}
 
-<<<<<<< Updated upstream
-      {/* Modal de Historial */}
-      {mostrarModalHistorial && (
-        <div className="modal-overlay" onClick={() => setMostrarModalHistorial(false)}>
-          <div className="modal-contenedor modal-historial" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>{tipoRegistro === 'ingreso' ? 'Historial de Ingresos' : 'Historial de Egresos'}</h3>
-            </div>
-            
-            <div className="modal-body">
-              <div className="historial-lista">
-                {historial.length > 0 ? (
-                  historial.map((movimiento) => (
-                    <div key={movimiento.id} className="historial-item">
-                      <div className="historial-info">
-                        <div className="historial-monto">
-                          ${parseFloat(movimiento.total_venta).toFixed(2)}
-                        </div>
-                        <div className="historial-descripcion">
-                          {movimiento.descripcion}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="sin-historial">
-                    No hay {tipoRegistro === 'ingreso' ? 'ingresos' : 'egresos'} registrados
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            <div className="modal-footer">
-              <button 
-                className="btn-cancelar" 
-                onClick={() => setMostrarModalHistorial(false)}
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Modal de Confirmación - VERSIÓN UNIVERSAL */}
       <ModalConfirmacionUniversal
-=======
-      {/* Modal de Confirmación */}
-      <ModalConfirmacion
->>>>>>> Stashed changes
         mostrar={mostrarModalConfirmar}
         tipo="confirmar"
         mensaje={`¿Está seguro que desea registrar este ${tipoRegistro === 'ingreso' ? 'INGRESO' : 'EGRESO'} por $${parseFloat(monto || 0).toFixed(2)}?`}

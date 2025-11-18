@@ -271,6 +271,49 @@ def empleado_detail(request, id):
     except Exception as e:
         return Response({'error': f'Error interno: {str(e)}'}, status=500)
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def verificar_campos_empleado(request):
+    """
+    Verificar si los campos únicos (DNI, teléfono, email, nombre completo) ya existen
+    """
+    try:
+        dni = request.GET.get('dni')
+        telefono = request.GET.get('telefono')
+        email = request.GET.get('email')
+        nombre = request.GET.get('nombre')
+        apellido = request.GET.get('apellido')
+        
+        errores = {}
+        
+        # Verificar DNI
+        if dni:
+            if Empleado.objects.filter(dni_emp=dni).exists():
+                errores['dni'] = 'Ya existe un empleado con este DNI'
+        
+        # Verificar teléfono
+        if telefono:
+            if Empleado.objects.filter(telefono_emp=telefono).exists():
+                errores['telefono'] = 'Ya existe un empleado con este teléfono'
+        
+        # Verificar email
+        if email:
+            if User.objects.filter(email=email).exists():
+                errores['email'] = 'Ya existe un empleado con este email'
+        
+        # Verificar nombre y apellido (combinación única)
+        if nombre and apellido:
+            if Empleado.objects.filter(
+                nombre_emp__iexact=nombre.strip(), 
+                apellido_emp__iexact=apellido.strip()
+            ).exists():
+                errores['nombreCompleto'] = 'Ya existe un empleado con este nombre y apellido'
+        
+        return Response({'errores': errores})
+        
+    except Exception as e:
+        return Response({'error': f'Error al verificar campos: {str(e)}'}, status=500)
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def verificar_password_actual(request):

@@ -276,124 +276,6 @@
   margin-bottom: 20px;
 }
 
-/* RESPONSIVE */
-@media (max-width: 768px) {
-  .empleados-header {
-    flex-direction: column;
-    gap: 15px;
-    align-items: stretch;
-  }
-  
-  .empleados-acciones {
-    justify-content: center;
-  }
-  
-  .lista-empleados {
-    grid-template-columns: 1fr;
-  }
-  
-  .info-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 5px;
-  }
-  
-  .info-item span {
-    text-align: left;
-  }
-}
-
-/* MODALES - Agrega esto al final de tu Empleados.css */
-/* ESTILOS PARA MODAL DE CONFIRMACIÓN */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-contenedor {
-  background: white;
-  padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-  max-width: 400px;
-  width: 90%;
-  text-align: center;
-}
-
-.modal-header h3 {
-  margin: 0 0 1rem 0;
-  color: #2c2c2c;
-  font-size: 1.3rem;
-  font-weight: 600;
-}
-
-.modal-body p {
-  margin: 0 0 1.5rem 0;
-  color: #666;
-  line-height: 1.5;
-}
-
-.modal-footer {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-}
-
-.btn-cancelar {
-  background: #aa0202;
-  color: white;
-  border: none;
-  padding: 0.6rem 1.2rem;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: background 0.2s ease;
-}
-
-.btn-confirmar {
-  background: #1fb8b8;
-  color: white;
-  border: none;
-  padding: 0.6rem 1.2rem;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: background 0.2s ease;
-}
-
-.btn-cancelar:hover {
-  background: #7f8c8d;
-}
-
-.btn-confirmar:hover {
-  background: #005f5f;
-}
-
-/* Estilos específicos para tipos de modal */
-.btn-eliminar {
-  background: #e74c3c;
-}
-
-
-.btn-confirmar.btn-exito {
-  background: #27ae60;
-}
-
-.btn-confirmar.btn-exito:hover {
-  background: #219a52;
-}
-
-/* src/components/Empleados/Empleados.css */
-/* ... (mantener todos los estilos existentes) ... */
-
 /* BUSCADOR */
 .buscador-empleados {
   margin-bottom: 20px;
@@ -521,4 +403,19 @@
   .empleados-acciones {
     justify-content: center;
   }
+  
+  .lista-empleados {
+    grid-template-columns: 1fr;
+  }
+  
+  .info-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  
+  .info-item span {
+    text-align: left;
+  }
 }
+

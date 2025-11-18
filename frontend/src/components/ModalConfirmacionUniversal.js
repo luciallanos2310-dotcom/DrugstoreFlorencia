@@ -35,8 +35,16 @@ function ModalConfirmacionUniversal({
         return 'Cancelar';
       
       case 'confirmar':
-        if (modo === 'compra') return modo === 'editar' ? 'Confirmar Edición' : 'Confirmar Compra';
+        if (modo === 'caja') return 'Confirmar Cierre de Caja';
+        if (modo === 'compra') return datosAdicionales?.modo === 'editar' ? 'Confirmar Edición' : 'Confirmar Compra';
         if (modo === 'venta') return 'Confirmar Venta';
+        if (modo === 'empleado') {
+          // ✅ DETECTAR SI ES EDICIÓN POR EL MENSAJE O DATOS
+          const esEdicion = mensaje?.includes('actualizar') || 
+                           datosAdicionales?.modo === 'editar' ||
+                           datosAdicionales?.id !== undefined;
+          return esEdicion ? 'Confirmar Edición' : 'Confirmar Creación';
+        }
         if (modo === 'caja') return 'Confirmar Apertura';
         return 'Confirmar Acción';
       
@@ -53,12 +61,21 @@ function ModalConfirmacionUniversal({
     if (textoConfirmar) return textoConfirmar;
     
     switch(tipo) {
-      case 'eliminar': return 'Eliminar';
+      case 'eliminar': 
+        if (modo === 'empleado') return 'Eliminar Empleado';
+        return 'Eliminar';
       case 'inhabilitar': return 'Inhabilitar';
       case 'habilitar': return 'Habilitar';
       case 'cancelar': return 'Sí, Cancelar';
       case 'confirmar': 
-        if (modo === 'compra') return modo === 'editar' ? 'Actualizar' : 'Confirmar';
+        if (modo === 'compra') return datosAdicionales?.modo === 'editar' ? 'Actualizar' : 'Confirmar';
+        if (modo === 'empleado') {
+          // ✅ DETECTAR SI ES EDICIÓN POR EL MENSAJE O DATOS
+          const esEdicion = mensaje?.includes('actualizar') || 
+                           datosAdicionales?.modo === 'editar' ||
+                           datosAdicionales?.id !== undefined;
+          return esEdicion ? 'Actualizar Empleado' : 'Crear Empleado';
+        }
         return 'Confirmar';
       case 'exito': return 'Aceptar';
       case 'error': return 'Aceptar';
@@ -104,15 +121,33 @@ function ModalConfirmacionUniversal({
 
       case 'caja':
         if (tipo === 'confirmar' && datosAdicionales) {
-          return (
-            <div className="resumen-apertura">
-              <p><strong>Empleado:</strong> {datosAdicionales.empleadoNombre}</p>
-              <p><strong>Fecha:</strong> {datosAdicionales.fecha}</p>
-              <p><strong>Hora:</strong> {datosAdicionales.hora}</p>
-              <p><strong>Turno:</strong> {datosAdicionales.turnoNombre}</p>
-              <p><strong>Monto Inicial:</strong> ${parseFloat(datosAdicionales.montoInicial || 0).toFixed(2)}</p>
-            </div>
-          );
+          // ✅ DIFERENCIAR ENTRE APERTURA Y CIERRE
+          if (datosAdicionales.montoContado !== undefined) {
+            // ES UN CIERRE
+            return (
+              <div className="resumen-cierre">
+                <h4>Resumen del Cierre:</h4>
+                <p><strong>Total Teórico:</strong> ${datosAdicionales.totalTeorico?.toFixed(2)}</p>
+                <p><strong>Monto Contado:</strong> ${datosAdicionales.montoContado?.toFixed(2)}</p>
+                <p><strong>Diferencia:</strong> 
+                  <span className={datosAdicionales.diferencia >= 0 ? 'diferencia-positiva' : 'diferencia-negativa'}>
+                    ${datosAdicionales.diferencia?.toFixed(2)}
+                  </span>
+                </p>
+              </div>
+            );
+          } else {
+            // ES UNA APERTURA
+            return (
+              <div className="resumen-apertura">
+                <p><strong>Empleado:</strong> {datosAdicionales.empleadoNombre}</p>
+                <p><strong>Fecha:</strong> {datosAdicionales.fecha}</p>
+                <p><strong>Hora:</strong> {datosAdicionales.hora}</p>
+                <p><strong>Turno:</strong> {datosAdicionales.turnoNombre}</p>
+                <p><strong>Monto Inicial:</strong> ${parseFloat(datosAdicionales.montoInicial || 0).toFixed(2)}</p>
+              </div>
+            );
+          }
         }
         if (tipo === 'exito' && datosAdicionales) {
           return (
@@ -120,6 +155,22 @@ function ModalConfirmacionUniversal({
               <p><strong>Empleado:</strong> {datosAdicionales.empleadoNombre}</p>
               <p><strong>Turno:</strong> {datosAdicionales.turnoNombre}</p>
               <p>Redirigiendo a ventas...</p>
+            </div>
+          );
+        }
+        return null;
+
+      // ✅ AGREGADO: Caso para empleados
+      case 'empleado':
+        if (tipo === 'confirmar' && datosAdicionales) {
+          return (
+            <div className="resumen-empleado">
+              <h4>Resumen del Empleado:</h4>
+              <p><strong>Nombre:</strong> {datosAdicionales.nombre_emp} {datosAdicionales.apellido_emp}</p>
+              <p><strong>DNI:</strong> {datosAdicionales.dni_emp}</p>
+              <p><strong>Email:</strong> {datosAdicionales.email}</p>
+              <p><strong>Puesto:</strong> {datosAdicionales.tipo_usuario === 'jefa' ? 'Jefa/Encargada' : 'Empleada'}</p>
+              <p><strong>Teléfono:</strong> {datosAdicionales.telefono_emp || 'No especificado'}</p>
             </div>
           );
         }

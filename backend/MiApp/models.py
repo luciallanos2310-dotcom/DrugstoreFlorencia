@@ -9,7 +9,7 @@ class Empleado(models.Model):
     nombre_emp = models.CharField(max_length=50, blank=True, null=True)
     apellido_emp = models.CharField(max_length=50, blank=True, null=True)
     dni_emp = models.CharField(max_length=15, unique=True, blank=True, null=True)
-    telefono_emp = models.CharField(max_length=50, blank=True, null=True)
+    telefono_emp = models.CharField(max_length=50, unique=True, blank=True, null=True)  # ✅ ÚNICO
     domicilio_emp = models.TextField(blank=True, null=True)
     tipo_usuario = models.CharField(max_length=10, choices=TIPO_USUARIO_CHOICES, default='empleada')
     fecha_creacion = models.DateTimeField(auto_now_add=True)
@@ -17,6 +17,15 @@ class Empleado(models.Model):
 
     def __str__(self):
         return f"{self.nombre_emp} {self.apellido_emp}" if self.nombre_emp else f"Empleado {self.id}"
+
+    class Meta:
+        # ✅ Restricción única para nombre + apellido
+        constraints = [
+            models.UniqueConstraint(
+                fields=['nombre_emp', 'apellido_emp'],
+                name='unique_nombre_apellido_empleado'
+            )
+        ]
 
 # En models.py - Actualizar el modelo Caja
 class Caja(models.Model):
