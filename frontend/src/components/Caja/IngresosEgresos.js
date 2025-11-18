@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import ModalConfirmacion from './ModalConfirmacion';
+import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal';
 import './IngresosEgresos.css';
 
 function IngresosEgresos({ cajaId, onRegistroAgregado }) {
@@ -250,31 +250,34 @@ function IngresosEgresos({ cajaId, onRegistroAgregado }) {
         </div>
       )}
 
-      {/* Modal de Confirmación */}
-      <ModalConfirmacion
+      {/* Modal de Confirmación - VERSIÓN UNIVERSAL */}
+      <ModalConfirmacionUniversal
         mostrar={mostrarModalConfirmar}
         tipo="confirmar"
         mensaje={`¿Está seguro que desea registrar este ${tipoRegistro === 'ingreso' ? 'INGRESO' : 'EGRESO'} por $${parseFloat(monto || 0).toFixed(2)}?`}
         onConfirmar={handleConfirmarRegistro}
         onCancelar={() => setMostrarModalConfirmar(false)}
+        modo="caja"
       />
 
-      {/* Modal de Éxito */}
-      <ModalConfirmacion
+      {/* Modal de Éxito - VERSIÓN UNIVERSAL */}
+      <ModalConfirmacionUniversal
         mostrar={mostrarModalExito}
         tipo="exito"
         mensaje={`${tipoRegistro === 'ingreso' ? 'INGRESO' : 'EGRESO'} de $${parseFloat(monto || 0).toFixed(2)} registrado exitosamente`}
         onConfirmar={() => setMostrarModalExito(false)}
         onCancelar={() => setMostrarModalExito(false)}
+        modo="caja"
       />
 
-      {/* Modal de Error */}
-      <ModalConfirmacion
+      {/* Modal de Error - VERSIÓN UNIVERSAL */}
+      <ModalConfirmacionUniversal
         mostrar={mostrarModalError}
         tipo="error"
         mensaje={mensajeError}
         onConfirmar={() => setMostrarModalError(false)}
         onCancelar={() => setMostrarModalError(false)}
+        modo="caja"
       />
     </>
   );

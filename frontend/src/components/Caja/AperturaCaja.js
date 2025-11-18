@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaCashRegister, FaCalendarAlt, FaUser, FaCheck, FaTimes, FaClock, FaMoneyBillWave, FaStickyNote, FaChartLine, FaShoppingCart, FaExchangeAlt, FaMoneyBill, FaReceipt, FaList, FaBox, FaCreditCard, FaMoneyCheckAlt, FaMobileAlt } from 'react-icons/fa';
 import './AperturaCaja.css';
-import ModalConfirmacion from './ModalConfirmacion';
+import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal';
 
 function AperturaCaja({ onAperturaConfirmada, onCancelar, cajaAbierta, datosCaja }) {
   const [datosApertura, setDatosApertura] = useState({
@@ -894,24 +894,27 @@ const DetalleVentasDelDia = () => {
         </form>
       </div>
 
-      {/* Modal de confirmación */}
-      <ModalConfirmacion
+      {/* Modal de confirmación - VERSIÓN UNIVERSAL */}
+      <ModalConfirmacionUniversal
         mostrar={mostrarConfirmacion}
         tipo="confirmar"
         mensaje="¿Está seguro que desea confirmar la apertura de caja?"
         onCancelar={() => setMostrarConfirmacion(false)}
         onConfirmar={handleConfirmacionFinal}
-        datosApertura={datosModal}
+        datosAdicionales={datosModal}
+        mostrarResumen={true}
+        modo="caja"
       />
 
-      {/* Modal de éxito */}
-      <ModalConfirmacion
+      {/* Modal de éxito - VERSIÓN UNIVERSAL */}
+      <ModalConfirmacionUniversal
         mostrar={mostrarExito}
         tipo="exito"
         mensaje="¡Caja abierta correctamente!"
         onCancelar={() => setMostrarExito(false)}
         onConfirmar={() => setMostrarExito(false)}
-        datosApertura={datosModal}
+        datosAdicionales={datosModal}
+        modo="caja"
       />
     </div>
   );

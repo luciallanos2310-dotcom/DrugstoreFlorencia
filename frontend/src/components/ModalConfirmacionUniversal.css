@@ -1,0 +1,288 @@
+/* ESTILOS PARA MODAL DE CONFIRMACIÓN UNIVERSAL */
+.modal-overlay-universal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-contenedor-universal {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header-universal h3 {
+  margin: 0 0 1rem 0;
+  color: #2c2c2c;
+  font-size: 1.3rem;
+  font-weight: 600;
+  text-align: center;
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 0.5rem;
+}
+
+.modal-body-universal p {
+  margin: 0 0 1.5rem 0;
+  color: #666;
+  line-height: 1.5;
+  text-align: center;
+  font-size: 1rem;
+}
+
+.modal-footer-universal {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+/* BOTONES BASE */
+.btn-cancelar-universal {
+  background: #95a5a6;
+  color: white;
+  border: none;
+  padding: 0.7rem 1.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  min-width: 100px;
+}
+
+.btn-confirmar-universal {
+  background: #007e7e;
+  color: white;
+  border: none;
+  padding: 0.7rem 1.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  min-width: 100px;
+}
+
+.btn-cancelar-universal:hover {
+  background: #7f8c8d;
+  transform: translateY(-1px);
+}
+
+.btn-confirmar-universal:hover {
+  background: #005f5f;
+  transform: translateY(-1px);
+}
+
+/* ESTILOS ESPECÍFICOS PARA TIPOS DE MODAL */
+.btn-confirmar-universal.btn-eliminar-universal {
+  background: #e74c3c;
+}
+
+.btn-confirmar-universal.btn-eliminar-universal:hover {
+  background: #c0392b;
+}
+
+.btn-confirmar-universal.btn-inhabilitar-universal {
+  background: #e67e22;
+}
+
+.btn-confirmar-universal.btn-inhabilitar-universal:hover {
+  background: #d35400;
+}
+
+.btn-confirmar-universal.btn-habilitar-universal {
+  background: #27ae60;
+}
+
+.btn-confirmar-universal.btn-habilitar-universal:hover {
+  background: #219a52;
+}
+
+.btn-confirmar-universal.btn-exito-universal {
+  background: #27ae60;
+}
+
+.btn-confirmar-universal.btn-exito-universal:hover {
+  background: #219a52;
+}
+
+.btn-confirmar-universal.btn-error-universal {
+  background: #e74c3c;
+}
+
+.btn-confirmar-universal.btn-error-universal:hover {
+  background: #c0392b;
+}
+
+.btn-confirmar-universal.btn-advertencia-universal {
+  background: #f39c12;
+}
+
+.btn-confirmar-universal.btn-advertencia-universal:hover {
+  background: #e67e22;
+}
+
+.btn-confirmar-universal.btn-info-universal {
+  background: #3498db;
+}
+
+.btn-confirmar-universal.btn-info-universal:hover {
+  background: #2980b9;
+}
+
+/* ESTILOS PARA RESUMENES */
+.resumen-venta-modal {
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
+  text-align: left;
+}
+
+.resumen-venta-modal h4 {
+  margin: 0 0 0.8rem 0;
+  color: #2c3e50;
+  font-size: 1rem;
+  border-bottom: 1px solid #dee2e6;
+  padding-bottom: 0.5rem;
+}
+
+.resumen-venta-modal p {
+  margin: 0.3rem 0;
+  color: #495057;
+  font-size: 0.9rem;
+  text-align: left;
+}
+
+.resumen-venta-modal strong {
+  color: #2c3e50;
+}
+
+.resumen-apertura {
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
+  text-align: left;
+}
+
+.resumen-apertura p {
+  margin: 0.3rem 0;
+  color: #495057;
+  font-size: 0.9rem;
+  text-align: left;
+}
+
+.resumen-apertura strong {
+  color: #2c3e50;
+}
+
+/* ESTILOS PARA BOTONES DESHABILITADOS */
+.btn-cancelar-universal:disabled,
+.btn-confirmar-universal:disabled {
+  background: #a0a0a0;
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}
+
+.btn-cancelar-universal:disabled:hover,
+.btn-confirmar-universal:disabled:hover {
+  background: #a0a0a0;
+  transform: none;
+}
+
+/* ANIMACIONES */
+.modal-contenedor-universal {
+  animation: modalAppear 0.3s ease-out;
+}
+
+@keyframes modalAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .modal-contenedor-universal {
+    padding: 1.5rem;
+    margin: 1rem;
+    width: calc(100% - 2rem);
+  }
+  
+  .modal-footer-universal {
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+  
+  .btn-cancelar-universal,
+  .btn-confirmar-universal {
+    width: 100%;
+    min-width: auto;
+  }
+  
+  .modal-header-universal h3 {
+    font-size: 1.2rem;
+  }
+  
+  .modal-body-universal p {
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-contenedor-universal {
+    padding: 1rem;
+  }
+  
+  .modal-header-universal h3 {
+    font-size: 1.1rem;
+  }
+  
+  .resumen-venta-modal,
+  .resumen-apertura {
+    padding: 0.8rem;
+  }
+  
+  .resumen-venta-modal p,
+  .resumen-apertura p {
+    font-size: 0.85rem;
+  }
+}
+
+/* ESTILOS PARA SCROLL EN MODALES CON CONTENIDO LARGO */
+.modal-contenedor-universal::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-contenedor-universal::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.modal-contenedor-universal::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.modal-contenedor-universal::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}

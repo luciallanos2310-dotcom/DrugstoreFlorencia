@@ -10,15 +10,16 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
     telefono_prov: '',
     correo_prov: '',
     direccion_prov: '',
-    observaciones: ''
+    descripcion: '',
+    dni_proveedor: ''
   });
 
   const [mostrarModal, setMostrarModal] = useState(false);
   const [errores, setErrores] = useState({});
   const [guardando, setGuardando] = useState(false);
   const [mostrarModalExito, setMostrarModalExito] = useState(false);
+  const [proveedoresExistentes, setProveedoresExistentes] = useState([]);
 
-  // Lista de rubros predefinidos
   const rubros = [
     'Bebidas',
     'Lácteos',
@@ -35,31 +36,99 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
     'Otros'
   ];
 
+  // Cargar proveedores existentes para validaciones
+  useEffect(() => {
+    cargarProveedoresExistentes();
+  }, []);
+
   useEffect(() => {
     if (modo === 'editar' && proveedorEditar) {
+      console.log('Proveedor a editar:', proveedorEditar);
       setForm({
         nombre_prov: proveedorEditar.nombre_prov || '',
         tipo_prov: proveedorEditar.tipo_prov || '',
         telefono_prov: proveedorEditar.telefono_prov || '',
         correo_prov: proveedorEditar.correo_prov || '',
         direccion_prov: proveedorEditar.direccion_prov || '',
-        observaciones: proveedorEditar.observaciones || ''
+        descripcion: proveedorEditar.descripcion || '',
+        dni_proveedor: proveedorEditar.dni_proveedor || ''
+      });
+    } else {
+      // ✅ LIMPIAR FORMULARIO EN MODO CREAR
+      setForm({
+        nombre_prov: '',
+        tipo_prov: '',
+        telefono_prov: '',
+        correo_prov: '',
+        direccion_prov: '',
+        descripcion: '',
+        dni_proveedor: ''
       });
     }
   }, [modo, proveedorEditar]);
 
+  const cargarProveedoresExistentes = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get('http://localhost:8000/api/proveedores/', {
+        headers: { Authorization: `Token ${token}` }
+      });
+      console.log('Proveedores existentes cargados:', res.data);
+      setProveedoresExistentes(res.data);
+    } catch (error) {
+      console.error('Error al cargar proveedores existentes', error);
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm({ ...form, [name]: value });
+    setForm(prev => ({ ...prev, [name]: value }));
     
+    // Limpiar error del campo cuando el usuario empiece a escribir
     if (errores[name]) {
       setErrores(prev => ({ ...prev, [name]: '' }));
     }
   };
 
+  // ✅ FUNCIÓN MEJORADA: Validar duplicados en tiempo real
+  const validarDuplicadosEnTiempoReal = (campo, valor) => {
+    if (!valor.trim()) return null;
+
+    const otrosProveedores = proveedoresExistentes.filter(p => 
+      modo === 'editar' ? p.id !== proveedorEditar?.id : true
+    );
+
+    const campoMap = {
+      nombre_prov: { campo: 'nombre_prov', mensaje: 'nombre' },
+      dni_proveedor: { campo: 'dni_proveedor', mensaje: 'DNI' },
+      telefono_prov: { campo: 'telefono_prov', mensaje: 'teléfono' },
+      correo_prov: { campo: 'correo_prov', mensaje: 'email' },
+      direccion_prov: { campo: 'direccion_prov', mensaje: 'dirección' }
+    };
+
+    const config = campoMap[campo];
+    if (!config) return null;
+
+    const existente = otrosProveedores.find(p => {
+      const valorExistente = p[config.campo];
+      if (!valorExistente) return false;
+      
+      // Comparación case-insensitive para texto
+      if (typeof valorExistente === 'string' && typeof valor === 'string') {
+        return valorExistente.toLowerCase().trim() === valor.toLowerCase().trim();
+      }
+      // Comparación exacta para números
+      return valorExistente.trim() === valor.trim();
+    });
+
+    return existente ? `Ya existe un proveedor con este ${config.mensaje}` : null;
+  };
+
+  // ✅ VALIDACIÓN COMPLETA DEL FORMULARIO
   const validarFormulario = () => {
     const nuevosErrores = {};
 
+    // Validaciones básicas de requeridos
     if (!form.nombre_prov.trim()) {
       nuevosErrores.nombre_prov = 'El nombre es obligatorio';
     }
@@ -68,22 +137,70 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
       nuevosErrores.tipo_prov = 'El rubro es obligatorio';
     }
 
-    // Validar teléfono (solo números y espacios)
+    // Validaciones de formato
     if (form.telefono_prov && !/^[\d\s\+\(\)\-]*$/.test(form.telefono_prov)) {
       nuevosErrores.telefono_prov = 'El teléfono solo puede contener números, espacios y los caracteres + - ( )';
     }
 
-    // Validar email
     if (form.correo_prov && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo_prov)) {
       nuevosErrores.correo_prov = 'El email no es válido';
     }
+
+    if (form.dni_proveedor && !/^\d*$/.test(form.dni_proveedor)) {
+      nuevosErrores.dni_proveedor = 'El DNI solo puede contener números';
+    }
+
+    // ✅ VALIDACIONES DE DUPLICADOS MEJORADAS
+    const camposParaValidar = [
+      'nombre_prov', 
+      'dni_proveedor', 
+      'telefono_prov', 
+      'correo_prov', 
+      'direccion_prov'
+    ];
+
+    camposParaValidar.forEach(campo => {
+      if (form[campo] && form[campo].trim()) {
+        const errorDuplicado = validarDuplicadosEnTiempoReal(campo, form[campo]);
+        if (errorDuplicado) {
+          nuevosErrores[campo] = errorDuplicado;
+        }
+      }
+    });
 
     setErrores(nuevosErrores);
     return Object.keys(nuevosErrores).length === 0;
   };
 
+  // ✅ FUNCIÓN PARA VERIFICAR SI HAY CAMBIOS
+  const hayCambios = () => {
+    if (modo === 'crear') return true;
+    
+    if (!proveedorEditar) return true;
+    
+    const original = {
+      nombre_prov: proveedorEditar.nombre_prov || '',
+      tipo_prov: proveedorEditar.tipo_prov || '',
+      telefono_prov: proveedorEditar.telefono_prov || '',
+      correo_prov: proveedorEditar.correo_prov || '',
+      direccion_prov: proveedorEditar.direccion_prov || '',
+      descripcion: proveedorEditar.descripcion || '',
+      dni_proveedor: proveedorEditar.dni_proveedor || ''
+    };
+
+    return JSON.stringify(original) !== JSON.stringify(form);
+  };
+
   const handleGuardar = async () => {
+    // Verificar si hay cambios en modo edición
+    if (modo === 'editar' && !hayCambios()) {
+      alert('No se detectaron cambios para guardar');
+      return;
+    }
+
     if (!validarFormulario()) {
+      const mensajeError = Object.values(errores).join('\n• ');
+      alert(`❌ Errores en el formulario:\n\n• ${mensajeError}`);
       return;
     }
 
@@ -98,10 +215,11 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
         telefono_prov: form.telefono_prov.trim() || null,
         correo_prov: form.correo_prov.trim() || null,
         direccion_prov: form.direccion_prov.trim() || null,
-        observaciones: form.observaciones.trim() || null
+        descripcion: form.descripcion.trim() || null,
+        dni_proveedor: form.dni_proveedor.trim() || null
       };
 
-      console.log('Enviando datos:', datosEnviar); // Para debug
+      console.log('Enviando datos:', datosEnviar);
 
       if (modo === 'crear') {
         await axios.post('http://localhost:8000/api/proveedores/', datosEnviar, {
@@ -125,28 +243,43 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
     } catch (error) {
       console.error('Error al guardar proveedor:', error);
       
-      // Manejar errores del servidor
+      // Manejar errores del servidor de forma más robusta
       if (error.response?.data) {
         const erroresServidor = error.response.data;
+        console.log('Errores del servidor:', erroresServidor);
+        
         const erroresTraducidos = {};
         
-        if (erroresServidor.nombre_prov) {
-          if (erroresServidor.nombre_prov.includes('already exists')) {
-            erroresTraducidos.nombre_prov = 'Ya existe un proveedor con este nombre';
-          } else {
-            erroresTraducidos.nombre_prov = 'Error en el nombre del proveedor';
-          }
-        }
-        
-        if (erroresServidor.telefono_prov) {
-          erroresTraducidos.telefono_prov = 'Error en el formato del teléfono';
-        }
-        
-        if (erroresServidor.correo_prov) {
-          if (erroresServidor.correo_prov.includes('already exists')) {
-            erroresTraducidos.correo_prov = 'Ya existe un proveedor con este email';
-          } else {
-            erroresTraducidos.correo_prov = 'Error en el formato del email';
+        // Mapeo completo de errores del servidor
+        const mapeoErrores = {
+          'nombre_prov': 'nombre del proveedor',
+          'telefono_prov': 'teléfono',
+          'correo_prov': 'email', 
+          'dni_proveedor': 'DNI',
+          'direccion_prov': 'dirección'
+        };
+
+        for (const [campo, mensaje] of Object.entries(mapeoErrores)) {
+          if (erroresServidor[campo]) {
+            const errorArray = Array.isArray(erroresServidor[campo]) 
+              ? erroresServidor[campo] 
+              : [erroresServidor[campo]];
+            
+            for (const errorMsg of errorArray) {
+              if (typeof errorMsg === 'string') {
+                if (errorMsg.includes('already exists') || errorMsg.includes('unique')) {
+                  erroresTraducidos[campo] = `Ya existe un proveedor con este ${mensaje}`;
+                  break;
+                } else if (errorMsg.includes('invalid') || errorMsg.includes('Enter a valid')) {
+                  erroresTraducidos[campo] = `Formato inválido para el ${mensaje}`;
+                  break;
+                }
+              }
+            }
+            
+            if (!erroresTraducidos[campo]) {
+              erroresTraducidos[campo] = `Error en el ${mensaje}: ${errorArray[0]}`;
+            }
           }
         }
         
@@ -154,12 +287,13 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
         
         // Mostrar alerta con el error
         if (Object.keys(erroresTraducidos).length > 0) {
-          alert('Error al guardar: ' + Object.values(erroresTraducidos).join(', '));
+          const mensajeError = Object.values(erroresTraducidos).join('\n• ');
+          alert(`❌ Error del servidor:\n\n• ${mensajeError}`);
         } else {
-          alert('Error al guardar el proveedor: ' + JSON.stringify(erroresServidor));
+          alert('❌ Error al guardar el proveedor. Por favor, verifique los datos.');
         }
       } else {
-        alert('Error de conexión al guardar el proveedor');
+        alert('❌ Error de conexión al guardar el proveedor');
       }
     } finally {
       setGuardando(false);
@@ -172,13 +306,48 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
     onGuardado();
   };
 
+  // ✅ VERIFICACIÓN MEJORADA: Solo verificar errores de campos con valor
+  const hayErroresVisibles = () => {
+  return Object.keys(errores).some(key => {
+    // Solo considerar errores que realmente existen en el objeto de errores
+    return errores[key] && errores[key].trim() !== '';
+  });
+};
+
+  const camposRequeridosLlenos = form.nombre_prov.trim() && form.tipo_prov.trim();
+  const puedeGuardar = camposRequeridosLlenos && !hayErroresVisibles() && (modo === 'crear' || hayCambios());
+
   return (
     <div className="formulario-container">
       <h2>{modo === 'crear' ? 'Agregar Proveedor' : 'Editar Proveedor'}</h2>
       <p>Complete los siguientes datos para {modo === 'crear' ? 'registrar un proveedor nuevo' : 'editar el proveedor seleccionado'}.</p>
 
+      <div className="alertas-validacion">
+        <p><strong>⚠️ Importante:</strong> Los campos marcados con * son obligatorios.</p>
+      </div>
+
       <form className="formulario-proveedor" onSubmit={(e) => e.preventDefault()}>
         <div className="form-grid">
+          {/* Campo DNI */}
+          <div className="campo-form">
+            <label>DNI Proveedor</label>
+            <input 
+              name="dni_proveedor" 
+              placeholder="Ej: 12345678" 
+              value={form.dni_proveedor} 
+              onChange={handleChange}
+              className={errores.dni_proveedor ? 'error' : ''}
+              maxLength="20"
+              onBlur={() => {
+                if (form.dni_proveedor.trim()) {
+                  const error = validarDuplicadosEnTiempoReal('dni_proveedor', form.dni_proveedor);
+                  if (error) setErrores(prev => ({ ...prev, dni_proveedor: error }));
+                }
+              }}
+            />
+            {errores.dni_proveedor && <span className="mensaje-error">{errores.dni_proveedor}</span>}
+          </div>
+
           <div className="campo-form">
             <label>Nombre del proveedor o empresa *</label>
             <input 
@@ -187,6 +356,12 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
               value={form.nombre_prov} 
               onChange={handleChange}
               className={errores.nombre_prov ? 'error' : ''}
+              onBlur={() => {
+                if (form.nombre_prov.trim()) {
+                  const error = validarDuplicadosEnTiempoReal('nombre_prov', form.nombre_prov);
+                  if (error) setErrores(prev => ({ ...prev, nombre_prov: error }));
+                }
+              }}
             />
             {errores.nombre_prov && <span className="mensaje-error">{errores.nombre_prov}</span>}
           </div>
@@ -216,6 +391,12 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
               value={form.telefono_prov} 
               onChange={handleChange}
               className={errores.telefono_prov ? 'error' : ''}
+              onBlur={() => {
+                if (form.telefono_prov.trim()) {
+                  const error = validarDuplicadosEnTiempoReal('telefono_prov', form.telefono_prov);
+                  if (error) setErrores(prev => ({ ...prev, telefono_prov: error }));
+                }
+              }}
             />
             {errores.telefono_prov && <span className="mensaje-error">{errores.telefono_prov}</span>}
           </div>
@@ -229,6 +410,12 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
               value={form.correo_prov} 
               onChange={handleChange}
               className={errores.correo_prov ? 'error' : ''}
+              onBlur={() => {
+                if (form.correo_prov.trim()) {
+                  const error = validarDuplicadosEnTiempoReal('correo_prov', form.correo_prov);
+                  if (error) setErrores(prev => ({ ...prev, correo_prov: error }));
+                }
+              }}
             />
             {errores.correo_prov && <span className="mensaje-error">{errores.correo_prov}</span>}
           </div>
@@ -241,15 +428,23 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
             placeholder="Calle, número, ciudad" 
             value={form.direccion_prov} 
             onChange={handleChange}
+            className={errores.direccion_prov ? 'error' : ''}
+            onBlur={() => {
+              if (form.direccion_prov.trim()) {
+                const error = validarDuplicadosEnTiempoReal('direccion_prov', form.direccion_prov);
+                if (error) setErrores(prev => ({ ...prev, direccion_prov: error }));
+              }
+            }}
           />
+          {errores.direccion_prov && <span className="mensaje-error">{errores.direccion_prov}</span>}
         </div>
 
         <div className="campo-form campo-completo">
           <label>Observaciones</label>
           <textarea 
-            name="observaciones" 
+            name="descripcion" 
             placeholder="Información adicional sobre el proveedor..." 
-            value={form.observaciones} 
+            value={form.descripcion} 
             onChange={handleChange}
             rows="3"
           ></textarea>
@@ -260,7 +455,7 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
             type="button" 
             className="btn-guardar" 
             onClick={() => setMostrarModal(true)}
-            disabled={guardando}
+            disabled={guardando || !puedeGuardar}
           >
             {guardando ? 'Guardando...' : (modo === 'crear' ? 'Agregar Proveedor' : 'Guardar Cambios')}
           </button>

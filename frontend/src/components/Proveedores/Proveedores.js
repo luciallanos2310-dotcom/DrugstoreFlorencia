@@ -4,7 +4,7 @@ import './Proveedores.css';
 import ModalConfirmacion from './ModalConfirmacion';
 import FormularioProveedor from './FormularioProveedor';
 import { FaEdit, FaEye, FaList, FaArrowLeft, FaTimes, FaPhone, FaEnvelope, FaStickyNote, FaMapMarkerAlt, FaIdCard, FaUser, FaCheck } from 'react-icons/fa';
-import { BsBan } from 'react-icons/bs'; // ✅ NUEVO ICONO
+import { BsBan } from 'react-icons/bs';
 
 function Proveedores({ esJefa = true, modoLectura = false }) {
   const [proveedores, setProveedores] = useState([]);
@@ -13,7 +13,7 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
   const [proveedorEditar, setProveedorEditar] = useState(null);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [proveedorAInhabilitar, setProveedorAInhabilitar] = useState(null);
-  const [accionModal, setAccionModal] = useState(''); // 'inhabilitar' o 'habilitar'
+  const [accionModal, setAccionModal] = useState('');
   const [busqueda, setBusqueda] = useState('');
   const [filtroRubro, setFiltroRubro] = useState('');
   const [loading, setLoading] = useState(false);
@@ -22,7 +22,6 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
   const [mostrarTodos, setMostrarTodos] = useState(false);
   const [proveedorDetalles, setProveedorDetalles] = useState(null);
 
-  // Lista de rubros para el filtro
   const rubros = [
     'Bebidas',
     'Lácteos', 
@@ -39,7 +38,6 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
     'Otros'
   ];
 
-  // Cargar todos los proveedores al inicio
   useEffect(() => {
     cargarTodosProveedores();
   }, []);
@@ -51,7 +49,7 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
         headers: { Authorization: `Token ${token}` }
       });
       
-      console.log('Proveedores cargados:', res.data); // Para debug
+      console.log('Proveedores cargados:', res.data);
       setTodosProveedores(res.data);
       setProveedores([]);
     } catch (error) {
@@ -59,7 +57,6 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
     }
   };
 
-  // Filtrar proveedores en el frontend
   const filtrarProveedores = () => {
     if (busqueda === '' && filtroRubro === '') {
       setProveedores([]);
@@ -70,7 +67,6 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
 
     let filtrados = [...todosProveedores];
 
-    // FILTRO POR RUBRO (EXACTO)
     if (filtroRubro.trim()) {
       filtrados = filtrados.filter(proveedor => 
         proveedor.tipo_prov && 
@@ -78,7 +74,6 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
       );
     }
 
-    // BÚSQUEDA POR INICIO DEL NOMBRE (SOLO INICIO)
     if (busqueda.trim()) {
       filtrados = filtrados.filter(proveedor =>
         proveedor.nombre_prov && 
@@ -91,7 +86,6 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
     setMostrarTodos(false);
   };
 
-  // Mostrar todos los proveedores
   const mostrarTodosProveedores = () => {
     setProveedores(todosProveedores);
     setHaBuscado(true);
@@ -100,7 +94,6 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
     setFiltroRubro('');
   };
 
-  // Ocultar lista y volver al estado inicial
   const ocultarProveedores = () => {
     setProveedores([]);
     setHaBuscado(false);
@@ -108,7 +101,6 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
     setProveedorDetalles(null);
   };
 
-  // Efecto para filtrar cuando cambian los criterios
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       filtrarProveedores();
@@ -117,13 +109,11 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
     return () => clearTimeout(timeoutId);
   }, [busqueda, filtroRubro, todosProveedores]);
 
-  // Manejar cambio en el filtro de rubro
   const handleFiltroRubroChange = (e) => {
     const rubro = e.target.value;
     setFiltroRubro(rubro);
   };
 
-  // Limpiar todos los filtros
   const limpiarFiltros = () => {
     setBusqueda('');
     setFiltroRubro('');
@@ -133,57 +123,54 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
     setProveedorDetalles(null);
   };
 
-  // ✅ FUNCIÓN CORREGIDA: Inhabilitar o habilitar proveedor
-const handleInhabilitarHabilitar = async () => {
-  if (!proveedorAInhabilitar) return;
-  
-  try {
-    const token = localStorage.getItem('token');
-    const nuevoEstado = accionModal === 'inhabilitar' ? false : true;
+  const handleInhabilitarHabilitar = async () => {
+    if (!proveedorAInhabilitar) return;
     
-    console.log(`Cambiando estado del proveedor ${proveedorAInhabilitar.id} a:`, nuevoEstado);
-    
-    // ✅ DATOS CORREGIDOS - usar 'descripcion' en lugar de 'observaciones'
-    const datosActualizar = {
-      nombre_prov: proveedorAInhabilitar.nombre_prov,
-      tipo_prov: proveedorAInhabilitar.tipo_prov,
-      telefono_prov: proveedorAInhabilitar.telefono_prov || '',
-      correo_prov: proveedorAInhabilitar.correo_prov || '',
-      direccion_prov: proveedorAInhabilitar.direccion_prov || '',
-      descripcion: proveedorAInhabilitar.descripcion || '', // ✅ CAMBIADO de observaciones a descripcion
-      estado: nuevoEstado
-    };
-    
-    await axios.put(`http://localhost:8000/api/proveedores/${proveedorAInhabilitar.id}/`, datosActualizar, {
-      headers: { 
-        Authorization: `Token ${token}`,
-        'Content-Type': 'application/json'
+    try {
+      const token = localStorage.getItem('token');
+      const nuevoEstado = accionModal === 'inhabilitar' ? false : true;
+      
+      console.log(`Cambiando estado del proveedor ${proveedorAInhabilitar.id} a:`, nuevoEstado);
+      
+      const datosActualizar = {
+        nombre_prov: proveedorAInhabilitar.nombre_prov,
+        tipo_prov: proveedorAInhabilitar.tipo_prov,
+        telefono_prov: proveedorAInhabilitar.telefono_prov || '',
+        correo_prov: proveedorAInhabilitar.correo_prov || '',
+        direccion_prov: proveedorAInhabilitar.direccion_prov || '',
+        descripcion: proveedorAInhabilitar.descripcion || '',
+        dni_proveedor: proveedorAInhabilitar.dni_proveedor || '',
+        estado: nuevoEstado
+      };
+      
+      await axios.put(`http://localhost:8000/api/proveedores/${proveedorAInhabilitar.id}/`, datosActualizar, {
+        headers: { 
+          Authorization: `Token ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      await cargarTodosProveedores();
+      
+      if (mostrarTodos) {
+        setProveedores(todosProveedores);
+      } else if (busqueda || filtroRubro) {
+        filtrarProveedores();
       }
-    });
-    
-    // Recargar los datos
-    await cargarTodosProveedores();
-    
-    // Si estamos mostrando todos, actualizar la lista
-    if (mostrarTodos) {
-      setProveedores(todosProveedores);
-    } else if (busqueda || filtroRubro) {
-      // Si hay filtros activos, re-filtrar
-      filtrarProveedores();
+      
+      const accionTexto = accionModal === 'inhabilitar' ? 'inhabilitado' : 'habilitado';
+      setMensajeExito(`Proveedor ${accionTexto} correctamente`);
+      setTimeout(() => setMensajeExito(''), 3000);
+    } catch (error) {
+      console.error(`Error al ${accionModal} proveedor:`, error);
+      console.error('Detalles del error:', error.response?.data);
+    } finally {
+      setMostrarModal(false);
+      setProveedorAInhabilitar(null);
+      setAccionModal('');
     }
-    
-    const accionTexto = accionModal === 'inhabilitar' ? 'inhabilitado' : 'habilitado';
-    setMensajeExito(`Proveedor ${accionTexto} correctamente`);
-    setTimeout(() => setMensajeExito(''), 3000);
-  } catch (error) {
-    console.error(`Error al ${accionModal} proveedor:`, error);
-    console.error('Detalles del error:', error.response?.data);
-  } finally {
-    setMostrarModal(false);
-    setProveedorAInhabilitar(null);
-    setAccionModal('');
-  }
-};
+  };
+
   const handleGuardadoExitoso = () => {
     setVista('lista');
     setProveedorEditar(null);
@@ -192,17 +179,13 @@ const handleInhabilitarHabilitar = async () => {
     setTimeout(() => setMensajeExito(''), 3000);
   };
 
-  // Verificar si hay filtros activos
   const hayFiltrosActivos = busqueda || filtroRubro;
   const hayResultados = proveedores.length > 0;
 
-  // ✅ FUNCIÓN PARA VERIFICAR SI UN PROVEEDOR ESTÁ ACTIVO
   const estaActivo = (proveedor) => {
-    // Si no existe el campo estado, asumimos que está activo
     return proveedor.estado !== false;
   };
 
-  // SI ESTAMOS EN MODO CREAR O EDITAR, MOSTRAR EL FORMULARIO
   if (vista === 'crear' || vista === 'editar') {
     return (
       <FormularioProveedor
@@ -217,7 +200,6 @@ const handleInhabilitarHabilitar = async () => {
     );
   }
 
-  // SI ESTAMOS EN MODO LISTA, MOSTRAR LA TABLA
   return (
     <div className="proveedores-container">
       <div className="header-proveedores">
@@ -229,16 +211,13 @@ const handleInhabilitarHabilitar = async () => {
         )}
       </div>
 
-      {/* MENSAJE DE ÉXITO */}
       {mensajeExito && (
         <div className="mensaje-exito">
           {mensajeExito}
         </div>
       )}
 
-      {/* FILTROS Y BUSCADOR */}
       <div className="filtros-container">
-        {/* BUSCADOR POR NOMBRE */}
         <div className="buscador-proveedores">
           <div className="input-busqueda-container">
             <input
@@ -251,7 +230,6 @@ const handleInhabilitarHabilitar = async () => {
           </div>
         </div>
 
-        {/* FILTRO POR RUBRO */}
         <div className="filtro-rubro">
           <label>Filtrar por rubro:</label>
           <select 
@@ -266,7 +244,6 @@ const handleInhabilitarHabilitar = async () => {
           </select>
         </div>
 
-        {/* BOTÓN MOSTRAR TODOS */}
         {!mostrarTodos && !hayFiltrosActivos && (
           <button className="btn-mostrar-todos" onClick={mostrarTodosProveedores}>
             <FaList className="icono-btn" />
@@ -274,7 +251,6 @@ const handleInhabilitarHabilitar = async () => {
           </button>
         )}
 
-        {/* BOTÓN LIMPIAR FILTROS */}
         {(hayFiltrosActivos || mostrarTodos) && (
           <button className="btn-limpiar" onClick={limpiarFiltros}>
             <FaArrowLeft className="icono-btn" />
@@ -283,7 +259,6 @@ const handleInhabilitarHabilitar = async () => {
         )}
       </div>
 
-      {/* MENSAJES DE BÚSQUEDA */}
       {hayFiltrosActivos && (
         <div className="mensaje-busqueda">
           {proveedores.length === 0 ? 
@@ -307,7 +282,6 @@ const handleInhabilitarHabilitar = async () => {
         </div>
       )}
 
-      {/* CONTENIDO PRINCIPAL */}
       {hayFiltrosActivos && proveedores.length === 0 ? (
         <div className="sin-resultados">
           <p>No se encontraron proveedores con los criterios de búsqueda</p>
@@ -327,7 +301,11 @@ const handleInhabilitarHabilitar = async () => {
           <table className="tabla-proveedores">
             <thead>
               <tr>
-                <th className="columna-id">ID</th>
+                {mostrarTodos ? (
+                  <th className="columna-dni">DNI</th>
+                ) : (
+                  <th className="columna-id">ID</th>
+                )}
                 <th className="columna-nombre">Nombre</th>
                 <th className="columna-rubro">Rubro</th>
                 <th className="columna-estado">Estado</th>
@@ -339,7 +317,13 @@ const handleInhabilitarHabilitar = async () => {
             <tbody>
               {proveedores.map(p => (
                 <tr key={p.id} className={!estaActivo(p) ? 'proveedor-inactivo' : ''}>
-                  <td className="id-proveedor centered">{p.id.toString().padStart(2, '0')}</td>
+                  {mostrarTodos ? (
+                    <td className="dni-proveedor centered">
+                      {p.dni_proveedor || 'No especificado'}
+                    </td>
+                  ) : (
+                    <td className="id-proveedor centered">{p.id.toString().padStart(2, '0')}</td>
+                  )}
                   <td className="nombre-proveedor centered">{p.nombre_prov}</td>
                   <td className="rubro-proveedor centered">{p.tipo_prov}</td>
                   <td className="estado-proveedor centered">
@@ -373,7 +357,7 @@ const handleInhabilitarHabilitar = async () => {
                               }}
                               title="Inhabilitar proveedor"
                             >
-                              <BsBan /> {/* ✅ NUEVO ICONO */}
+                              <BsBan />
                             </button>
                           ) : (
                             <button
@@ -413,7 +397,6 @@ const handleInhabilitarHabilitar = async () => {
         </div>
       )}
 
-      {/* MODAL DE CONFIRMACIÓN INHABILITAR/HABILITAR */}
       <ModalConfirmacion
         mostrar={mostrarModal}
         tipo={accionModal}
@@ -430,7 +413,6 @@ const handleInhabilitarHabilitar = async () => {
         onConfirmar={handleInhabilitarHabilitar}
       />
 
-      {/* MODAL DE DETALLES COMPLETOS */}
       {proveedorDetalles && (
         <div className="modal-overlay-detalles" onClick={() => setProveedorDetalles(null)}>
           <div className="modal-detalles-grande" onClick={(e) => e.stopPropagation()}>
@@ -458,13 +440,15 @@ const handleInhabilitarHabilitar = async () => {
               </div>
 
               <div className="detalles-lista-grande">
+                
+
                 <div className="detalle-item-grande">
                   <div className="icono-detalle-grande">
                     <FaIdCard />
                   </div>
                   <div className="contenido-detalle-grande">
-                    <label>ID</label>
-                    <span>{proveedorDetalles.id.toString().padStart(2, '0')}</span>
+                    <label>DNI</label>
+                    <span>{proveedorDetalles.dni_proveedor || 'No especificado'}</span>
                   </div>
                 </div>
 
@@ -525,7 +509,7 @@ const handleInhabilitarHabilitar = async () => {
                   <div className="contenido-detalle-grande">
                     <label>Observaciones</label>
                     <div className="observaciones-detalle-grande">
-                      {proveedorDetalles.observaciones || 'No hay observaciones'}
+                      {proveedorDetalles.descripcion || 'No hay observaciones'}
                     </div>
                   </div>
                 </div>
