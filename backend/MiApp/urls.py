@@ -28,6 +28,5 @@ urlpatterns = [
     path('', include(router.urls)),
 ]
 
-# En urls.py - AGREGAR ESTO
 
 

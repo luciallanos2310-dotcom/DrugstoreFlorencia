@@ -25,7 +25,7 @@ class EmpleadoSerializer(serializers.ModelSerializer):
 class ProveedorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Proveedor
-        fields = ['id', 'nombre_prov', 'tipo_prov', 'telefono_prov', 'correo_prov', 'direccion_prov', 'descripcion', 'estado']
+        fields = ['id', 'nombre_prov', 'tipo_prov', 'telefono_prov', 'correo_prov', 'direccion_prov', 'descripcion', 'dni_proveedor', 'estado']
 
 class ProductoSerializer(serializers.ModelSerializer):
     class Meta:

@@ -16,15 +16,57 @@ class ProductoAdmin(admin.ModelAdmin):
 
 @admin.register(Proveedor)
 class ProveedorAdmin(admin.ModelAdmin):
-    list_display = ['id', 'nombre_prov', 'tipo_prov', 'telefono_prov', 'estado']
+    list_display = ['id', 'nombre_prov', 'tipo_prov', 'telefono_prov', 'dni_proveedor', 'estado']
     list_filter = ['tipo_prov', 'estado']
     search_fields = ['nombre_prov']
 
+from django.contrib import admin
+from .models import Caja
+
 @admin.register(Caja)
 class CajaAdmin(admin.ModelAdmin):
-    list_display = ['id', 'empleado', 'fecha_hs_apertura', 'fecha_hs_cierre', 'saldo_inicial', 'saldo_final', 'estado', 'turno']
+    list_display = [
+        'id', 
+        'empleado', 
+        'fecha_hs_apertura', 
+        'fecha_hs_cierre', 
+        'saldo_inicial', 
+        'saldo_final', 
+        'ingresos',
+        'egresos',
+        'monto_contado',
+        'estado', 
+        'turno'
+    ]
+    
     list_filter = ['estado', 'turno', 'fecha_hs_apertura']
     search_fields = ['empleado__nombre_emp']
+    
+    fieldsets = (
+        ('Información Básica', {
+            'fields': (
+                'empleado', 
+                'turno', 
+                'estado',
+                'descripcion'
+            )
+        }),
+        ('Fechas y Horarios', {
+            'fields': (
+                'fecha_hs_apertura', 
+                'fecha_hs_cierre'
+            )
+        }),
+        ('Saldos y Montos', {
+            'fields': (
+                'saldo_inicial',
+                'saldo_final',
+                'ingresos',
+                'egresos',
+                'monto_contado',
+            )
+        }),
+    )
 
 @admin.register(Venta)
 class VentaAdmin(admin.ModelAdmin):

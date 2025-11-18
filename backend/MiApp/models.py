@@ -60,13 +60,14 @@ class Caja(models.Model):
 
 # models.py - Actualizar el modelo Proveedor
 class Proveedor(models.Model):
-    nombre_prov = models.CharField(max_length=50)
+    nombre_prov = models.CharField(max_length=50, unique=True)  # ✅ ÚNICO
     tipo_prov = models.CharField(max_length=50)
-    telefono_prov = models.CharField(max_length=20, null=True, blank=True)
-    correo_prov = models.EmailField(null=True, blank=True)
-    direccion_prov = models.CharField(max_length=100, blank=True, null=True)
+    telefono_prov = models.CharField(max_length=20, null=True, blank=True, unique=True)  # ✅ ÚNICO
+    correo_prov = models.EmailField(null=True, blank=True, unique=True)  # ✅ ÚNICO
+    direccion_prov = models.CharField(max_length=100, blank=True, null=True, unique=True)  # ✅ ÚNICO
     descripcion = models.TextField(blank=True, null=True)
-    estado = models.BooleanField(default=True)  # ✅ SOLO ESTE CAMPO NUEVO
+    dni_proveedor = models.CharField(max_length=20, blank=True, null=True, unique=True)  # ✅ ÚNICO
+    estado = models.BooleanField(default=True)
 
     def __str__(self):
         return self.nombre_prov
@@ -74,6 +75,10 @@ class Proveedor(models.Model):
     @property
     def estado_display(self):
         return "Activo" if self.estado else "Inactivo"
+
+    class Meta:
+        verbose_name = "Proveedor"
+        verbose_name_plural = "Proveedores"
 
 class Producto(models.Model):
     nombre_prod = models.CharField(max_length=100)
