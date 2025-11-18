@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaCashRegister, FaCalendarAlt, FaUser, FaCheck, FaTimes, FaClock, FaMoneyBillWave, FaStickyNote, FaChartLine, FaShoppingCart, FaExchangeAlt, FaMoneyBill, FaReceipt, FaList, FaBox, FaCreditCard, FaMoneyCheckAlt, FaMobileAlt } from 'react-icons/fa';
+import { FaCashRegister, FaStickyNote, FaChartLine, FaShoppingCart, FaExchangeAlt, FaMoneyBill, FaList, FaCreditCard, FaMoneyCheckAlt, FaMobileAlt } from 'react-icons/fa';
 import './AperturaCaja.css';
 import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal';
 
@@ -480,9 +480,7 @@ const DetalleVentasDelDia = () => {
   return (
     <div className="detalle-ventas-moderno">
       <div className="detalle-header-moderno">
-        <FaReceipt className="icono-detalle" />
         <h3>Operaciones del Día</h3>
-        <span className="badge-actualizado">Actualizado: {new Date().toLocaleTimeString('es-AR')}</span>
       </div>
 
       {/* Resumen en tarjetas */}
@@ -606,33 +604,47 @@ const DetalleVentasDelDia = () => {
                 </>
               )}
 
-              {/* Para ventas normales */}
-              {operacion.tipo === 'venta' && (
-                <>
-                  {/* Detalles de productos */}
-                  {operacion.productos && operacion.productos.length > 0 ? (
-                    <div className="detalle-productos-moderno">
-                      {operacion.productos.map((producto, index) => (
-                        <div key={`${operacion.id}-${producto.id || index}`} className="producto-item-moderno">
-                          <FaBox className="icono-producto" />
-                          <span className="producto-nombre">
-                            {producto.producto_nombre || `Producto ${producto.producto_id || producto.producto || 'N/A'}`}
-                          </span>
-                          <span className="producto-cantidad">x{producto.cantidad || 1}</span>
-                          <span className="producto-precio">
-                            @${formatearNumero(producto.precio_unitario)}
-                          </span>
-                          <span className="producto-subtotal">
+            {operacion.tipo === 'venta' && (
+              <>
+                {/* Detalles de productos */}
+                {operacion.productos && operacion.productos.length > 0 ? (
+                  <div className="detalle-productos-moderno">
+                    {operacion.productos.map((producto, index) => (
+                      <div key={`${operacion.id}-${producto.id || index}`} className="producto-item-moderno">
+                  
+                        <span className="producto-nombre">
+                          {producto.producto_nombre || `Producto ${producto.producto_id || producto.producto || 'N/A'}`}
+                        </span>
+                        
+                        {/* Mostrar cantidad solo si es mayor a 1 */}
+                        {(producto.cantidad && producto.cantidad > 1) && (
+                          <span className="producto-cantidad">x{producto.cantidad}</span>
+                        )}
+                        
+                        {/* Mostrar precio unitario solo si la cantidad es mayor a 1 */}
+                        {(producto.cantidad && producto.cantidad > 1) ? (
+                          <>
+                            <span className="producto-precio-unitario">
+                              ${formatearNumero(producto.precio_unitario)}
+                            </span>
+                            <span className="producto-subtotal">
+                              ${formatearNumero(producto.subtotal)}
+                            </span>
+                          </>
+                        ) : (
+                          // Si es solo 1 unidad, mostrar solo el subtotal (que es igual al precio unitario)
+                          <span className="producto-subtotal-solo">
                             ${formatearNumero(producto.subtotal)}
                           </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="sin-productos">
-                      <span>No hay detalles de productos para esta venta</span>
-                    </div>
-                  )}
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="sin-productos">
+                    <span>No hay detalles de productos para esta venta</span>
+                  </div>
+                )}
 
                   {/* Información adicional para ventas en efectivo */}
                   {operacion.metodoPago === 'efectivo' && (
@@ -648,12 +660,13 @@ const DetalleVentasDelDia = () => {
                     </div>
                   )}
 
-                  {/* Descripción adicional */}
+                  {/* Descripción adicional 
                   {operacion.descripcion && (
                     <div className="nota-venta">
                       <strong>Nota:</strong> {operacion.descripcion}
                     </div>
                   )}
+                  */}
                 </>
               )}
             </div>
@@ -672,39 +685,35 @@ const DetalleVentasDelDia = () => {
         <div className="caja-header-moderno">
           <div className="caja-info-principal">
             <div className="caja-badge">
-              <FaCashRegister /> Caja Actualmente Abierta
+            Caja Actualmente Abierta
             </div>
             <div className="caja-fecha">
-              <FaCalendarAlt /> {new Date(cajaActual.fecha_hs_apertura).toLocaleDateString('es-AR')}
+              {new Date(cajaActual.fecha_hs_apertura).toLocaleDateString('es-AR')}
             </div>
-          </div>
-          
-          <div className="usuario-info">
-            <FaUser /> Usuario: {cajaActual.empleadoNombre}
           </div>
         </div>
 
         <div className="info-caja-moderna">
           <div className="info-item-moderno">
-            <FaUser className="info-icon" />
+   
             <div className="info-content">
-              <span className="info-label">Empleada</span>
+              <span className="label-info">Empleada: </span>
               <span className="info-value">{cajaActual.empleadoNombre}</span>
             </div>
           </div>
           
           <div className="info-item-moderno">
-            <FaClock className="info-icon" />
+   
             <div className="info-content">
-              <span className="info-label">Turno</span>
+              <span className="label-info">Turno: </span>
               <span className="info-value">{cajaActual.turnoNombre}</span>
             </div>
           </div>
           
           <div className="info-item-moderno"> 
-            <FaMoneyBillWave className="info-icon" />
+       
             <div className="info-content">
-              <span className="info-label">Monto Inicial</span>
+              <span className="label-info">Monto Inicial: </span>
               <span className="info-value">${formatearNumero(cajaActual.saldo_inicial)}</span>
             </div>
           </div>

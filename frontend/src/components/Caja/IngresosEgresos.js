@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
+<<<<<<< Updated upstream
 import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal';
+=======
+import ModalConfirmacion from '../Caja/ModalConfirmacion';
+>>>>>>> Stashed changes
 import './IngresosEgresos.css';
 
 function IngresosEgresos({ cajaId, onRegistroAgregado }) {
@@ -7,12 +11,10 @@ function IngresosEgresos({ cajaId, onRegistroAgregado }) {
   const [mostrarModalConfirmar, setMostrarModalConfirmar] = useState(false);
   const [mostrarModalExito, setMostrarModalExito] = useState(false);
   const [mostrarModalError, setMostrarModalError] = useState(false);
-  const [mostrarModalHistorial, setMostrarModalHistorial] = useState(false);
   const [tipoRegistro, setTipoRegistro] = useState('');
   const [monto, setMonto] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [mensajeError, setMensajeError] = useState('');
-  const [historial, setHistorial] = useState([]);
 
   const abrirModalIngreso = () => {
     setTipoRegistro('ingreso');
@@ -28,38 +30,31 @@ function IngresosEgresos({ cajaId, onRegistroAgregado }) {
     setMostrarModalForm(true);
   };
 
-  const verHistorial = async (tipo) => {
-    setTipoRegistro(tipo);
-    
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/ventas/?caja=${cajaId}&tipo=${tipo}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Token ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        // Filtrar solo los movimientos del tipo seleccionado
-        const movimientosFiltrados = data.filter(venta => 
-          venta.descripcion?.toLowerCase().includes(tipo)
-        );
-        setHistorial(movimientosFiltrados);
-        setMostrarModalHistorial(true);
-      } else {
-        mostrarError('Error al cargar el historial');
-      }
-    } catch (error) {
-      console.error('Error cargando historial:', error);
-      mostrarError('Error al cargar el historial');
-    }
-  };
-
   const mostrarError = (mensaje) => {
     setMensajeError(mensaje);
     setMostrarModalError(true);
+  };
+
+  // Función para manejar cambios en el monto (sin números negativos)
+  const handleMontoChange = (e) => {
+    const value = e.target.value;
+    // Solo permitir números positivos
+    if (value === '' || (parseFloat(value) >= 0 && !isNaN(parseFloat(value)))) {
+      setMonto(value);
+    }
+  };
+
+  // Función para prevenir teclas no deseadas
+  const handleKeyDown = (e) => {
+    // Prevenir: negativo (-), exponente (e, E), y otros caracteres no numéricos
+    if (['-', 'e', 'E', '+'].includes(e.key)) {
+      e.preventDefault();
+    }
+  };
+
+  // Función para prevenir cambios por scroll wheel
+  const preventScroll = (e) => {
+    e.target.blur();
   };
 
   const handleConfirmarRegistro = async () => {
@@ -139,7 +134,7 @@ function IngresosEgresos({ cajaId, onRegistroAgregado }) {
         </button>
       </div>
 
-      {/* Modal del formulario - Ahora con botón Ver Todos */}
+      {/* Modal del formulario - SIN botón Ver Todos */}
       {mostrarModalForm && (
         <div className="modal-overlay" onClick={() => setMostrarModalForm(false)}>
           <div className="modal-contenedor" onClick={(e) => e.stopPropagation()}>
@@ -154,7 +149,9 @@ function IngresosEgresos({ cajaId, onRegistroAgregado }) {
                   <input
                     type="number"
                     value={monto}
-                    onChange={(e) => setMonto(e.target.value)}
+                    onChange={handleMontoChange}
+                    onKeyDown={handleKeyDown}
+                    onWheel={preventScroll}
                     placeholder="0.00"
                     step="0.01"
                     min="0"
@@ -173,15 +170,7 @@ function IngresosEgresos({ cajaId, onRegistroAgregado }) {
                   />
                 </div>
               </div>
-            </div>
-            <div className='seccion-mostrar-todos'>
-                <button 
-                className="btn-ver-todos"
-                onClick={() => verHistorial(tipoRegistro)}
-                >
-                    Ver Todos
-                </button>
-            </div>
+            </div>           
             <div className="modal-footer">            
                 <button 
                   className="btn-cancelar" 
@@ -207,6 +196,7 @@ function IngresosEgresos({ cajaId, onRegistroAgregado }) {
         </div>
       )}
 
+<<<<<<< Updated upstream
       {/* Modal de Historial */}
       {mostrarModalHistorial && (
         <div className="modal-overlay" onClick={() => setMostrarModalHistorial(false)}>
@@ -252,6 +242,10 @@ function IngresosEgresos({ cajaId, onRegistroAgregado }) {
 
       {/* Modal de Confirmación - VERSIÓN UNIVERSAL */}
       <ModalConfirmacionUniversal
+=======
+      {/* Modal de Confirmación */}
+      <ModalConfirmacion
+>>>>>>> Stashed changes
         mostrar={mostrarModalConfirmar}
         tipo="confirmar"
         mensaje={`¿Está seguro que desea registrar este ${tipoRegistro === 'ingreso' ? 'INGRESO' : 'EGRESO'} por $${parseFloat(monto || 0).toFixed(2)}?`}

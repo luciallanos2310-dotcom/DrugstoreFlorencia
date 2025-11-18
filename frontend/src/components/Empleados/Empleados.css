@@ -348,7 +348,7 @@
 }
 
 .btn-cancelar {
-  background: #95a5a6;
+  background: #aa0202;
   color: white;
   border: none;
   padding: 0.6rem 1.2rem;
@@ -359,7 +359,7 @@
 }
 
 .btn-confirmar {
-  background: #007e7e;
+  background: #1fb8b8;
   color: white;
   border: none;
   padding: 0.6rem 1.2rem;
@@ -378,13 +378,10 @@
 }
 
 /* Estilos específicos para tipos de modal */
-.btn-confirmar.btn-eliminar {
+.btn-eliminar {
   background: #e74c3c;
 }
 
-.btn-confirmar.btn-eliminar:hover {
-  background: #c0392b;
-}
 
 .btn-confirmar.btn-exito {
   background: #27ae60;

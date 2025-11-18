@@ -4,7 +4,6 @@ import '../Empleados/Empleados.css';
 function ModalConfirmacion({ mostrar, tipo, mensaje, onConfirmar, onCancelar, datosApertura, datosVenta }) {
   if (!mostrar) return null;
 
-  // Determinar el título y texto del botón según el tipo
   const getTitulo = () => {
     switch(tipo) {
       case 'confirmar': return 'Confirmar Acción';
@@ -20,8 +19,16 @@ function ModalConfirmacion({ mostrar, tipo, mensaje, onConfirmar, onCancelar, da
       case 'confirmar': return 'Confirmar';
       case 'exito': return 'Aceptar';
       case 'error': return 'Aceptar';
-      case 'cancelar': return 'Confirmar';
+      case 'cancelar': return 'Sí, Cancelar';
       default: return 'Confirmar';
+    }
+  };
+
+  const getTextoBotonCancelar = () => {
+    switch(tipo) {
+      
+      default: return 'Cancelar';
+      case 'cancelar': return 'No, Continuar';
     }
   };
 
@@ -37,6 +44,23 @@ function ModalConfirmacion({ mostrar, tipo, mensaje, onConfirmar, onCancelar, da
         <div className="modal-body">
           <p>{mensaje}</p>
           
+          {/* Resumen para cierre de caja */}
+          {tipo === 'confirmar' && datosVenta && datosVenta.totalTeorico !== undefined && (
+            <div className="resumen-cierre">
+              <h4>Resumen del Cierre:</h4>
+              <p><strong>Total Teórico:</strong> ${datosVenta.totalTeorico?.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              <p><strong>Monto Contado:</strong> ${datosVenta.montoContado?.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              <p><strong>Diferencia:</strong> 
+                <span className={datosVenta.diferencia >= 0 ? 'diferencia-positiva' : 'diferencia-negativa'}>
+                  ${datosVenta.diferencia?.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </p>
+              {datosVenta.observaciones && (
+                <p><strong>Observaciones:</strong> {datosVenta.observaciones}</p>
+              )}
+            </div>
+          )}
+          
           {/* Resumen para apertura de caja */}
           {tipo === 'confirmar' && datosApertura && (
             <div className="resumen-apertura">
@@ -48,8 +72,8 @@ function ModalConfirmacion({ mostrar, tipo, mensaje, onConfirmar, onCancelar, da
             </div>
           )}
           
-          {/* Resumen para ventas */}
-          {tipo === 'confirmar' && datosVenta && (
+          {/* Resumen para ventas normales */}
+          {tipo === 'confirmar' && datosVenta && datosVenta.total !== undefined && (
             <div className="resumen-venta">
               <p><strong>Total:</strong> ${datosVenta.total?.toFixed(2) || '0.00'}</p>
               <p><strong>Método de pago:</strong> {datosVenta.metodoPago}</p>
@@ -62,25 +86,17 @@ function ModalConfirmacion({ mostrar, tipo, mensaje, onConfirmar, onCancelar, da
               )}
             </div>
           )}
-          
-          {tipo === 'exito' && datosApertura && (
-            <div className="resumen-apertura">
-              <p><strong>Empleado:</strong> {datosApertura.empleadoNombre}</p>
-              <p><strong>Turno:</strong> {datosApertura.turnoNombre}</p>
-              <p>Redirigiendo a ventas...</p>
-            </div>
-          )}
         </div>
         
         <div className="modal-footer">
           {!esAlerta && (
             <button className="boton-cancelar" onClick={onCancelar}>
-              Cancelar
+              {getTextoBotonCancelar()}
             </button>
           )}
           <button 
             className={`boton-confirmar ${tipo === 'exito' ? 'btn-exito' : ''} ${tipo === 'cancelar' ? 'btn-cancelar-accion' : ''}`}
-            onClick={esAlerta ? onCancelar : onConfirmar}
+            onClick={onConfirmar}
           >
             {getTextoBoton()}
           </button>

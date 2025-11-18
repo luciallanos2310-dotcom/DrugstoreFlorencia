@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaSearch, FaReceipt, FaPlus, FaMinus, FaTimes } from 'react-icons/fa';
+import { FaSearch, FaPlus, FaMinus, FaTimes } from 'react-icons/fa';
 import ModalConfirmacion from '../Ventas/ModalConfirmacion';
 import VentasSaeta from './VentasSaeta';
 import IngresosEgresos from '../Caja/IngresosEgresos';
@@ -418,7 +418,7 @@ function Ventas({ datosCaja, onCerrarCaja }) {
         setMontoRecibido('');
         setMetodoPago('efectivo');
         setMostrarModalExito(false);
-      }, 3000);
+      }, 1000);
       
     } catch (error) {
       console.error('❌ Error completo al procesar venta:', error);

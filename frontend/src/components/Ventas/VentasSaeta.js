@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { FaCalculator, FaPercentage, FaCalendarAlt, FaStickyNote } from 'react-icons/fa';
 import ModalConfirmacion from './ModalConfirmacion';
 import './VentasSaeta.css';
 
@@ -7,7 +6,7 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
   const [formData, setFormData] = useState({
     monto_saeta: '',
     fecha_pago_saeta: new Date().toISOString().split('T')[0],
-    porcentaje_ganancia_saeta: 15,
+    porcentaje_ganancia_saeta: 85,
     descripcion: 'Venta Saeta - Recarga de saldo'
   });
   const [calculando, setCalculando] = useState(false);
@@ -26,23 +25,58 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
   // Resetear form al abrir
   useEffect(() => {
     if (mostrar) {
+      const today = new Date().toISOString().split('T')[0];
       setFormData({
         monto_saeta: '',
-        fecha_pago_saeta: new Date().toISOString().split('T')[0],
+        fecha_pago_saeta: today,
         porcentaje_ganancia_saeta: 85,
         descripcion: 'Venta Saeta - Recarga de saldo'
       });
       setGananciaDrugstore(0);
       setMontoParaSaeta(0);
+      // 🔥 LIMPIAR MODALES Y ESTADOS AL ABRIR
+      setMostrarModalConfirmar(false);
+      setMostrarModalExito(false);
+      setMostrarModalError(false);
+      setCalculando(false);
     }
   }, [mostrar]);
 
-  const handleChange = (e) => {
+  // Función para manejar cambios en inputs numéricos (sin flechas)
+  const handleNumberChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    
+    // Solo permitir números positivos
+    if (value === '' || (parseFloat(value) >= 0 && !isNaN(parseFloat(value)))) {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
+  };
+
+  // Función para prevenir teclas no deseadas
+  const handleKeyDown = (e) => {
+    // Prevenir: negativo (-), exponente (e, E), y otros caracteres no numéricos
+    if (['-', 'e', 'E', '+'].includes(e.key)) {
+      e.preventDefault();
+    }
+  };
+
+  // Función para manejar cambios en fecha (solo fechas pasadas/hoy)
+  const handleDateChange = (e) => {
+    const { name, value } = e.target;
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Solo permitir fechas hasta hoy
+    if (value <= today) {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    } else {
+      alert('No se pueden seleccionar fechas futuras');
+    }
   };
 
   const calcularGanancias = () => {
@@ -64,11 +98,31 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
   const mostrarError = (mensaje) => {
     setMensajeError(mensaje);
     setMostrarModalError(true);
+    setCalculando(false); // 🔥 IMPORTANTE: Resetear estado de cálculo
+  };
+
+  // 🔥 FUNCIÓN MEJORADA: Cerrar todos los modales
+  const cerrarTodosLosModales = () => {
+    setMostrarModalConfirmar(false);
+    setMostrarModalExito(false);
+    setMostrarModalError(false);
+  };
+
+  // 🔥 FUNCIÓN MEJORADA: Manejar cierre del modal principal
+  const handleCerrarPrincipal = () => {
+    cerrarTodosLosModales();
+    setCalculando(false); // 🔥 Resetear estado de cálculo
+    onCerrar();
   };
 
   const handleConfirmarVentaSaeta = async () => {
     if (!formData.monto_saeta || parseFloat(formData.monto_saeta) <= 0) {
       mostrarError('Por favor ingrese un monto válido');
+      return;
+    }
+
+    if (parseFloat(formData.porcentaje_ganancia_saeta) < 0 || parseFloat(formData.porcentaje_ganancia_saeta) > 100) {
+      mostrarError('El porcentaje debe estar entre 0 y 100');
       return;
     }
 
@@ -94,7 +148,7 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
         monto_recibido: montoTotal,
         vuelto: 0,
         estado_venta: 'completada',
-        descripcion: formData.descripcion // USAR LA DESCRIPCIÓN DEL FORMULARIO
+        descripcion: formData.descripcion
       };
 
       console.log('📤 Creando venta Saeta:', ventaData);
@@ -137,11 +191,15 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
       });
 
       if (!responseDetalle.ok) {
-        // Si falla el detalle, eliminar la venta creada
-        await fetch(`http://localhost:8000/api/ventas/${ventaCreada.id}/`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Token ${token}` }
-        });
+        // 🔥 MEJORADO: Limpiar recursos en caso de error
+        try {
+          await fetch(`http://localhost:8000/api/ventas/${ventaCreada.id}/`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Token ${token}` }
+          });
+        } catch (deleteError) {
+          console.error('Error eliminando venta:', deleteError);
+        }
         throw new Error('Error creando detalle venta');
       }
 
@@ -174,41 +232,44 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
         const ventaSaetaCreada = await responseSaeta.json();
         console.log('✅ Registro Saeta creado:', ventaSaetaCreada);
         
-        // Notificar a Ventas.js
         if (onVentaSaetaCreada) {
           onVentaSaetaCreada(ventaSaetaCreada);
         }
         
         setMostrarModalConfirmar(false);
         setMostrarModalExito(true);
+        setCalculando(false); // 🔥 IMPORTANTE: Resetear estado de cálculo
         
         setTimeout(() => {
           setMostrarModalExito(false);
-          onCerrar();
-        }, 2000);
+          handleCerrarPrincipal();
+        }, 1000);
         
       } else {
         const errorData = await responseSaeta.json();
         console.error('❌ Error creando registro Saeta:', errorData);
         
-        // Limpiar recursos creados en caso de error
-        await fetch(`http://localhost:8000/api/detalle_ventas/${detalleCreado.id}/`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Token ${token}` }
-        });
-        await fetch(`http://localhost:8000/api/ventas/${ventaCreada.id}/`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Token ${token}` }
-        });
+        // 🔥 MEJORADO: Limpiar recursos en caso de error
+        try {
+          await fetch(`http://localhost:8000/api/detalle_ventas/${detalleCreado.id}/`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Token ${token}` }
+          });
+          await fetch(`http://localhost:8000/api/ventas/${ventaCreada.id}/`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Token ${token}` }
+          });
+        } catch (deleteError) {
+          console.error('Error limpiando recursos:', deleteError);
+        }
         
         mostrarError('Error al crear registro Saeta: ' + JSON.stringify(errorData));
       }
     } catch (error) {
       console.error('❌ Error creando venta Saeta:', error);
       mostrarError('Error de conexión al crear venta Saeta: ' + error.message);
-    } finally {
-      setCalculando(false);
     }
+    // 🔥 ELIMINADO: finally block para evitar resetear calculando cuando hay éxito
   };
 
   const datosParaModal = {
@@ -221,15 +282,14 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
   if (!mostrar) return null;
 
   return (
-    <div className="modal-overlay-saeta" onClick={onCerrar}>
+    <div className="modal-overlay-saeta" onClick={handleCerrarPrincipal}>
       <div className="modal-saeta" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header-saeta">
           <h2>Venta Saeta</h2>
-          <button className="btn-cerrar-saeta" onClick={onCerrar}>
+          <button className="btn-cerrar-saeta" onClick={handleCerrarPrincipal}>
             ×
           </button>
         </div>
-
         <div className="modal-body-saeta">
           {/* Resumen de cálculo */}
           <div className="resumen-calculo-saeta">
@@ -260,7 +320,6 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
               </div>
             </div>
           </div>
-
           {/* Formulario */}
           <div className="formulario-saeta">
             <div className="campo-grupo-saeta">
@@ -272,7 +331,9 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
                 id="monto_saeta"
                 name="monto_saeta"
                 value={formData.monto_saeta}
-                onChange={handleChange}
+                onChange={handleNumberChange}
+                onKeyDown={handleKeyDown}
+                onWheel={(e) => e.target.blur()}
                 placeholder="0.00"
                 step="0.01"
                 min="0"
@@ -281,7 +342,6 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
                 required
               />
             </div>
-
             <div className="campo-grupo-saeta">
               <label htmlFor="porcentaje_ganancia_saeta">
                 Porcentaje *
@@ -291,7 +351,9 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
                 id="porcentaje_ganancia_saeta"
                 name="porcentaje_ganancia_saeta"
                 value={formData.porcentaje_ganancia_saeta}
-                onChange={handleChange}
+                onChange={handleNumberChange}
+                onKeyDown={handleKeyDown}
+                onWheel={(e) => e.target.blur()}
                 step="0.1"
                 min="0"
                 max="100"
@@ -299,7 +361,6 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
                 required
               />
             </div>
-
             <div className="campo-grupo-saeta">
               <label htmlFor="fecha_pago_saeta">
                 Fecha
@@ -309,11 +370,11 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
                 id="fecha_pago_saeta"
                 name="fecha_pago_saeta"
                 value={formData.fecha_pago_saeta}
-                onChange={handleChange}
+                onChange={handleDateChange}
+                max={new Date().toISOString().split('T')[0]}
                 className="campo-input-saeta"
               />
             </div>
-
             <div className="campo-grupo-saeta">
               <label htmlFor="descripcion">
                 Descripción 
@@ -322,7 +383,7 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
                 id="descripcion"
                 name="descripcion"
                 value={formData.descripcion}
-                onChange={handleChange}
+                onChange={(e) => setFormData(prev => ({ ...prev, descripcion: e.target.value }))}
                 className="campo-textarea-saeta"
                 rows="3"
                 placeholder="Venta Saeta - Recarga de saldo"
@@ -333,7 +394,7 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
         <div className="modal-footer-saeta">
           <button 
             className="btn-cancelar-saeta" 
-            onClick={onCerrar}
+            onClick={handleCerrarPrincipal}
             disabled={calculando}
           >
             Cancelar
@@ -354,7 +415,11 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
         tipo="confirmar_saeta"
         mensaje="¿Está seguro que desea registrar esta venta Saeta?"
         onConfirmar={handleConfirmarVentaSaeta}
-        onCancelar={() => setMostrarModalConfirmar(false)}
+        onCancelar={() => {
+          setMostrarModalConfirmar(false);
+          setCalculando(false); // 🔥 Resetear estado al cancelar
+        }}
+        datosVenta={datosParaModal}
       />
 
       {/* Modal de Éxito */}
@@ -364,11 +429,11 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
         mensaje="¡Venta Saeta registrada exitosamente!"
         onConfirmar={() => {
           setMostrarModalExito(false);
-          onCerrar();
+          handleCerrarPrincipal();
         }}
         onCancelar={() => {
           setMostrarModalExito(false);
-          onCerrar();
+          handleCerrarPrincipal();
         }}
       />
 
@@ -377,8 +442,14 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
         mostrar={mostrarModalError}
         tipo="error"
         mensaje={mensajeError}
-        onConfirmar={() => setMostrarModalError(false)}
-        onCancelar={() => setMostrarModalError(false)}
+        onConfirmar={() => {
+          setMostrarModalError(false);
+          setCalculando(false); // 🔥 Resetear estado al cerrar error
+        }}
+        onCancelar={() => {
+          setMostrarModalError(false);
+          setCalculando(false); // 🔥 Resetear estado al cerrar error
+        }}
       />
     </div>
   );

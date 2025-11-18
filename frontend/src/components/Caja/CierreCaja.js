@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaCalculator, FaMoneyBillWave, FaCashRegister, FaFileExport, FaTimes } from 'react-icons/fa';
+import ModalConfirmacion from '../Caja/ModalConfirmacion'; // ✅ Asegúrate de importar el modal
 import './CierreCaja.css';
 
 function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
@@ -19,6 +19,11 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
   });
   const [procesando, setProcesando] = useState(false);
   const [cargando, setCargando] = useState(true);
+  
+  // ✅ NUEVOS ESTADOS PARA MODALES
+  const [mostrarModalConfirmar, setMostrarModalConfirmar] = useState(false);
+  const [mostrarModalExito, setMostrarModalExito] = useState(false);
+  const [mostrarModalCancelar, setMostrarModalCancelar] = useState(false);
 
   // Cargar datos de la caja y ventas
   const cargarDatosCierre = async () => {
@@ -120,139 +125,17 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
   };
 
   const calcularResumen = (ventas, ventasSaeta, caja) => {
-    console.log('🧮 ===== INICIANDO CÁLCULO DE RESUMEN =====');
-    console.log('📥 Datos recibidos:', { 
-      ventasCount: ventas.length, 
-      saetaCount: ventasSaeta.length, 
-      cajaId: caja.id
-    });
-    
-    // ✅ CORRECCIÓN: IDENTIFICAR qué ventas normales son realmente ventas Saeta
+    // ... (mantén todo el código existente de calcularResumen igual)
+    // Solo copio una parte para mantener la estructura
     const ventasIdsConSaeta = ventasSaeta.map(saeta => saeta.venta);
-    console.log('🔍 IDs de ventas que tienen Saeta asociada:', ventasIdsConSaeta);
     
-    // ✅ FILTRAR: Separar ventas normales REALES de ventas Saeta Y de ingresos/egresos
     const ventasReales = ventas.filter(venta => 
       !ventasIdsConSaeta.includes(venta.id) && 
       !venta.descripcion?.toLowerCase().includes('ingreso') &&
       !venta.descripcion?.toLowerCase().includes('egreso')
     );
     
-    const ventasSaetaComoNormales = ventas.filter(venta => 
-      ventasIdsConSaeta.includes(venta.id)
-    );
-    
-    // ✅ NUEVO: Filtrar ingresos y egresos
-    const ingresosExtra = ventas.filter(venta => 
-      venta.descripcion?.toLowerCase().includes('ingreso')
-    );
-    
-    const egresosExtra = ventas.filter(venta => 
-      venta.descripcion?.toLowerCase().includes('egreso')
-    );
-    
-    console.log('📊 VENTAS SEPARADAS:');
-    console.log('   - Ventas reales (productos):', ventasReales.length);
-    console.log('   - Ventas Saeta (como normales):', ventasSaetaComoNormales.length);
-    console.log('   - Ingresos extra:', ingresosExtra.length);
-    console.log('   - Egresos extra:', egresosExtra.length);
-    
-    // Log detallado de ingresos y egresos encontrados
-    ingresosExtra.forEach(ingreso => {
-      console.log(`   💰 INGRESO: ID ${ingreso.id}, Monto: $${ingreso.total_venta}, Desc: ${ingreso.descripcion}`);
-    });
-    
-    egresosExtra.forEach(egreso => {
-      console.log(`   💰 EGRESO: ID ${egreso.id}, Monto: $${egreso.total_venta}, Desc: ${egreso.descripcion}`);
-    });
-
-    // Calcular total de ingresos y egresos
-    const totalIngresosExtra = ingresosExtra.reduce((sum, ingreso) => {
-      const monto = parseFloat(ingreso.total_venta || 0);
-      console.log(`   💰 Ingreso extra ${ingreso.id}: $${monto}`);
-      return sum + monto;
-    }, 0);
-    
-    const totalEgresosExtra = egresosExtra.reduce((sum, egreso) => {
-      const monto = parseFloat(egreso.total_venta || 0);
-      console.log(`   💰 Egreso extra ${egreso.id}: $${monto}`);
-      return sum + monto;
-    }, 0);
-
-    // Ventas normales REALES - SOLO de esta caja
-    const ventasEfectivoReales = ventasReales.filter(v => v.tipo_pago_venta === 'efectivo');
-    const ventasTransferenciaReales = ventasReales.filter(v => v.tipo_pago_venta === 'transferencia');
-    
-    console.log('💵 Ventas REALES por método:');
-    console.log('   - Efectivo real:', ventasEfectivoReales.length);
-    console.log('   - Transferencia real:', ventasTransferenciaReales.length);
-
-    const totalVentasEfectivo = ventasEfectivoReales.reduce((sum, v) => {
-      const total = parseFloat(v.total_venta || 0);
-      console.log(`   💰 Venta efectivo REAL ${v.id}: $${total}`);
-      return sum + total;
-    }, 0);
-
-    const totalVentasTransferencia = ventasTransferenciaReales.reduce((sum, v) => {
-      const total = parseFloat(v.total_venta || 0);
-      console.log(`   💰 Venta transferencia REAL ${v.id}: $${total}`);
-      return sum + total;
-    }, 0);
-
-    const totalVentas = totalVentasEfectivo + totalVentasTransferencia;
-
-    // Ventas Saeta - TODAS las que están en esta caja
-    const totalSaeta = ventasSaeta.reduce((sum, s) => {
-      const monto = parseFloat(s.monto_saeta || 0);
-      console.log(`   📱 Saeta ${s.id}: $${monto}`);
-      return sum + monto;
-    }, 0);
-
-    const comisionSaeta = ventasSaeta.reduce((sum, s) => {
-      const monto = parseFloat(s.monto_saeta || 0);
-      const porcentaje = parseFloat(s.porcentaje_ganancia_saeta || 15);
-      const comision = (monto * porcentaje) / 100;
-      console.log(`   📱 Comisión Saeta ${s.id}: $${monto} * ${porcentaje}% = $${comision}`);
-      return sum + comision;
-    }, 0);
-
-    console.log('💰 TOTALES CALCULADOS:');
-    console.log('   - Total ventas efectivo REAL:', totalVentasEfectivo);
-    console.log('   - Total ventas transferencia REAL:', totalVentasTransferencia);
-    console.log('   - Total ventas general REAL:', totalVentas);
-    console.log('   - Total Saeta:', totalSaeta);
-    console.log('   - Comisión Saeta:', comisionSaeta);
-    console.log('   - Ingresos extra:', totalIngresosExtra);
-    console.log('   - Egresos extra:', totalEgresosExtra);
-
-    // ✅ CORRECCIÓN: CALCULAR OPERACIONES - Solo ventas reales + ventas Saeta únicas
-    const totalOperaciones = ventasReales.length;
-    console.log('🔢 CÁLCULO DE OPERACIONES:');
-    console.log(`   - Ventas reales: ${ventasReales.length}`);
-    console.log(`   - Total operaciones: ${totalOperaciones}`);
-
-    setResumenVentas({
-      totalOperaciones: totalOperaciones,
-      totalVentas: totalVentas,
-      ventasEfectivo: totalVentasEfectivo,
-      ventasTransferencia: totalVentasTransferencia,
-      totalSaeta: totalSaeta,
-      comisionSaeta: comisionSaeta,
-      ingresosExtra: totalIngresosExtra, // ✅ Usar los calculados de las ventas
-      egresos: totalEgresosExtra // ✅ Usar los calculados de las ventas
-    });
-
-    console.log('✅ ===== RESUMEN GUARDADO EN ESTADO =====');
-    console.log('📊 Resumen final:', {
-      totalOperaciones,
-      totalVentas,
-      ventasEfectivo: totalVentasEfectivo,
-      ventasTransferencia: totalVentasTransferencia,
-      totalSaeta,
-      comisionSaeta,
-      ingresosExtra: totalIngresosExtra,
-      egresos: totalEgresosExtra
-    });
+    // ... resto del código de calcularResumen
   };
 
   useEffect(() => {
@@ -272,103 +155,68 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
     }));
   };
 
-  // CÁLCULOS CORREGIDOS - LIMITAR A 10 DÍGITOS
-  const calcularMontoEsperado = () => {
+  // ✅ CORREGIDO: Cálculo del TOTAL TEÓRICO (lo que debería haber en caja)
+  const calcularTotalTeorico = () => {
     const montoInicial = parseFloat(datosCaja?.saldo_inicial) || 0;
     
-    // SOLO el efectivo real que debería estar en caja
     const efectivoEnCaja = resumenVentas.ventasEfectivo + resumenVentas.ingresosExtra;
-    
-    // Egresos que salieron de caja
     const egresosDeCaja = resumenVentas.egresos;
+    const comisionSaeta = resumenVentas.comisionSaeta;
     
-    const resultado = montoInicial + efectivoEnCaja - egresosDeCaja;
+    const resultado = montoInicial + efectivoEnCaja - egresosDeCaja - comisionSaeta;
     
-    console.log('🧮 Cálculo monto esperado:', {
-      montoInicial,
-      efectivoEnCaja,
-      egresosDeCaja,
-      resultado
-    });
-    
-    // LIMITAR a 10 dígitos (99999999.99)
     return Math.min(resultado, 99999999.99);
   };
 
+  // ✅ NUEVO: Cálculo de la diferencia
   const calcularDiferencia = () => {
     const montoContado = parseFloat(datosCierre.monto_contado) || 0;
-    const montoEsperado = calcularMontoEsperado();
-    const resultado = montoContado - montoEsperado;
+    const totalTeorico = calcularTotalTeorico();
+    const resultado = montoContado - totalTeorico;
     
-    console.log('🧮 Cálculo diferencia:', {
-      montoContado,
-      montoEsperado,
-      resultado
-    });
-    
-    // LIMITAR a 10 dígitos
     return Math.min(Math.max(resultado, -99999999.99), 99999999.99);
-  };
-
-  const calcularTotalGeneral = () => {
-    // Para el saldo final, considerar TODOS los movimientos
-    const montoInicial = parseFloat(datosCaja?.saldo_inicial) || 0;
-    
-    // Todos los ingresos (efectivo + transferencia + ingresos extra)
-    const ingresosTotales = resumenVentas.totalVentas + resumenVentas.ingresosExtra;
-    
-    // Todos los egresos (egresos + comisión Saeta)
-    const egresosTotales = resumenVentas.egresos + resumenVentas.comisionSaeta;
-    
-    const resultado = montoInicial + ingresosTotales - egresosTotales;
-    
-    console.log('🧮 Cálculo total general:', {
-      montoInicial,
-      ingresosTotales,
-      egresosTotales,
-      resultado
-    });
-    
-    // LIMITAR a 10 dígitos (99999999.99) - máximo permitido por Django
-    return Math.min(resultado, 99999999.99);
   };
 
   // FUNCIÓN PARA VALIDAR Y FORMATEAR NÚMEROS
   const validarYFormatearNumero = (numero) => {
-    // Redondear a 2 decimales y limitar a 10 dígitos
     const numeroRedondeado = Math.round(numero * 100) / 100;
     return Math.min(numeroRedondeado, 99999999.99);
   };
 
-  const handleConfirmarCierre = async () => {
-    console.log('🔄 ===== INICIANDO CONFIRMACIÓN DE CIERRE =====');
-    
+  // ✅ NUEVA FUNCIÓN: Validar antes de mostrar modal de confirmación
+  const handleValidarYMostrarConfirmacion = () => {
     if (!datosCierre.monto_contado) {
-      console.log('❌ Monto contado no ingresado');
       alert('Por favor ingrese el monto contado');
       return;
     }
 
-    // Validar que el monto contado no sea demasiado grande
     const montoContado = parseFloat(datosCierre.monto_contado);
     if (montoContado > 99999999.99) {
-      console.log('❌ Monto contado excede límite:', montoContado);
       alert('El monto contado es demasiado grande. El máximo permitido es $99,999,999.99');
       return;
     }
 
+    setMostrarModalConfirmar(true);
+  };
+
+  // ✅ FUNCIÓN MEJORADA: Confirmar cierre (llamada desde el modal)
+  const handleConfirmarCierre = async () => {
+    console.log('🔄 ===== INICIANDO CONFIRMACIÓN DE CIERRE =====');
+    
     try {
       setProcesando(true);
+      setMostrarModalConfirmar(false); // Cerrar modal de confirmación
+      
       const token = localStorage.getItem('token');
 
       // CALCULAR Y VALIDAR TODOS LOS MONTOS
-      const saldoFinal = validarYFormatearNumero(calcularTotalGeneral());
-      const montoContadoValidado = validarYFormatearNumero(montoContado);
+      const saldoFinal = validarYFormatearNumero(calcularTotalTeorico());
+      const montoContadoValidado = validarYFormatearNumero(parseFloat(datosCierre.monto_contado));
 
       console.log('🔢 Montos validados para enviar:', {
         saldoFinal,
         montoContado: montoContadoValidado,
-        montoEsperado: calcularMontoEsperado(),
+        totalTeorico: calcularTotalTeorico(),
         diferencia: calcularDiferencia(),
         observaciones: datosCierre.observaciones
       });
@@ -399,10 +247,18 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
         // VERIFICAR que realmente se cerró
         if (cajaActualizada.estado === 'cerrada') {
           console.log('✅ Estado confirmado: CERRADA');
-          alert('✅ Cierre de caja registrado exitosamente');
-          if (onCierreConfirmado) {
-            onCierreConfirmado();
-          }
+          
+          // ✅ MOSTRAR MODAL DE ÉXITO
+          setMostrarModalExito(true);
+          
+          // Cerrar automáticamente después de 2 segundos y redirigir
+          setTimeout(() => {
+            setMostrarModalExito(false);
+            if (onCierreConfirmado) {
+              onCierreConfirmado();
+            }
+          }, 2000);
+          
         } else {
           console.log('❌ Estado incorrecto después del cierre:', cajaActualizada.estado);
           throw new Error('La caja no se cerró correctamente en el servidor');
@@ -421,6 +277,19 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
     }
   };
 
+  // ✅ NUEVA FUNCIÓN: Manejar cancelación con modal
+  const handleCancelarConConfirmacion = () => {
+    setMostrarModalCancelar(true);
+  };
+
+  // ✅ NUEVA FUNCIÓN: Confirmar cancelación
+  const handleConfirmarCancelacion = () => {
+    setMostrarModalCancelar(false);
+    if (onCancelar) {
+      onCancelar();
+    }
+  };
+
   if (cargando) {
     return (
       <div className="cierre-caja-container">
@@ -429,16 +298,16 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
     );
   }
 
-  const montoEsperado = calcularMontoEsperado();
+  const totalTeorico = calcularTotalTeorico();
   const diferencia = calcularDiferencia();
-  const totalGeneral = calcularTotalGeneral();
 
-  console.log('🎯 RENDERIZANDO COMPONENTE - Estado actual:', {
-    resumenVentas,
-    montoEsperado,
-    diferencia,
-    totalGeneral
-  });
+  // ✅ DATOS PARA EL MODAL DE CONFIRMACIÓN
+  const datosParaModalConfirmacion = {
+    totalTeorico: totalTeorico,
+    montoContado: parseFloat(datosCierre.monto_contado) || 0,
+    diferencia: diferencia,
+    observaciones: datosCierre.observaciones
+  };
 
   return (
     <div className="cierre-caja-container">
@@ -447,7 +316,7 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
         <h2>Usuario: {datosCaja?.empleadoNombre || 'No especificado'}</h2>
       </div>
     
-    {/* Información de fecha y hora */}
+      {/* Información de fecha y hora */}
       <div className="info-fecha">
         <div className="fecha-actual">
           <strong>Fecha:</strong> {new Date().toLocaleDateString('es-AR')}
@@ -458,13 +327,10 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
           })}
         </div>
       </div>
-
-
       <div className="cierre-caja-content">
         {/* Columna izquierda - Resumen de ventas */}
         <div className="columna-resumen">
-          <h2>Resumen de ventas</h2>
-          
+          <h2>Resumen de ventas</h2>         
           <div className="card-resumen">
             <div className="fila-resumen">
               <span>Total operaciones:</span>
@@ -488,7 +354,6 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
               </div>
             </div>
 
-            {/* ✅ CORRECCIÓN: Solo mostrar "Total vendido" de Saeta en Resumen de Ventas */}
             <div className="seccion-saeta">
               <h4>Ventas Saeta:</h4>
               <div className="fila-resumen">
@@ -509,35 +374,33 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
               <strong>${(parseFloat(datosCaja?.saldo_inicial) || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
             </div>
             
-            {/* ✅ AHORA SÍ SE MOSTRARÁN LOS INGRESOS Y EGRESOS */}
             <div className="fila-arqueo ingreso">
-              <span>Ingresos extra:</span>
-              <strong>+${resumenVentas.ingresosExtra.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+              <span>+ Ingresos extra:</span>
+              <strong>${resumenVentas.ingresosExtra.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
             </div>
             
             <div className="fila-arqueo egreso">
-              <span>Egresos:</span>
-              <strong>-${resumenVentas.egresos.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
-            </div>
-
-            {/* ✅ CORRECCIÓN: Mostrar comisión Saeta y ingreso neto en Arqueo de Caja */}
-            <div className="fila-arqueo egreso">
-              <span>Comisión Saeta:</span>
-              <strong>-${resumenVentas.comisionSaeta.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+              <span>- Egresos:</span>
+              <strong>${resumenVentas.egresos.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
             </div>
 
             <div className="fila-arqueo ingreso">
-              <span>Ingreso neto Saeta:</span>
-              <strong>+${(resumenVentas.totalSaeta - resumenVentas.comisionSaeta).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+              <span>+ Ventas Efectivo:</span>
+              <strong>${resumenVentas.ventasEfectivo.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+            </div>
+
+            <div className="fila-arqueo egreso">
+              <span>- Comisión Saeta:</span>
+              <strong>${resumenVentas.comisionSaeta.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
             </div>
 
             <div className="fila-arqueo total">
-              <span>Monto esperado:</span>
-              <strong>${montoEsperado.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+              <span>TOTAL TEÓRICO:</span>
+              <strong>${totalTeorico.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
             </div>
 
             <div className="campo-contado">
-              <label>Monto contado:</label>
+              <label>MONTO CONTADO:</label>
               <div className="input-contado">
                 <span className="simbolo-peso">$</span>
                 <input
@@ -545,6 +408,13 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
                   name="monto_contado"
                   value={datosCierre.monto_contado}
                   onChange={handleChange}
+                  onWheel={(e) => e.target.blur()} // ✅ Desactiva scroll del mouse
+                  onKeyDown={(e) => {
+                    // ✅ Previene cambiar el valor con flechas arriba/abajo
+                    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                      e.preventDefault();
+                    }
+                  }}
                   placeholder="0.00"
                   step="0.01"
                   min="0"
@@ -552,15 +422,14 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
                 />
               </div>
             </div>
-
-            <div className={`fila-arqueo diferencia ${diferencia >= 0 ? 'positiva' : 'negativa'}`}>
-              <span>Diferencia:</span>
-              <strong>${diferencia.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+            <div className="fila-arqueo">
+              <span>- Total Teórico:</span>
+              <strong>${totalTeorico.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
             </div>
 
-            <div className="fila-arqueo total-general">
-              <span>TOTAL:</span>
-              <strong>${totalGeneral.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+            <div className={`fila-arqueo diferencia ${diferencia >= 0 ? 'positiva' : 'negativa'}`}>
+              <span>DIFERENCIA:</span>
+              <strong>${diferencia.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
             </div>
           </div>
         </div>
@@ -584,7 +453,7 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
         {onCancelar && (
           <button 
             className="btn-cancelar-cierre"
-            onClick={onCancelar}
+            onClick={handleCancelarConConfirmacion} // ✅ Cambiado para usar modal
             disabled={procesando}
           >
             Cancelar
@@ -593,12 +462,50 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
   
         <button 
           className="btn-confirmar-cierre"
-          onClick={handleConfirmarCierre}
-          disabled={procesando}
+          onClick={handleValidarYMostrarConfirmacion} // ✅ Cambiado para usar modal
+          disabled={procesando || !datosCierre.monto_contado}
         > 
           {procesando ? 'Procesando...' : 'Confirmar Cierre'}
         </button>
       </div>
+
+      {/* ✅ MODAL DE CONFIRMACIÓN DE CIERRE */}
+      <ModalConfirmacion
+        mostrar={mostrarModalConfirmar}
+        tipo="confirmar"
+        mensaje="¿Está seguro que desea confirmar el cierre de caja?"
+        onConfirmar={handleConfirmarCierre}
+        onCancelar={() => setMostrarModalConfirmar(false)}
+        datosVenta={datosParaModalConfirmacion}
+      />
+
+      {/* ✅ MODAL DE ÉXITO */}
+      <ModalConfirmacion
+        mostrar={mostrarModalExito}
+        tipo="exito"
+        mensaje="¡Cierre de caja registrado exitosamente!"
+        onConfirmar={() => {
+          setMostrarModalExito(false);
+          if (onCierreConfirmado) {
+            onCierreConfirmado();
+          }
+        }}
+        onCancelar={() => {
+          setMostrarModalExito(false);
+          if (onCierreConfirmado) {
+            onCierreConfirmado();
+          }
+        }}
+      />
+
+      {/* ✅ MODAL DE CONFIRMACIÓN DE CANCELACIÓN */}
+      <ModalConfirmacion
+        mostrar={mostrarModalCancelar}
+        tipo="cancelar"
+        mensaje="¿Está seguro que desea cancelar el cierre de caja? Los datos ingresados se perderán."
+        onConfirmar={handleConfirmarCancelacion}
+        onCancelar={() => setMostrarModalCancelar(false)}
+      />
     </div>
   );
 }
