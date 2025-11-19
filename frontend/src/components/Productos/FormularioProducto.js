@@ -1,26 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import ModalConfirmacion from './ModalConfirmacion';
 import './FormularioProducto.css';
+import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal';
+import { FaSave, FaTimes, FaBox, FaDollarSign, FaHashtag, FaClipboardList, FaEye, FaPlus, FaShoppingCart, FaCube } from 'react-icons/fa';
 
-function FormularioProducto({ modo, productoEditar, onCancelar, onGuardado }) {
-  const [form, setForm] = useState({
+function FormularioProducto({ modo = 'crear', producto = null, onGuardadoExitoso, onCancelar, onIrACompras }) {
+  const [formData, setFormData] = useState({
     nombre_prod: '',
     categoria_prod: '',
-    codigo_prod: '',
-    cantidad: '0',
-    stock_actual: '0',
-    precio_total: '',
     precio_venta: '',
     descripcion_prod: '',
-    fecha_entrada: '',
-    fecha_vencimiento: ''
+    codigo_prod: '',
+    cantidad: '0'
   });
-
-  const [mostrarModal, setMostrarModal] = useState(false);
+  
+  const [loading, setLoading] = useState(false);
   const [errores, setErrores] = useState({});
-  const [guardando, setGuardando] = useState(false);
-  const [mostrarModalExito, setMostrarModalExito] = useState(false);
+  const [mostrarModalConfirmacion, setMostrarModalConfirmacion] = useState(false);
+  const [modalConfig, setModalConfig] = useState({});
 
   const categorias = [
     'Bebidas', 'Lácteos', 'Golosinas', 'Limpieza', 'Verduras', 
@@ -28,356 +25,414 @@ function FormularioProducto({ modo, productoEditar, onCancelar, onGuardado }) {
     'Electrodomésticos', 'Papelería', 'Otros'
   ];
 
-  const generarCodigoAutomatico = () => {
-    const random = Math.floor(Math.random() * 1000000);
-    return `PROD-${String(random).padStart(6, '0')}`;
-  };
-
-  const obtenerFechaActual = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
   useEffect(() => {
-    if (modo === 'crear') {
-      setForm({
-        nombre_prod: '',
-        categoria_prod: '',
-        codigo_prod: generarCodigoAutomatico(),
-        cantidad: '0',
-        stock_actual: '0',
-        precio_total: '',
-        precio_venta: '',
-        descripcion_prod: '',
-        fecha_entrada: obtenerFechaActual(),
-        fecha_vencimiento: ''
+    if (modo === 'editar' && producto && producto.id) {
+      console.log('📝 Cargando datos del producto para edición:', producto);
+      setFormData({
+        nombre_prod: producto.nombre_prod || '',
+        categoria_prod: producto.categoria_prod || '',
+        precio_venta: producto.precio_venta || '',
+        descripcion_prod: producto.descripcion_prod || '',
+        codigo_prod: producto.codigo_prod || '',
+        cantidad: producto.cantidad || '0'
       });
-    } else if (modo === 'editar' && productoEditar) {
-      setForm({
-        nombre_prod: productoEditar.nombre_prod || '',
-        categoria_prod: productoEditar.categoria_prod || '',
-        codigo_prod: productoEditar.codigo_prod || '',
-        cantidad: productoEditar.cantidad?.toString() || '0',
-        stock_actual: productoEditar.stock_actual?.toString() || '0',
-        precio_total: productoEditar.precio_total || '',
-        precio_venta: productoEditar.precio_venta || '',
-        descripcion_prod: productoEditar.descripcion_prod || '',
-        fecha_entrada: productoEditar.fecha_entrada || obtenerFechaActual(),
-        fecha_vencimiento: productoEditar.fecha_vencimiento || ''
-      });
+    } else if (modo === 'crear') {
+      generarCodigoAutomatico();
     }
-  }, [modo, productoEditar]);
+  }, [modo, producto]);
+
+  const generarCodigoAutomatico = () => {
+    const prefijo = 'PROD';
+    const timestamp = Date.now().toString().slice(-4);
+    const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+    const codigo = `${prefijo}-${timestamp}${random}`;
+    
+    setFormData(prev => ({
+      ...prev,
+      codigo_prod: codigo,
+      cantidad: '0'
+    }));
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
-    // Sincronizar cantidad y stock_actual al crear
-    if (name === 'cantidad' && modo === 'crear') {
-      setForm({ 
-        ...form, 
-        [name]: value,
-        stock_actual: value
-      });
-    } else if (name === 'stock_actual' && modo === 'editar') {
-      setForm({ 
-        ...form, 
-        [name]: value
-      });
-    } else {
-      setForm({ ...form, [name]: value });
-    }
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
     
     if (errores[name]) {
-      setErrores(prev => ({ ...prev, [name]: '' }));
+      setErrores(prev => ({
+        ...prev,
+        [name]: ''
+      }));
     }
   };
 
-  const validarFormulario = () => {
+  const validarProductoExistente = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:8000/api/productos/', {
+        headers: { Authorization: `Token ${token}` }
+      });
+      
+      const productos = response.data;
+      const productoExistente = productos.find(prod => 
+        prod.nombre_prod.toLowerCase().trim() === formData.nombre_prod.toLowerCase().trim() &&
+        prod.id !== (producto?.id || null)
+      );
+      
+      return productoExistente;
+    } catch (error) {
+      console.error('Error al validar producto existente:', error);
+      return null;
+    }
+  };
+
+  const validarFormulario = async () => {
     const nuevosErrores = {};
 
-    if (!form.nombre_prod.trim()) {
-      nuevosErrores.nombre_prod = 'El nombre es obligatorio';
+    if (!formData.nombre_prod.trim()) {
+      nuevosErrores.nombre_prod = 'El nombre del producto es obligatorio';
+    } else if (formData.nombre_prod.length < 2) {
+      nuevosErrores.nombre_prod = 'El nombre debe tener al menos 2 caracteres';
+    } else if (modo === 'crear') {
+      const productoExistente = await validarProductoExistente();
+      if (productoExistente) {
+        nuevosErrores.nombre_prod = 'Ya existe un producto con este nombre';
+      }
     }
 
-    if (!form.categoria_prod.trim()) {
+    if (!formData.categoria_prod) {
       nuevosErrores.categoria_prod = 'La categoría es obligatoria';
     }
 
-    if (!form.codigo_prod.trim()) {
-      nuevosErrores.codigo_prod = 'El código es obligatorio';
+    if (!formData.precio_venta) {
+      nuevosErrores.precio_venta = 'El precio de venta es obligatorio';
+    } else if (parseFloat(formData.precio_venta) <= 0) {
+      nuevosErrores.precio_venta = 'El precio debe ser mayor a 0';
     }
 
-    if (form.cantidad === '' || form.cantidad < 0) {
-      nuevosErrores.cantidad = 'La cantidad debe ser un número positivo';
+    if (!formData.codigo_prod.trim()) {
+      nuevosErrores.codigo_prod = 'El código del producto es obligatorio';
     }
 
-    if (form.stock_actual === '' || form.stock_actual < 0) {
-      nuevosErrores.stock_actual = 'El stock actual debe ser un número positivo';
-    }
-
-    if (!form.precio_total || form.precio_total < 0) {
-      nuevosErrores.precio_total = 'El precio total debe ser un número positivo';
-    }
-
-    if (!form.precio_venta || form.precio_venta < 0) {
-      nuevosErrores.precio_venta = 'El precio de venta debe ser un número positivo';
+    if (!formData.cantidad && formData.cantidad !== '0') {
+      nuevosErrores.cantidad = 'La cantidad es obligatoria';
+    } else if (parseInt(formData.cantidad) < 0) {
+      nuevosErrores.cantidad = 'La cantidad no puede ser negativa';
     }
 
     setErrores(nuevosErrores);
     return Object.keys(nuevosErrores).length === 0;
   };
 
-  const handleGuardar = async () => {
-    if (!validarFormulario()) {
-      return;
-    }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    const esValido = await validarFormulario();
+    if (!esValido) return;
 
-    setGuardando(true);
+    const configModal = {
+      tipo: 'confirmar',
+      modo: 'producto',
+      mensaje: modo === 'crear' 
+        ? `¿Está seguro que desea crear el producto "${formData.nombre_prod}"?` 
+        : `¿Está seguro que desea actualizar el producto "${formData.nombre_prod}"?`,
+      datosAdicionales: {
+        modo: modo,
+        ...formData
+      },
+      mostrarResumen: true
+    };
+
+    setModalConfig(configModal);
+    setMostrarModalConfirmacion(true);
+  };
+
+  // ✅ FUNCIÓN CORREGIDA: Redirigir a lista de productos después de guardar
+  const confirmarGuardado = async () => {
+    setLoading(true);
+    setMostrarModalConfirmacion(false);
+
     try {
       const token = localStorage.getItem('token');
-      
-      const datosEnviar = {
-        nombre_prod: form.nombre_prod.trim(),
-        categoria_prod: form.categoria_prod,
-        codigo_prod: form.codigo_prod.trim(),
-        cantidad: parseInt(form.cantidad) || 0,
-        stock_actual: parseInt(form.stock_actual) || 0,
-        precio_total: parseFloat(form.precio_total) || 0,
-        precio_venta: parseFloat(form.precio_venta) || 0,
-        descripcion_prod: form.descripcion_prod.trim() || '',
-        fecha_entrada: form.fecha_entrada || obtenerFechaActual(),
-        fecha_vencimiento: form.fecha_vencimiento || null
+      const dataEnvio = {
+        ...formData,
+        precio_venta: parseFloat(formData.precio_venta),
+        cantidad: parseInt(formData.cantidad) || 0,
+        stock_minimo: 5
       };
-
-      console.log('Enviando datos:', datosEnviar);
 
       let response;
       if (modo === 'crear') {
-        response = await axios.post('http://localhost:8000/api/productos/', datosEnviar, {
-          headers: { 
-            'Authorization': `Token ${token}`,
-            'Content-Type': 'application/json'
-          }
+        response = await axios.post('http://localhost:8000/api/productos/', dataEnvio, {
+          headers: { Authorization: `Token ${token}` }
         });
       } else {
-        response = await axios.put(`http://localhost:8000/api/productos/${productoEditar.id}/`, datosEnviar, {
-          headers: { 
-            'Authorization': `Token ${token}`,
-            'Content-Type': 'application/json'
-          }
+        if (!producto || !producto.id) {
+          throw new Error('No se pudo identificar el producto a editar');
+        }
+        
+        response = await axios.put(`http://localhost:8000/api/productos/${producto.id}/`, dataEnvio, {
+          headers: { Authorization: `Token ${token}` }
         });
       }
+
+      const productoCompleto = response.data;
       
-      console.log('Respuesta del servidor:', response.data);
-      setMostrarModalExito(true);
-      
+      // ✅ MOSTRAR MODAL DE ÉXITO Y LUEGO REDIRIGIR
+      setModalConfig({
+        tipo: 'exito',
+        modo: 'producto',
+        mensaje: modo === 'crear' 
+          ? '✅ Producto creado correctamente. Redirigiendo a lista de productos...' 
+          : '✅ Producto actualizado correctamente. Redirigiendo a lista de productos...',
+        datosAdicionales: {
+          nombre: formData.nombre_prod,
+          codigo: formData.codigo_prod,
+          categoria: formData.categoria_prod,
+          cantidad: formData.cantidad
+        },
+        mostrarResumen: true,
+        // ✅ CALLBACK PARA REDIRIGIR CUANDO SE CIERRE EL MODAL
+        onConfirmar: () => {
+          console.log('✅ Redirigiendo a lista de productos...');
+          setMostrarModalConfirmacion(false);
+          if (onGuardadoExitoso) {
+            onGuardadoExitoso(productoCompleto);
+          }
+        },
+        onCancelar: () => {
+          console.log('✅ Redirigiendo a lista de productos...');
+          setMostrarModalConfirmacion(false);
+          if (onGuardadoExitoso) {
+            onGuardadoExitoso(productoCompleto);
+          }
+        }
+      });
+
+      setMostrarModalConfirmacion(true);
+
     } catch (error) {
       console.error('Error al guardar producto:', error);
-      console.error('Detalles del error:', error.response?.data);
       
-      if (error.response?.data) {
+      let mensajeError = 'Error de conexión. Intente nuevamente.';
+      
+      if (error.response && error.response.data) {
         const erroresServidor = error.response.data;
-        const erroresTraducidos = {};
         
-        Object.keys(erroresServidor).forEach(key => {
-          erroresTraducidos[key] = `Error en ${key}: ${erroresServidor[key]}`;
-        });
-        
-        setErrores(erroresTraducidos);
-        alert('Error al guardar: ' + Object.values(erroresTraducidos).join(', '));
-      } else {
-        alert('Error de conexión');
+        if (erroresServidor.codigo_prod) {
+          mensajeError = 'El código del producto ya existe. Por favor, use otro código.';
+        } else if (erroresServidor.nombre_prod) {
+          mensajeError = 'Ya existe un producto con este nombre.';
+        } else {
+          const primerError = Object.values(erroresServidor)[0];
+          mensajeError = Array.isArray(primerError) ? primerError[0] : 'Error al guardar el producto.';
+        }
       }
+
+      setModalConfig({
+        tipo: 'error',
+        modo: 'producto',
+        mensaje: `❌ ${mensajeError}`,
+        onConfirmar: () => setMostrarModalConfirmacion(false),
+        onCancelar: () => setMostrarModalConfirmacion(false)
+      });
+      setMostrarModalConfirmacion(true);
     } finally {
-      setGuardando(false);
-      setMostrarModal(false);
+      setLoading(false);
     }
   };
 
-  const handleConfirmarExito = () => {
-    setMostrarModalExito(false);
-    onGuardado();
+  const handleCancelarGuardado = () => {
+    setMostrarModalConfirmacion(false);
+  };
+
+  // ✅ ELIMINAR handleCerrarModalExito ya que se maneja en los callbacks del modal
+
+  const handleIrACompras = () => {
+    if (onIrACompras && producto) {
+      onIrACompras(producto);
+    }
+  };
+
+  const renderResumenProducto = () => {
+    return (
+      <div className="resumen-producto-modal">
+        <h4>Resumen del Producto:</h4>
+        <div className="detalle-resumen">
+          <p><strong>Nombre:</strong> {formData.nombre_prod}</p>
+          <p><strong>Código:</strong> {formData.codigo_prod}</p>
+          <p><strong>Categoría:</strong> {formData.categoria_prod}</p>
+          <p><strong>Precio de Venta:</strong> ${parseFloat(formData.precio_venta || 0).toFixed(2)}</p>
+          <p><strong>Cantidad Inicial:</strong> {formData.cantidad} unidades</p>
+          {formData.descripcion_prod && (
+            <p><strong>Descripción:</strong> {formData.descripcion_prod}</p>
+          )}
+        </div>
+      </div>
+    );
   };
 
   return (
-    <div className="formulario-container">
-      <h2>{modo === 'crear' ? 'Agregar Producto' : 'Editar Producto'}</h2>
-      <p>Complete los siguientes datos para {modo === 'crear' ? 'registrar un producto nuevo' : 'editar el producto seleccionado'}.</p>
+    <div className="formulario-producto-container">
+      <div className="formulario-producto-header">
+        <h2>
+          {modo === 'crear' ? 'Crear Producto' : 'Editar Producto'}
+        </h2>
+        <button 
+          className="btn-cerrar-formulario"
+          onClick={onCancelar}
+          disabled={loading}
+        >
+          <FaTimes />
+        </button>
+      </div>
 
-      <form className="formulario-producto" onSubmit={(e) => e.preventDefault()}>
-        <div className="form-grid">
-          <div className="campo-form">
-            <label>Producto *</label>
-            <input 
-              name="nombre_prod" 
-              placeholder="Ej: Oreo, Leche Nido, Pepsi" 
-              value={form.nombre_prod} 
-              onChange={handleChange}
-              className={errores.nombre_prod ? 'error' : ''}
-            />
-            {errores.nombre_prod && <span className="mensaje-error">{errores.nombre_prod}</span>}
+      <form onSubmit={handleSubmit} className="formulario-producto">
+        <div className="seccion-formulario">
+          <h3 className="titulo-seccion">
+            Información del Producto
+          </h3>
+          
+          <div className="campos-grid">
+            <div className={`campo-formulario ${errores.codigo_prod ? 'campo-error' : ''}`}>
+              <label htmlFor="codigo_prod">
+                <FaHashtag /> Código del Producto *
+              </label>
+              <div className="campo-codigo-automatico">
+                <input
+                  type="text"
+                  id="codigo_prod"
+                  name="codigo_prod"
+                  value={formData.codigo_prod}
+                  onChange={handleChange}
+                  placeholder="Se generará automáticamente"
+                  disabled={loading || modo === 'editar'}
+                  className="input-codigo"
+                />
+              </div>
+              {errores.codigo_prod && <span className="mensaje-error">{errores.codigo_prod}</span>}
+            </div>
+
+            <div className={`campo-formulario ${errores.categoria_prod ? 'campo-error' : ''}`}>
+              <label htmlFor="categoria_prod">
+                <FaClipboardList /> Categoría *
+              </label>
+              <select
+                id="categoria_prod"
+                name="categoria_prod"
+                value={formData.categoria_prod}
+                onChange={handleChange}
+                disabled={loading}
+              >
+                <option value="">Seleccionar categoría</option>
+                {categorias.map(categoria => (
+                  <option key={categoria} value={categoria}>{categoria}</option>
+                ))}
+              </select>
+              {errores.categoria_prod && <span className="mensaje-error">{errores.categoria_prod}</span>}
+            </div>
           </div>
 
-          <div className="campo-form">
-            <label>Categoría *</label>
-            <select 
-              name="categoria_prod" 
-              value={form.categoria_prod} 
-              onChange={handleChange}
-              className={errores.categoria_prod ? 'error' : ''}
-            >
-              <option value="">Seleccionar categoría</option>
-              {categorias.map(categoria => (
-                <option key={categoria} value={categoria}>{categoria}</option>
-              ))}
-            </select>
-            {errores.categoria_prod && <span className="mensaje-error">{errores.categoria_prod}</span>}
-          </div>
+          <div className="campos-grid">
+            <div className={`campo-formulario ${errores.nombre_prod ? 'campo-error' : ''}`}>
+              <label htmlFor="nombre_prod">
+                <FaBox /> Nombre del Producto *
+              </label>
+              <input
+                type="text"
+                id="nombre_prod"
+                name="nombre_prod"
+                value={formData.nombre_prod}
+                onChange={handleChange}
+                placeholder="Ej: Leche Entera 1L"
+                disabled={loading}
+              />
+              {errores.nombre_prod && <span className="mensaje-error">{errores.nombre_prod}</span>}
+            </div>
 
-          <div className="campo-form">
-            <label>Código *</label>
-            <input 
-              name="codigo_prod" 
-              placeholder="Ej: PROD-055367" 
-              value={form.codigo_prod} 
-              onChange={handleChange}
-              className={errores.codigo_prod ? 'error' : ''}
-            />
-            {errores.codigo_prod && <span className="mensaje-error">{errores.codigo_prod}</span>}
-          </div>
-
-          {/* CANTIDAD INICIAL (solo al crear) */}
-          {modo === 'crear' && (
-            <div className="campo-form">
-              <label>Cantidad *</label>
-              <input 
-                name="cantidad" 
+            <div className={`campo-formulario ${errores.precio_venta ? 'campo-error' : ''}`}>
+              <label htmlFor="precio_venta">
+                <FaDollarSign /> Precio de Venta *
+              </label>
+              <input
                 type="number"
+                id="precio_venta"
+                name="precio_venta"
+                value={formData.precio_venta}
+                onChange={handleChange}
+                step="0.01"
+                min="0.01"
+                placeholder="0.00"
+                disabled={loading}
+              />
+              {errores.precio_venta && <span className="mensaje-error">{errores.precio_venta}</span>}
+            </div>
+          </div>
+
+          <div className="campos-grid">
+            <div className={`campo-formulario ${errores.cantidad ? 'campo-error' : ''}`}>
+              <label htmlFor="cantidad">
+                <FaCube /> Cantidad Inicial *
+              </label>
+              <input
+                type="number"
+                id="cantidad"
+                name="cantidad"
+                value={formData.cantidad}
+                onChange={handleChange}
                 min="0"
                 step="1"
-                placeholder="0" 
-                value={form.cantidad} 
-                onChange={handleChange}
-                className={errores.cantidad ? 'error' : ''}
+                placeholder="0"
+                disabled={loading || modo === 'editar'}
               />
               {errores.cantidad && <span className="mensaje-error">{errores.cantidad}</span>}
             </div>
-          )}
 
-          {/* STOCK ACTUAL (solo al editar) */}
-          {modo === 'editar' && (
-            <div className="campo-form">
-              <label>Stock Actual *</label>
-              <input 
-                name="stock_actual" 
-                type="number"
-                min="0"
-                step="1"
-                placeholder="0" 
-                value={form.stock_actual} 
-                onChange={handleChange}
-                className={errores.stock_actual ? 'error' : ''}
-              />
-              {errores.stock_actual && <span className="mensaje-error">{errores.stock_actual}</span>}
+            <div className="campo-formulario">
+              {/* Espacio para mantener el grid balanceado */}
             </div>
-          )}
-        </div>
-
-        <div className="form-grid">
-          <div className="campo-form">
-            <label>Precio Total *</label>
-            <input 
-              name="precio_total" 
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="0.00" 
-              value={form.precio_total} 
-              onChange={handleChange}
-              className={errores.precio_total ? 'error' : ''}
-            />
-            {errores.precio_total && <span className="mensaje-error">{errores.precio_total}</span>}
           </div>
 
-          <div className="campo-form">
-            <label>Precio Venta *</label>
-            <input 
-              name="precio_venta" 
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="0.00" 
-              value={form.precio_venta} 
+          <div className={`campo-formulario ${errores.descripcion_prod ? 'campo-error' : ''}`}>
+            <label htmlFor="descripcion_prod">
+              <FaClipboardList /> Descripción (Opcional)
+            </label>
+            <textarea
+              id="descripcion_prod"
+              name="descripcion_prod"
+              value={formData.descripcion_prod}
               onChange={handleChange}
-              className={errores.precio_venta ? 'error' : ''}
+              placeholder="Descripción detallada del producto..."
+              rows="3"
+              disabled={loading}
             />
-            {errores.precio_venta && <span className="mensaje-error">{errores.precio_venta}</span>}
-          </div>
-
-          <div className="campo-form">
-            <label>Fecha Entrada *</label>
-            <input 
-              name="fecha_entrada" 
-              type="date"
-              value={form.fecha_entrada} 
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="campo-form">
-            <label>Fecha Vencimiento</label>
-            <input 
-              name="fecha_vencimiento" 
-              type="date"
-              value={form.fecha_vencimiento} 
-              onChange={handleChange}
-            />
+            {errores.descripcion_prod && <span className="mensaje-error">{errores.descripcion_prod}</span>}
           </div>
         </div>
 
-        <div className="campo-form campo-completo">
-          <label>Descripción</label>
-          <textarea 
-            name="descripcion_prod" 
-            placeholder="Descripción del producto..." 
-            value={form.descripcion_prod} 
-            onChange={handleChange}
-            rows="3"
-          ></textarea>
-        </div>
-
-        <div className="botones-form">
-          <button 
-            type="button" 
-            className="btn-guardar" 
-            onClick={() => setMostrarModal(true)}
-            disabled={guardando}
-          >
-            {guardando ? 'Guardando...' : (modo === 'crear' ? 'Agregar Producto' : 'Guardar Cambios')}
+        <div className="formulario-acciones">
+          <button type="button" className="btn-cancelar" onClick={onCancelar} disabled={loading}>
+            <FaTimes /> Cancelar
           </button>
-          <button type="button" className="btn-cancelar" onClick={onCancelar}>
-            Cancelar
+          <button type="submit" className="btn-guardar" disabled={loading}>
+            <FaSave />
+            {loading ? 'Guardando...' : (modo === 'crear' ? 'Crear Producto' : 'Actualizar Producto')}
           </button>
         </div>
       </form>
 
-      <ModalConfirmacion
-        mostrar={mostrarModal}
-        tipo="confirmar"
-        mensaje={`¿Está seguro que desea ${modo === 'crear' ? 'agregar' : 'editar'} este producto?`}
-        onCancelar={() => setMostrarModal(false)}
-        onConfirmar={handleGuardar}
-      />
-
-      <ModalConfirmacion
-        mostrar={mostrarModalExito}
-        tipo="exito"
-        mensaje={`Producto ${modo === 'crear' ? 'creado' : 'actualizado'} correctamente`}
-        onCancelar={handleConfirmarExito}
-        onConfirmar={handleConfirmarExito}
+      <ModalConfirmacionUniversal
+        mostrar={mostrarModalConfirmacion}
+        tipo={modalConfig.tipo}
+        modo={modalConfig.modo}
+        mensaje={modalConfig.mensaje}
+        datosAdicionales={modalConfig.datosAdicionales}
+        mostrarResumen={modalConfig.mostrarResumen}
+        onConfirmar={modalConfig.tipo === 'confirmar' ? confirmarGuardado : (modalConfig.onConfirmar || (() => setMostrarModalConfirmacion(false)))}
+        onCancelar={modalConfig.tipo === 'confirmar' ? handleCancelarGuardado : (modalConfig.onCancelar || (() => setMostrarModalConfirmacion(false)))}
       />
     </div>
   );

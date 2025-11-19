@@ -205,12 +205,15 @@ function Dashboard({ usuario, onCerrarSesion }) {
               modo={modoFormularioCompra}
               compraEditar={compraEditando}
               onCancelar={() => {
+                console.log('❌ Cancelando compra, volviendo a lista...');
                 setVistaCompras('lista');
                 setCompraEditando(null);
               }}
               onGuardado={() => {
+                console.log('✅ Compra guardada exitosamente, volviendo a lista...');
                 setVistaCompras('lista');
                 setCompraEditando(null);
+                // También puedes recargar los datos si es necesario
               }}
             />
           );
@@ -218,6 +221,7 @@ function Dashboard({ usuario, onCerrarSesion }) {
         return (
           <Compras 
             onNavegarAFormulario={(modo, compra) => {
+              console.log('📝 Navegando a formulario de compra:', modo);
               setModoFormularioCompra(modo);
               setCompraEditando(compra);
               setVistaCompras('formulario');
@@ -230,13 +234,19 @@ function Dashboard({ usuario, onCerrarSesion }) {
           return (
             <FormularioProducto 
               modo={modoFormulario}
-              productoEditar={productoEditando}
-              onCancelar={() => setVistaProductos('lista')}
-              onGuardado={() => {
+              producto={productoEditando}
+              onCancelar={() => {
+                console.log('❌ Cancelando producto, volviendo a lista...');
                 setVistaProductos('lista');
                 setProductoEditando(null);
               }}
-              mostrarProveedores={true} 
+              onGuardadoExitoso={() => {
+                console.log('✅ Producto guardado exitosamente, volviendo a lista...');
+                setVistaProductos('lista');
+                setProductoEditando(null);
+                // ✅ OPCIONAL: Recargar los productos si es necesario
+                // Puedes agregar lógica aquí para refrescar la lista
+              }}
             />
           );
         }

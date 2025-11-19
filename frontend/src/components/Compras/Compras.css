@@ -44,8 +44,8 @@
 }
 
 .btn-agregar {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: rgb(217, 173, 70);
+  color: rgb(19, 15, 15);
   border: none;
   padding: 10px 20px;
   border-radius: 6px;

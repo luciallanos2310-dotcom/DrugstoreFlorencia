@@ -1,483 +1,345 @@
-/* FormularioProducto.css - VERSIÓN CORREGIDA */
-.formulario-productos-container {
-  width: 100%;
-  margin: 0;
-  background-color: white;
-  padding: 15px;
-  text-align: left;
-  height: 100vh;
-  overflow-y: auto;
-}
-
-.formulario-header {
-  margin-bottom: 15px;
-  text-align: left;
+/* FormularioProducto.css */
+.formulario-producto-container {
   background: white;
-  padding: 10px 0;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin: 0 auto;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow-y: auto; /* Scroll vertical */
+  flex: 1; /* Ocupa el espacio restante */
+  max-height: 100%; 
 }
 
-.formulario-header h2 {
-  color: #2c3e50;
-  margin-bottom: 5px;
-  font-size: 1.2rem;
-  font-weight: 600;
+.formulario-producto-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  color: rgb(0, 0, 0);
 }
 
-.formulario-header p {
-  color: #6c757d;
+.formulario-producto-header h2 {
   margin: 0;
-  font-size: 0.8rem;
-  line-height: 1.3;
+  font-size: 24px;
+  font-weight: 500;
 }
 
-.formulario-content {
-  width: 100%;
+.btn-cerrar-formulario {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  padding: 8px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.btn-cerrar-formulario:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.btn-cerrar-formulario:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mensaje-exito-formulario {
+  background: #d4edda;
+  color: #155724;
+  padding: 12px 20px;
+  border-bottom: 1px solid #c3e6cb;
+  font-weight: 500;
+}
+
+.mensaje-error-formulario {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 12px 20px;
+  border-bottom: 1px solid #f5c6cb;
 }
 
 .formulario-producto {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  padding-bottom: 20px;
-}
-
-/* Secciones */
-.seccion-producto,
-.seccion-stock-precios,
-.seccion-fechas,
-.seccion-proveedores,
-.seccion-descripcion {
   padding: 0;
 }
 
-.seccion-producto h3,
-.seccion-stock-precios h3,
-.seccion-fechas h3,
-.seccion-proveedores h3,
-.seccion-descripcion h3 {
-  margin: 0 0 10px 0;
-  color: #2c3e50;
-  font-size: 1rem;
-  font-weight: 600;
+.seccion-formulario {
+  padding: 25px;
+  border-bottom: 1px solid #e9ecef;
 }
 
-/* Opciones de tipo de producto compactas */
-.tipo-producto-opciones {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
+.seccion-formulario:last-child {
+  border-bottom: none;
 }
 
-.opcion-tipo {
+.seccion-lectura {
+  background: #f8f9fa;
+}
+
+.seccion-info {
+  background: #e3f2fd;
+}
+
+.titulo-seccion {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 6px 12px;
-  border: 1px solid #e0e0e0;
-  border-radius: 3px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  background: white;
-  font-weight: 500;
-  font-size: 0.8rem;
+  gap: 10px;
+  margin-bottom: 20px;
+  color: #495057;
+  font-size: 1.2em;
 }
 
-.opcion-tipo.activa {
-  border-color: #007e7e;
-  background: #f0f9f9;
-  color: #007e7e;
+.icono-seccion {
+  color: #667eea;
 }
 
-.opcion-tipo input {
-  margin: 0;
-  transform: scale(0.8);
-}
-
-/* Form grid compacto */
-.form-grid {
+.campos-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 20px;
+  margin-bottom: 20px;
 }
 
-.campo-form {
+@media (max-width: 768px) {
+  .campos-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.campo-formulario {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
 }
 
-.campo-completo {
-  grid-column: 1 / -1;
-}
-
-.campo-form label {
+.campo-formulario label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-weight: 600;
-  color: #333;
-  font-size: 0.75rem;
+  color: #495057;
+  margin-bottom: 5px;
 }
 
-.campo-form label::after {
-  content: " *";
-  color: #dc3545;
+.icono-campo {
+  color: #6c757d;
+  font-size: 0.9em;
 }
 
-.campo-form label:has(+ input:not([required]))::after,
-.campo-form label:has(+ select:not([required]))::after,
-.campo-form label:has(+ textarea:not([required]))::after {
-  content: "";
-}
-
-.campo-form input,
-.campo-form select,
-.campo-form textarea {
-  padding: 8px;
-  border: 1px solid #e0e0e0;
-  border-radius: 3px;
-  font-size: 0.8rem;
-  transition: all 0.3s ease;
+.campo-formulario input,
+.campo-formulario select,
+.campo-formulario textarea {
+  padding: 12px;
+  border: 2px solid #e9ecef;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: all 0.3s;
   background: white;
-  width: 100%;
-  height: 32px;
 }
 
-.campo-form textarea {
-  height: auto;
-  min-height: 60px;
-}
-
-.campo-form input:focus,
-.campo-form select:focus,
-.campo-form textarea:focus {
+.campo-formulario input:focus,
+.campo-formulario select:focus,
+.campo-formulario textarea:focus {
   outline: none;
-  border-color: #007e7e;
-  box-shadow: 0 0 0 1px rgba(0, 126, 126, 0.1);
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
-.campo-form input.error,
-.campo-form select.error,
-.campo-form textarea.error {
-  border-color: #dc3545;
-  box-shadow: 0 0 0 1px rgba(220, 53, 69, 0.1);
+.campo-formulario input:disabled,
+.campo-formulario select:disabled,
+.campo-formulario textarea:disabled {
+  background-color: #f8f9fa;
+  cursor: not-allowed;
+}
+
+.campo-formulario.campo-error input,
+.campo-formulario.campo-error select,
+.campo-formulario.campo-error textarea {
+  border-color: #e74c3c;
+}
+
+.campo-formulario.campo-error input:focus,
+.campo-formulario.campo-error select:focus,
+.campo-formulario.campo-error textarea:focus {
+  border-color: #e74c3c;
+  box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
 }
 
 .mensaje-error {
-  color: #dc3545;
-  font-size: 0.7rem;
-  margin-top: 1px;
-  display: block;
-}
-
-/* Buscadores compactos */
-.buscador-proveedores-container {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.input-busqueda-container {
-  position: relative;
-}
-
-.input-busqueda {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #e0e0e0;
-  border-radius: 3px;
-  font-size: 0.8rem;
-  height: 32px;
-}
-
-.input-busqueda:focus {
-  outline: none;
-  border-color: #007e7e;
-}
-
-/* Dropdown de proveedores */
-.dropdown-proveedores {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: white;
-  border: 1px solid #e0e0e0;
-  border-top: none;
-  border-radius: 0 0 3px 3px;
-  max-height: 150px;
-  overflow-y: auto;
-  z-index: 1000;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.dropdown-item {
-  padding: 6px 8px;
-  cursor: pointer;
-  border-bottom: 1px solid #f0f0f0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: background-color 0.2s ease;
-  font-size: 0.75rem;
-}
-
-.dropdown-item:hover {
-  background-color: #f8f9fa;
-}
-
-.dropdown-item.selected {
-  background-color: #e8f5e8;
-}
-
-.dropdown-item.no-results {
-  color: #6c757d;
-  cursor: default;
-  font-style: italic;
-}
-
-.dropdown-item.no-results:hover {
-  background-color: white;
-}
-
-.checkbox-dropdown {
-  width: 12px;
-  height: 12px;
-  margin: 0;
-}
-
-.proveedor-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.proveedor-nombre {
-  font-weight: 600;
-  color: #333;
-  font-size: 0.75rem;
-}
-
-.proveedor-rubro {
-  font-size: 0.65rem;
-  color: #6c757d;
-}
-
-/* Proveedores seleccionados */
-.proveedores-seleccionados {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 6px;
-}
-
-.tag-proveedor {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: #e8f5e8;
-  color: #2c3e50;
-  padding: 3px 8px;
-  border-radius: 12px;
-  font-size: 0.7rem;
+  color: #e74c3c;
+  font-size: 12px;
   font-weight: 500;
 }
 
-.btn-quitar {
-  background: none;
-  border: none;
-  color: #dc3545;
-  cursor: pointer;
-  font-size: 0.9rem;
-  padding: 0;
-  width: 16px;
-  height: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: background-color 0.2s ease;
-}
-
-.btn-quitar:hover {
-  background-color: rgba(220, 53, 69, 0.1);
-}
-
-.sin-proveedores {
-  color: #6c757d;
-  font-style: italic;
-  padding: 8px;
-  text-align: center;
-  background: #f8f9fa;
-  border-radius: 3px;
-  font-size: 0.75rem;
-}
-
-/* Input de precio compacto */
-.input-precio {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.simbolo-peso {
-  position: absolute;
-  left: 8px;
-  color: #6c757d;
-  font-weight: 600;
-  z-index: 1;
-  font-size: 0.8rem;
-}
-
-.input-precio input {
-  padding-left: 20px;
-  width: 100%;
-}
-
-/* Checkbox personalizado */
-.checkbox-container {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  font-weight: normal;
-  margin: 0;
-  font-size: 0.8rem;
-}
-
-.checkbox-label input[type="checkbox"] {
-  width: 14px;
-  height: 14px;
-  margin: 0;
-}
-
-.checkmark {
-  width: 14px;
-  height: 14px;
-  border: 1px solid #e0e0e0;
-  border-radius: 2px;
-  display: inline-block;
-  position: relative;
-  transition: all 0.3s ease;
-}
-
-.checkbox-label input[type="checkbox"]:checked + .checkmark {
-  background-color: #007e7e;
-  border-color: #007e7e;
-}
-
-.checkbox-label input[type="checkbox"]:checked + .checkmark::after {
-  content: '';
-  position: absolute;
-  left: 4px;
-  top: 1px;
-  width: 3px;
-  height: 6px;
-  border: solid white;
-  border-width: 0 1px 1px 0;
-  transform: rotate(45deg);
-}
-
-/* Texto de ayuda */
 .texto-ayuda {
   color: #6c757d;
-  font-size: 0.65rem;
-  margin-top: 2px;
-  display: block;
+  font-size: 11px;
+  margin-top: 4px;
 }
 
-/* Botones compactos - posición fija en la parte inferior */
-.botones-form {
-  display: flex;
-  justify-content: flex-start;
-  gap: 10px;
-  margin-top: 15px;
-  padding: 15px 0;
-  border-top: 1px solid #e0e0e0;
-  bottom: 0;
-  background: white;
-}
-
-.btn-guardar,
-.btn-cancelar {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.8rem;
-  font-weight: 600;
-  transition: all 0.3s ease;
+/* Campo de código automático */
+.campo-codigo-automatico {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 4px;
-  height: 32px;
 }
 
-.btn-guardar {
+.input-codigo {
+  padding-right: 60px !important;
+  background-color: #f8f9fa !important;
+}
+
+.badge-automatico {
+  position: absolute;
+  right: 10px;
   background: #28a745;
   color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: bold;
+  pointer-events: none;
 }
 
-.btn-guardar:hover:not(:disabled) {
-  background: #218838;
+/* Textarea específico */
+.campo-formulario textarea {
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+}
+
+/* Sección de información de solo lectura */
+.info-lectura-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 15px;
+}
+
+.info-lectura-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.info-lectura-item label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 14px;
+}
+
+.valor-stock {
+  font-weight: bold;
+  font-size: 16px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+}
+
+.mensaje-inventario,
+.mensaje-informativo {
+  background: #e3f2fd;
+  border: 1px solid #bbdefb;
+  border-radius: 6px;
+  padding: 12px 15px;
+  color: #1565c0;
+  font-size: 14px;
+}
+
+.mensaje-informativo {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.icono-info {
+  font-size: 16px;
+}
+
+/* Acciones del formulario */
+.formulario-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-top: 1px solid #e9ecef;
 }
 
 .btn-cancelar {
   background: #6c757d;
   color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.3s;
 }
 
-.btn-cancelar:hover {
-  background: #545b62;
+.btn-cancelar:hover:not(:disabled) {
+  background: #5a6268;
 }
 
+.btn-guardar {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s;
+}
+
+.btn-guardar:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+}
+
+.btn-cancelar:disabled,
 .btn-guardar:disabled {
-  background: #a0a0a0;
-  cursor: not-allowed;
   opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
-/* Responsive para pantallas pequeñas */
-@media (max-width: 768px) {
-  .formulario-productos-container {
-    padding: 10px;
+/* Responsive */
+@media (max-width: 480px) {
+  .formulario-producto-container {
+    margin: 10px;
+    border-radius: 8px;
   }
   
-  .form-grid {
+  .formulario-producto-header {
+    padding: 15px;
+  }
+  
+  .seccion-formulario {
+    padding: 15px;
+  }
+  
+  .info-lectura-grid {
     grid-template-columns: 1fr;
-    gap: 10px;
   }
   
-  .botones-form {
-    flex-direction: column;
-    gap: 8px;
+  .formulario-acciones {
+    flex-direction: column-reverse;
   }
   
-  .btn-guardar,
-  .btn-cancelar {
-    width: 100%;
+  .btn-cancelar,
+  .btn-guardar {
     justify-content: center;
   }
-}
-
-/* Scroll personalizado */
-.formulario-productos-container::-webkit-scrollbar {
-  width: 6px;
-}
-
-.formulario-productos-container::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
-}
-
-.formulario-productos-container::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
-}
-
-.formulario-productos-container::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
 }

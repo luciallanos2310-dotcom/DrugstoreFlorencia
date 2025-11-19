@@ -93,32 +93,22 @@ class Producto(models.Model):
     nombre_prod = models.CharField(max_length=100)
     categoria_prod = models.CharField(max_length=50)
     descripcion_prod = models.TextField(blank=True, null=True)
-    precio_total = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Precio total")
-    precio_venta = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Precio venta")
-    codigo_prod = models.CharField(max_length=20, unique=True, blank=True, null=True, verbose_name="Código")
-    fecha_entrada = models.DateField(verbose_name="Fecha entrada")
-    fecha_vencimiento = models.DateField(null=True, blank=True, verbose_name="Fecha vencimiento")
-    cantidad = models.IntegerField(verbose_name="Stock disponible", default=0)
+    codigo_prod = models.CharField(max_length=20, unique=True, blank=True, null=True)
+    precio_venta = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    cantidad = models.IntegerField(default=0, verbose_name="Stock disponible")
+    stock_minimo = models.IntegerField(default=5)
 
     def __str__(self):
         return self.nombre_prod
 
     def vender(self, cantidad_vendida):
-        """Vender producto - reducir cantidad"""
         if cantidad_vendida > self.cantidad:
-            raise ValueError(f"Stock insuficiente. Disponible: {self.cantidad}, Solicitado: {cantidad_vendida}")
+            raise ValueError(f"Stock insuficiente. Disponible: {self.cantidad}")
         self.cantidad -= cantidad_vendida
         self.save()
 
-    def comprar(self, cantidad_comprada, precio_total=None, precio_venta=None):
-        """Comprar producto - aumentar cantidad y actualizar precios si se proporcionan"""
-        self.cantidad += cantidad_comprada
-        
-        if precio_total is not None:
-            self.precio_total = precio_total
-        if precio_venta is not None:
-            self.precio_venta = precio_venta
-            
+    def reponer(self, cantidad_sumada):
+        self.cantidad += cantidad_sumada
         self.save()
 
     @property
@@ -127,63 +117,57 @@ class Producto(models.Model):
 
     @property
     def bajo_stock(self):
-        return self.cantidad < 10
+        return self.cantidad <= self.stock_minimo
+
 
 class Compra(models.Model):
+    ESTADOS = (
+        ('activa', 'Activa'),
+        ('anulada', 'Anulada'),
+    )
+
     codigo_compra = models.CharField(max_length=50, unique=True)
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
-    proveedores = models.ManyToManyField(Proveedor)
-    
-    # ✅ ESENCIAL: Lote para control de vencimientos
-    lote = models.CharField(max_length=100, unique=True, blank=True, null=True)
-    
-    # ✅ MANTENER: Fecha cuando llegó la mercadería
-    fecha_entrada = models.DateField()
-    
-    # ✅ OPCIONAL: Fecha de vencimiento del lote
-    fecha_vencimiento = models.DateField(null=True, blank=True)
-    
+    proveedores = models.ManyToManyField(Proveedor, blank=True)
+    fecha_compra = models.DateField(auto_now_add=True)
     cantidad = models.IntegerField()
     precio_total = models.DecimalField(max_digits=10, decimal_places=2)
-    precio_venta = models.DecimalField(max_digits=10, decimal_places=2)
     descripcion = models.TextField(blank=True, null=True)
-    
-    # ⚠️ OPCIONAL: Si no necesitas auditoría de cambios
-    # fecha_actualizacion = models.DateTimeField(auto_now=True)
+    estado = models.CharField(max_length=20, choices=ESTADOS, default='activa')
 
     def __str__(self):
-        lote_display = self.lote or "Sin lote"
-        return f"{self.codigo_compra} - {self.producto.nombre_prod} - {lote_display}"
+        return f"{self.codigo_compra} - {self.producto.nombre_prod}"
 
     def save(self, *args, **kwargs):
-        # Generar lote automáticamente si no existe
-        if not self.lote:
-            self.lote = f"LOTE-{self.codigo_compra}"
-        
-        # Usar fecha actual si no se especifica fecha_entrada
-        if not self.fecha_entrada:
-            self.fecha_entrada = timezone.now().date()
+        """ Manejo del stock según creación o anulación """
+        es_nueva = self.pk is None
+
+        if es_nueva:
+            # 🆕 NUEVA COMPRA: Sumar stock
+            print(f"🆕 Creando compra - Sumando {self.cantidad} al stock")
+            super().save(*args, **kwargs)
+            self.producto.cantidad += self.cantidad
+            self.producto.save()
+            print(f"✅ Stock actualizado: {self.producto.cantidad}")
+        else:
+            # 🔄 COMPRA EXISTENTE: Verificar cambios de estado
+            compra_anterior = Compra.objects.get(pk=self.pk)
             
-        super().save(*args, **kwargs)
-
-    @property
-    def esta_vencido(self):
-        """Verificar si el lote está vencido"""
-        if self.fecha_vencimiento:
-            return timezone.now().date() > self.fecha_vencimiento
-        return False
-
-    @property
-    def dias_restantes_vencimiento(self):
-        """Días restantes para vencimiento"""
-        if self.fecha_vencimiento:
-            hoy = timezone.now().date()
-            dias = (self.fecha_vencimiento - hoy).days
-            return max(dias, 0)  # No mostrar negativos
-        return None
-
-    class Meta:
-        ordering = ['-fecha_entrada']
+            # Si cambió de ACTIVA → ANULADA
+            if compra_anterior.estado == "activa" and self.estado == "anulada":
+                print(f"🔄 Anulando compra - Restando {compra_anterior.cantidad} del stock")
+                self.producto.cantidad -= compra_anterior.cantidad
+                self.producto.save()
+                print(f"✅ Stock actualizado: {self.producto.cantidad}")
+            
+            # Si cambió de ANULADA → ACTIVA  
+            elif compra_anterior.estado == "anulada" and self.estado == "activa":
+                print(f"🔄 Reactivando compra - Sumando {self.cantidad} al stock")
+                self.producto.cantidad += self.cantidad
+                self.producto.save()
+                print(f"✅ Stock actualizado: {self.producto.cantidad}")
+            
+            super().save(*args, **kwargs)
 
 # models.py - Modelos mejorados para Ventas
 class Venta(models.Model):

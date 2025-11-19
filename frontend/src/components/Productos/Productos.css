@@ -29,7 +29,7 @@
 }
 
 .btn-agregar {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #667eea;
   color: white;
   border: none;
   padding: 10px 20px;
@@ -41,6 +41,7 @@
 }
 
 .btn-agregar:hover {
+  background: #5a6fd8;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
@@ -130,33 +131,12 @@
   font-size: 14px;
 }
 
-.btn-mostrar-todos:hover {
-  background: #218838;
-  transform: translateY(-1px);
-}
-
-.btn-limpiar-grande:hover {
-  background: #5a6268;
-  transform: translateY(-1px);
-}
 
 .icono-btn {
   font-size: 14px;
 }
 
 /* Mensajes */
-.mensaje-exito {
-  background-color: #d4edda;
-  color: #155724;
-  padding: 10px 14px;
-  border-radius: 6px;
-  margin-bottom: 16px;
-  border: 1px solid #c3e6cb;
-  animation: fadeIn 0.3s ease-in;
-  flex-shrink: 0;
-  font-size: 14px;
-}
-
 .mensaje-busqueda {
   background: #f8f9fa;
   padding: 12px 16px;
@@ -192,26 +172,6 @@
   font-size: 14px;
 }
 
-/* ✅ ESTILOS PARA PROVEEDORES INACTIVOS (igual que en Compras) */
-.proveedor-inactivo-tachado {
-  color: #6c757d !important;
-  text-decoration: line-through;
-  font-style: italic;
-}
-
-.proveedor-inactivo-detalle {
-  background: #fff3cd;
-  padding: 4px 8px;
-  border-radius: 4px;
-  border-left: 3px solid #ffc107;
-}
-
-.estado-proveedor.inactivo {
-  color: #dc3545;
-  font-weight: 600;
-  font-size: 11px;
-}
-
 /* TABLA COMPACTA CON SCROLL */
 .tabla-contenedor-con-scroll-compacta {
   background: white;
@@ -244,7 +204,7 @@
   padding: 12px 8px;
   text-align: center;
   font-weight: 600;
-  color: #495057;
+  color: #16181b;
   border-bottom: 2px solid #e9ecef;
   font-size: 13px;
   text-transform: uppercase;
@@ -255,15 +215,17 @@
 .tabla-productos-compacta td {
   padding: 10px 8px;
   border-bottom: 1px solid #e9ecef;
-  transition: background-color 0.2s ease;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 150px;
 }
 
-.tabla-productos-compacta tbody tr:hover {
-  background-color: #f8f9fa;
+
+/* Filas con bajo stock */
+.fila-bajo-stock {
+  background-color: #fff3cd;
+  border-left: 3px solid #ffc107;
 }
 
 /* Columnas centradas */
@@ -272,15 +234,13 @@
 }
 
 /* TAMAÑOS DE COLUMNAS COMPACTAS */
-.columna-id { width: 60px; min-width: 60px; }
-.columna-nombre { width: 140px; min-width: 140px; }
-.columna-categoria { width: 100px; min-width: 100px; }
-.columna-proveedor { width: 120px; min-width: 120px; }
-.columna-stock { width: 80px; min-width: 80px; }
-.columna-stock-min { width: 80px; min-width: 80px; }
-.columna-precio { width: 100px; min-width: 100px; }
 .columna-codigo { width: 100px; min-width: 100px; }
-.columna-acciones { width: 120px; min-width: 120px; }
+.columna-nombre { width: 200px; min-width: 200px; }
+.columna-categoria { width: 120px; min-width: 120px; }
+.columna-cantidad { width: 80px; min-width: 80px; }
+.columna-estado { width: 120px; min-width: 120px; }
+.columna-precio { width: 120px; min-width: 120px; }
+.columna-acciones { width: 140px; min-width: 140px; }
 
 /* Botones de acción compactos */
 .acciones-producto {
@@ -307,20 +267,11 @@
   color: #856404;
 }
 
-.btn-icon.editar:hover {
-  background: #ffeaa7;
-  transform: scale(1.1);
-}
-
 .btn-icon.eliminar {
   background: #f8d7da;
   color: #721c24;
 }
 
-.btn-icon.eliminar:hover {
-  background: #f1b0b7;
-  transform: scale(1.1);
-}
 
 .btn-icon.detalles {
   background: #d1ecf1;
@@ -340,22 +291,7 @@
 }
 
 .categoria-producto {
-  color: #6c757d;
-  font-size: 13px;
-}
-
-.proveedor-producto {
-  color: #495057;
-  font-size: 13px;
-}
-
-.stock-producto {
-  font-weight: 600;
-  font-size: 13px;
-}
-
-.stock-minimo-producto {
-  color: #6c757d;
+  color: #1e2226;
   font-size: 13px;
 }
 
@@ -368,24 +304,55 @@
 .codigo-producto {
   color: #6c757d;
   font-size: 13px;
+  font-weight: 500;
 }
 
-/* Badge de stock */
-.badge-stock {
-  padding: 2px 6px;
+/* Badge de cantidad y estado de stock */
+.badge-cantidad {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+  min-width: 40px;
+}
+
+.estado-stock {
+  padding: 4px 8px;
   border-radius: 12px;
   font-size: 11px;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: center;
 }
 
+/* Estados de stock */
 .stock-normal {
   background: #d4edda;
-  color: #155724;
+  color: #08200e;
+}
+
+.stock-medio {
+  background: #fff3cd;
+  color: #856404;
 }
 
 .stock-bajo {
   background: #f8d7da;
   color: #721c24;
+}
+
+.sin-stock {
+  background: #f8d7da;
+  color: #721c24;
+  font-weight: 600;
+}
+
+.icono-alerta {
+  font-size: 10px;
+  animation: pulse 2s infinite;
 }
 
 /* Scroll personalizado para tabla */
@@ -408,7 +375,7 @@
   background: #a8a8a8;
 }
 
-/* Modal de Detalles (igual que en Compras) */
+/* Modal de Detalles */
 .modal-overlay-detalles {
   position: fixed;
   top: 0;
@@ -501,13 +468,24 @@
 
 .badge-categoria-grande {
   display: inline-block;
-  background: #b16921;
+  background: #667eea;
   color: white;
   padding: 4px 8px;
   border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
   margin-right: 8px;
+}
+
+.estado-stock-grande {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 8px;
 }
 
 .codigo-principal-grande {
@@ -543,7 +521,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #2a146b;
+  color: #667eea;
   font-size: 14px;
   flex-shrink: 0;
   border: 1px solid #e9ecef;
@@ -567,20 +545,6 @@
   line-height: 1.3;
   display: block;
   color: #333;
-}
-
-.lista-proveedores-detalle {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.proveedor-item {
-  padding: 4px 0;
-}
-
-.nombre-proveedor {
-  font-weight: 500;
 }
 
 .total-destacado {
@@ -628,4 +592,33 @@
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-8px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .productos-container {
+    padding: 10px;
+    height: calc(100vh - 20px);
+  }
+  
+  .header-productos {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  
+  .filtros-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .buscador-productos,
+  .filtro-categoria {
+    min-width: auto;
+  }
+  
+  .modal-detalles-grande {
+    width: 95%;
+    margin: 10px;
+  }
 }

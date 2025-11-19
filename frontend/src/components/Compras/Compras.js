@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './Compras.css';
-import ModalConfirmacion from './ModalConfirmacion';
+import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal';
 import FormularioCompra from './FormularioCompra';
-import { FaEdit, FaTrash, FaEye, FaList, FaArrowLeft, FaTimes, FaCalendarAlt, FaBox, FaDollarSign, FaUserTie, FaStickyNote, FaHashtag, FaClipboardList, FaSyncAlt, FaExclamationTriangle } from 'react-icons/fa';
+import { FaEdit, FaEye, FaList, FaArrowLeft, FaTimes, FaCalendarAlt, FaBox, FaDollarSign, FaUserTie, FaStickyNote, FaHashtag, FaClipboardList, FaSyncAlt, FaExclamationTriangle, FaBan } from 'react-icons/fa';
 
 function Compras({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
   const [compras, setCompras] = useState([]);
@@ -12,15 +12,17 @@ function Compras({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
   const [proveedores, setProveedores] = useState([]);
   const [vista, setVista] = useState('lista');
   const [compraEditar, setCompraEditar] = useState(null);
-  const [mostrarModal, setMostrarModal] = useState(false);
-  const [compraAEliminar, setCompraAEliminar] = useState(null);
+  const [compraAAnular, setCompraAAnular] = useState(null);
   const [busqueda, setBusqueda] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('');
   const [loading, setLoading] = useState(false);
   const [haBuscado, setHaBuscado] = useState(false);
-  const [mensajeExito, setMensajeExito] = useState('');
   const [mostrarTodos, setMostrarTodos] = useState(false);
   const [compraDetalles, setCompraDetalles] = useState(null);
+
+  // Estados para modal universal
+  const [modalConfig, setModalConfig] = useState({});
+  const [mostrarModalConfirmacion, setMostrarModalConfirmacion] = useState(false);
 
   // Lista de categorías para el filtro
   const categorias = [
@@ -62,10 +64,18 @@ function Compras({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
       setCompras([]);
     } catch (error) {
       console.error('Error al cargar datos:', error);
+      setModalConfig({
+        tipo: 'error',
+        modo: 'compra',
+        mensaje: '❌ Error al cargar los datos de compras'
+      });
+      setMostrarModalConfirmacion(true);
     } finally {
       setLoading(false);
     }
   };
+
+  
 
   // ✅ FUNCIÓN PARA VERIFICAR SI UN PROVEEDOR ESTÁ ACTIVO
   const estaActivo = (proveedor) => {
@@ -77,13 +87,6 @@ function Compras({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
     if (!compra.proveedores || compra.proveedores.length === 0) return false;
     
     return compra.proveedores.some(proveedor => !estaActivo(proveedor));
-  };
-
-  // ✅ FUNCIÓN PARA OBTENER PROVEEDORES INACTIVOS DE UNA COMPRA
-  const obtenerProveedoresInactivos = (compra) => {
-    if (!compra.proveedores || compra.proveedores.length === 0) return [];
-    
-    return compra.proveedores.filter(proveedor => !estaActivo(proveedor));
   };
 
   // Función para obtener producto por ID
@@ -197,37 +200,85 @@ function Compras({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
     setCompraDetalles(null);
   };
 
-  const handleEliminar = async () => {
-    if (!compraAEliminar) return;
-    try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:8000/api/compras/${compraAEliminar.id}/`, {
-        headers: { Authorization: `Token ${token}` }
-      });
-      await cargarTodosDatos();
+  // ✅ NUEVA FUNCIÓN: Anular compra
+  // ✅ FUNCIÓN CORREGIDA: Anular compra
+const handleAnularCompra = async () => {
+  if (!compraAAnular) return;
+  try {
+    const token = localStorage.getItem('token');
+    
+    console.log('Anulando compra:', compraAAnular.id);
+    
+    // Usar PATCH y estado en minúsculas según el modelo Django
+    const response = await axios.patch(`http://localhost:8000/api/compras/${compraAAnular.id}/`, {
+      estado: 'anulada'  // ✅ Cambiado a minúsculas
+    }, {
+      headers: { 
+        Authorization: `Token ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    console.log('Respuesta anulación:', response.data);
+    
+    await cargarTodosDatos();
+    
+    setModalConfig({
+      tipo: 'exito',
+      modo: 'compra',
+      mensaje: `✅ Compra "${compraAAnular.codigo_compra}" anulada correctamente. El stock ha sido restado.`
+    });
+    setMostrarModalConfirmacion(true);
+    
+  } catch (error) {
+    console.error('Error completo al anular compra:', error);
+    console.error('Detalles del error:', error.response?.data);
+    
+    setModalConfig({
+      tipo: 'error',
+      modo: 'compra',
+      mensaje: error.response?.data 
+        ? `❌ Error al anular: ${JSON.stringify(error.response.data)}`
+        : '❌ Error de conexión al anular la compra'
+    });
+    setMostrarModalConfirmacion(true);
+  } finally {
+    setCompraAAnular(null);
+  }
+};
+
+  const handleCerrarModal = () => {
+    setMostrarModalConfirmacion(false);
+    if (modalConfig.tipo === 'exito') {
+      // Recargar datos después de éxito
       if (mostrarTodos) {
         const comprasEnriquecidas = enriquecerComprasConDatos(todasCompras);
         setCompras(comprasEnriquecidas);
       } else {
         filtrarCompras();
       }
-      setMensajeExito('Compra eliminada correctamente');
-      setTimeout(() => setMensajeExito(''), 3000);
-    } catch (error) {
-      console.error('Error al eliminar compra:', error);
-    } finally {
-      setMostrarModal(false);
-      setCompraAEliminar(null);
     }
   };
 
-  const handleGuardadoExitoso = () => {
-    setVista('lista');
-    setCompraEditar(null);
-    cargarTodosDatos();
-    setMensajeExito(vista === 'crear' ? 'Compra registrada correctamente' : 'Compra actualizada correctamente');
-    setTimeout(() => setMensajeExito(''), 3000);
-  };
+  const handleGuardadoExitoso = (onGuardado) => {
+  console.log('✅ Guardado exitoso, volviendo a lista...');
+  setVista('lista');
+  setCompraEditar(null);
+  cargarTodosDatos(); // Recargar los datos
+  
+  // Mostrar mensaje de éxito
+  setModalConfig({
+    tipo: 'exito',
+    modo: 'compra',
+    mensaje: '✅ Compra registrada correctamente'
+  });
+  setMostrarModalConfirmacion(true);
+  
+  // ✅ LLAMAR AL CALLBACK SI EXISTE
+  if (onGuardado) {
+    onGuardado();
+  }
+};
 
   // Función para manejar nueva compra
   const handleNuevaCompra = () => {
@@ -252,6 +303,20 @@ function Compras({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
     }
   };
 
+  // ✅ NUEVA FUNCIÓN: Confirmar anulación
+    const confirmarAnulacion = (compra) => {
+      setCompraAAnular(compra);
+      setModalConfig({
+        tipo: 'eliminar',
+        modo: 'compra',
+        mensaje: `¿Está seguro que desea ANULAR la compra "${compra.codigo_compra}" del producto "${compra.producto?.nombre_prod || 'este producto'}"?\n\n⚠️ Esta acción restará ${compra.cantidad} unidades del stock del producto.`,
+        textoConfirmar: 'Anular Compra',
+        textoCancelar: 'Cancelar'
+      });
+      setMostrarModalConfirmacion(true);
+    };
+
+
   // Verificar si hay filtros activos
   const hayFiltrosActivos = busqueda || filtroCategoria;
   const hayResultados = compras.length > 0;
@@ -260,12 +325,6 @@ function Compras({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
   const formatearFecha = (fecha) => {
     if (!fecha) return 'N/A';
     return new Date(fecha).toLocaleDateString('es-ES');
-  };
-
-  // Formatear fecha y hora para fecha_actualizacion
-  const formatearFechaHora = (fecha) => {
-    if (!fecha) return 'N/A';
-    return new Date(fecha).toLocaleString('es-ES');
   };
 
   // Formatear precio
@@ -287,47 +346,71 @@ function Compras({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
     return compra.producto?.categoria_prod || 'Sin categoría';
   };
 
-// ✅ FUNCIÓN MEJORADA: Obtener nombres de proveedores con estilo tachado para inactivos
-const obtenerNombresProveedores = (compra) => {
-  if (!compra.proveedores || compra.proveedores.length === 0) {
-    return 'Proveedor no disponible';
-  }
-  
-  const tieneInactivos = tieneProveedorInactivo(compra);
-  
-  // Si hay múltiples proveedores, mostrar el primero + "..."
-  if (compra.proveedores.length > 1) {
-    const primerProveedor = compra.proveedores[0].nombre_prov;
+  // ✅ FUNCIÓN MEJORADA: Obtener nombres de proveedores con estilo tachado para inactivos
+  const obtenerNombresProveedores = (compra) => {
+    if (!compra.proveedores || compra.proveedores.length === 0) {
+      return 'Proveedor no disponible';
+    }
+    
+    const tieneInactivos = tieneProveedorInactivo(compra);
+    
+    // Si hay múltiples proveedores, mostrar el primero + "..."
+    if (compra.proveedores.length > 1) {
+      const primerProveedor = compra.proveedores[0].nombre_prov;
+      return (
+        <span className={tieneInactivos ? 'proveedor-inactivo-tachado' : ''}>
+          {primerProveedor} +{compra.proveedores.length - 1} más
+        </span>
+      );
+    }
+    
+    // Si solo hay un proveedor
+    const proveedor = compra.proveedores[0];
     return (
-      <span className={tieneInactivos ? 'proveedor-inactivo-tachado' : ''}>
-        {primerProveedor} +{compra.proveedores.length - 1} más
+      <span className={!estaActivo(proveedor) ? 'proveedor-inactivo-tachado' : ''}>
+        {proveedor.nombre_prov}
       </span>
     );
+  };
+
+ // ✅ FUNCIÓN CORREGIDA: Obtener clase CSS para estado de compra
+const obtenerClaseEstado = (estado) => {
+  switch(estado?.toLowerCase()) {  // ✅ Usar toLowerCase()
+    case 'activa': return 'estado-activa';
+    case 'anulada': return 'estado-anulada';
+    default: return 'estado-desconocido';
   }
-  
-  // Si solo hay un proveedor
-  const proveedor = compra.proveedores[0];
-  return (
-    <span className={!estaActivo(proveedor) ? 'proveedor-inactivo-tachado' : ''}>
-      {proveedor.nombre_prov}
-    </span>
-  );
+};
+
+// ✅ FUNCIÓN CORREGIDA: Obtener texto para estado de compra
+const obtenerTextoEstado = (estado) => {
+  switch(estado?.toLowerCase()) {  // ✅ Usar toLowerCase()
+    case 'activa': return 'Activa';
+    case 'anulada': return 'Anulada';
+    default: return estado;
+  }
 };
 
   // SI ESTAMOS EN MODO CREAR O EDITAR, MOSTRAR EL FORMULARIO
-  if (vista === 'crear' || vista === 'editar') {
-    return (
-      <FormularioCompra
-        modo={vista}
-        compraEditar={compraEditar}
-        onCancelar={() => {
-          setVista('lista');
-          setCompraEditar(null);
-        }}
-        onGuardado={handleGuardadoExitoso}
-      />
-    );
-  }
+if (vista === 'crear' || vista === 'editar') {
+  return (
+    <FormularioCompra
+      modo={vista}
+      compraEditar={compraEditar}
+      onCancelar={() => {
+        console.log('❌ Cancelando, volviendo a lista...');
+        setVista('lista');
+        setCompraEditar(null);
+      }}
+      onGuardado={() => {
+        console.log('✅ Guardado completado, volviendo a lista...');
+        setVista('lista');
+        setCompraEditar(null);
+        cargarTodosDatos(); // Recargar datos
+      }}
+    />
+  );
+}
 
   // SI ESTAMOS EN MODO LISTA, MOSTRAR LA TABLA
   return (
@@ -335,13 +418,6 @@ const obtenerNombresProveedores = (compra) => {
       <div className="header-compras">
         <h2>Compras</h2>
         <div className="header-actions">
-          <button 
-            className="btn-refrescar" 
-            onClick={cargarTodosDatos}
-            title="Actualizar lista"
-          >
-            <FaSyncAlt />
-          </button>
           {!modoLectura && (
             <button className="btn-agregar" onClick={handleNuevaCompra}>
               + Registrar Compra
@@ -349,13 +425,6 @@ const obtenerNombresProveedores = (compra) => {
           )}
         </div>
       </div>
-
-      {/* MENSAJE DE ÉXITO */}
-      {mensajeExito && (
-        <div className="mensaje-exito">
-          {mensajeExito}
-        </div>
-      )}
 
       {/* FILTROS Y BUSCADOR */}
       <div className="filtros-container">
@@ -456,49 +525,49 @@ const obtenerNombresProveedores = (compra) => {
               <tr>
                 <th className="columna-codigo">Código</th>
                 <th className="columna-producto">Producto</th>
-                <th className="columna-categoria">Categoría</th>
                 <th className="columna-proveedor">Proveedor</th>
-                <th className="columna-fecha">Fecha Entrada</th>
+                <th className="columna-fecha">Fecha Compra</th>
                 <th className="columna-cantidad">Cant.</th>
                 <th className="columna-precio">Precio Total</th>
-                <th className="columna-precio-venta">Precio Venta</th>
+                <th className="columna-estado">Estado</th>
                 {!modoLectura && <th className="columna-acciones">Acciones</th>}
               </tr>
             </thead>
             <tbody>
               {compras.map(compra => (
-                <tr key={compra.id}>
+                <tr key={compra.id} className={compra.estado?.toLowerCase() === 'anulada' ? 'compra-anulada' : ''}>
                   <td className="codigo-compra centered">{compra.codigo_compra || 'N/A'}</td>
                   <td className="producto-compra">{obtenerNombreProducto(compra)}</td>
-                  <td className="categoria-compra centered">{obtenerCategoriaProducto(compra)}</td>
                   <td className="proveedor-compra centered">
                     {obtenerNombresProveedores(compra)}
                   </td>
-                  <td className="fecha-compra centered">{formatearFecha(compra.fecha_entrada)}</td>
+                  <td className="fecha-compra centered">{formatearFecha(compra.fecha_compra)}</td>
                   <td className="cantidad-compra centered">{compra.cantidad || 0}</td>
                   <td className="precio-compra centered">{formatearPrecio(compra.precio_total)}</td>
-                  <td className="precio-venta-compra centered">{formatearPrecio(compra.precio_venta)}</td>
+                  <td className="estado-compra centered">
+                    <span className={`badge-estado ${obtenerClaseEstado(compra.estado)}`}>
+                      {obtenerTextoEstado(compra.estado)}
+                    </span>
+                  </td>
                   {!modoLectura && (
                     <td className="acciones-compra centered">
                       <button
                         className="btn-icon editar"
                         onClick={() => handleEditarCompra(compra)}
                         title="Editar compra"
+                        disabled={compra.estado === 'ANULADA'}
                       >
                         <FaEdit />
-                      </button>
-                      {esJefa && (
+                      </button>  
+                    
                         <button
-                          className="btn-icon eliminar"
-                          onClick={() => {
-                            setCompraAEliminar(compra);
-                            setMostrarModal(true);
-                          }}
-                          title="Eliminar compra"
+                          className="btn-icon anular"
+                          onClick={() => confirmarAnulacion(compra)}
+                          title="Anular compra (restará stock)"
                         >
-                          <FaTrash />
+                          <FaBan />
                         </button>
-                      )}
+                                    
                       <button
                         className="btn-icon detalles"
                         onClick={() => setCompraDetalles(compra)}
@@ -506,6 +575,7 @@ const obtenerNombresProveedores = (compra) => {
                       >
                         <FaEye />
                       </button>
+                                            
                     </td>
                   )}
                 </tr>
@@ -522,16 +592,21 @@ const obtenerNombresProveedores = (compra) => {
         </div>
       )}
 
-      {/* MODAL DE CONFIRMACIÓN ELIMINAR */}
-      <ModalConfirmacion
-        mostrar={mostrarModal}
-        tipo="eliminar"
-        mensaje={`¿Está seguro que desea eliminar la compra "${compraAEliminar?.codigo_compra || compraAEliminar?.id}" del producto "${compraAEliminar?.producto?.nombre_prod || 'este producto'}"?`}
-        onCancelar={() => setMostrarModal(false)}
-        onConfirmar={handleEliminar}
+      {/* MODALES AL FINAL */}
+
+      {/* Modal Universal para Confirmaciones */}
+      <ModalConfirmacionUniversal
+        mostrar={mostrarModalConfirmacion}
+        tipo={modalConfig.tipo}
+        modo={modalConfig.modo}
+        mensaje={modalConfig.mensaje}
+        textoConfirmar={modalConfig.textoConfirmar}
+        textoCancelar={modalConfig.textoCancelar}
+        onConfirmar={handleAnularCompra}
+        onCancelar={handleCerrarModal}
       />
 
-      {/* ✅ MODAL DE DETALLES COMPLETOS MEJORADO */}
+      {/* Modal de Detalles Completos */}
       {compraDetalles && (
         <div className="modal-overlay-detalles" onClick={() => setCompraDetalles(null)}>
           <div className="modal-detalles-grande" onClick={(e) => e.stopPropagation()}>
@@ -551,6 +626,9 @@ const obtenerNombresProveedores = (compra) => {
                   <h2>{obtenerNombreProducto(compraDetalles)}</h2>
                   <span className="badge-categoria-grande">
                     {obtenerCategoriaProducto(compraDetalles)}
+                  </span>
+                  <span className={`badge-estado-grande ${obtenerClaseEstado(compraDetalles.estado)}`}>
+                    {obtenerTextoEstado(compraDetalles.estado)}
                   </span>
                   {/* ✅ ALERTA DE PROVEEDOR INACTIVO */}
                   {tieneProveedorInactivo(compraDetalles) && (
@@ -629,30 +707,8 @@ const obtenerNombresProveedores = (compra) => {
                     <FaCalendarAlt />
                   </div>
                   <div className="contenido-detalle-grande">
-                    <label>Fecha de Entrada</label>
-                    <span>{formatearFecha(compraDetalles.fecha_entrada)}</span>
-                  </div>
-                </div>
-
-                {compraDetalles.fecha_vencimiento && (
-                  <div className="detalle-item-grande">
-                    <div className="icono-detalle-grande">
-                      <FaCalendarAlt />
-                    </div>
-                    <div className="contenido-detalle-grande">
-                      <label>Fecha de Vencimiento</label>
-                      <span>{formatearFecha(compraDetalles.fecha_vencimiento)}</span>
-                    </div>
-                  </div>
-                )}
-
-                <div className="detalle-item-grande">
-                  <div className="icono-detalle-grande">
-                    <FaCalendarAlt />
-                  </div>
-                  <div className="contenido-detalle-grande">
-                    <label>Última Actualización</label>
-                    <span>{formatearFechaHora(compraDetalles.fecha_actualizacion)}</span>
+                    <label>Fecha de Compra</label>
+                    <span>{formatearFecha(compraDetalles.fecha_compra)}</span>
                   </div>
                 </div>
 
@@ -678,21 +734,13 @@ const obtenerNombresProveedores = (compra) => {
 
                 <div className="detalle-item-grande">
                   <div className="icono-detalle-grande">
-                    <FaDollarSign />
+                    <FaHashtag />
                   </div>
                   <div className="contenido-detalle-grande">
-                    <label>Precio de Venta</label>
-                    <span>{formatearPrecio(compraDetalles.precio_venta)}</span>
-                  </div>
-                </div>
-
-                <div className="detalle-item-grande">
-                  <div className="icono-detalle-grande">
-                    <FaDollarSign />
-                  </div>
-                  <div className="contenido-detalle-grande">
-                    <label>Total Compra</label>
-                    <span className="total-destacado">{formatearPrecio(compraDetalles.precio_total)}</span>
+                    <label>Estado</label>
+                    <span className={`badge-estado-grande ${obtenerClaseEstado(compraDetalles.estado)}`}>
+                      {obtenerTextoEstado(compraDetalles.estado)}
+                    </span>
                   </div>
                 </div>
 

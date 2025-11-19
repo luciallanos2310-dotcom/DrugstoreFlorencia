@@ -1,21 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './Productos.css';
-import ModalConfirmacion from '../Compras/ModalConfirmacion';
-import FormularioProducto from './FormularioProducto';
-import { FaEdit, FaTrash, FaEye, FaList, FaArrowLeft, FaTimes, FaBox, FaDollarSign, FaHashtag, FaClipboardList } from 'react-icons/fa';
+import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal';
+import { FaEdit, FaTrash, FaEye, FaList, FaArrowLeft, FaTimes, FaBox, FaDollarSign, FaHashtag, FaClipboardList, FaExclamationTriangle } from 'react-icons/fa';
 
 function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
   const [productos, setProductos] = useState([]);
   const [todosProductos, setTodosProductos] = useState([]);
-  const [productoEditar, setProductoEditar] = useState(null);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [productoAEliminar, setProductoAEliminar] = useState(null);
   const [busqueda, setBusqueda] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('');
   const [loading, setLoading] = useState(false);
   const [haBuscado, setHaBuscado] = useState(false);
-  const [mensajeExito, setMensajeExito] = useState('');
   const [mostrarTodos, setMostrarTodos] = useState(false);
   const [productoDetalles, setProductoDetalles] = useState(null);
 
@@ -39,7 +36,6 @@ function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario })
       });
 
       console.log('✅ Productos cargados:', productosRes.data);
-
       setTodosProductos(productosRes.data);
       setProductos([]);
     } catch (error) {
@@ -130,29 +126,25 @@ function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario })
       } else {
         filtrarProductos();
       }
-      setMensajeExito('Producto eliminado correctamente');
-      setTimeout(() => setMensajeExito(''), 3000);
+      
+      // Mostrar modal de éxito
+      setMostrarModal(true);
+      
     } catch (error) {
       console.error('Error al eliminar producto:', error);
+      // Mostrar modal de error
+      setMostrarModal(true);
     } finally {
-      setMostrarModal(false);
       setProductoAEliminar(null);
     }
   };
 
   const handleGuardadoExitoso = () => {
     cargarTodosDatos();
-    setMensajeExito('Producto guardado correctamente');
-    setTimeout(() => setMensajeExito(''), 3000);
   };
 
   const hayFiltrosActivos = busqueda || filtroCategoria;
   const hayResultados = productos.length > 0;
-
-  const formatearFecha = (fecha) => {
-    if (!fecha) return 'N/A';
-    return new Date(fecha).toLocaleDateString('es-ES');
-  };
 
   const formatearPrecio = (precio) => {
     if (!precio) return '$ 0,00';
@@ -162,23 +154,36 @@ function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario })
     }).format(precio);
   };
 
-  // ✅ Función para obtener el estado del stock
-  const obtenerEstadoStock = (cantidad) => {
+  // ✅ Función para obtener el estado del stock (usando stock_minimo del backend)
+  const obtenerEstadoStock = (producto) => {
+    const cantidad = producto.cantidad || 0;
+    const stockMinimo = producto.stock_minimo || 5;
+    
     if (cantidad === 0) return 'sin-stock';
-    if (cantidad < 5) return 'stock-bajo';
-    if (cantidad < 10) return 'stock-medio';
+    if (cantidad <= stockMinimo) return 'stock-bajo';
+    if (cantidad <= stockMinimo * 2) return 'stock-medio';
     return 'stock-normal';
   };
 
   // ✅ Función para obtener texto del estado del stock
-  const obtenerTextoStock = (cantidad) => {
+  const obtenerTextoStock = (producto) => {
+    const cantidad = producto.cantidad || 0;
+    const stockMinimo = producto.stock_minimo || 5;
+    
     if (cantidad === 0) return 'Sin Stock';
-    if (cantidad < 5) return 'Stock Bajo';
-    if (cantidad < 10) return 'Stock Medio';
+    if (cantidad <= stockMinimo) return 'Stock Bajo';
+    if (cantidad <= stockMinimo * 2) return 'Stock Medio';
     return 'Stock Normal';
   };
 
-  // Función para manejar nueva compra
+  // ✅ Función para verificar si está en bajo stock
+  const estaEnBajoStock = (producto) => {
+    const cantidad = producto.cantidad || 0;
+    const stockMinimo = producto.stock_minimo || 5;
+    return cantidad <= stockMinimo;
+  };
+
+  // Función para manejar nuevo producto
   const handleNuevoProducto = () => {
     console.log('➕ Nuevo producto');
     if (onNavegarAFormulario) {
@@ -188,11 +193,11 @@ function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario })
 
   // Función para manejar editar producto
   const handleEditarProducto = (producto) => {
-    console.log('🔄 Editando producto:', producto);
-    if (onNavegarAFormulario) {
-      onNavegarAFormulario('editar', producto);
-    }
-  };
+  console.log('🔄 Editando producto:', producto);
+  if (onNavegarAFormulario) {
+    onNavegarAFormulario('editar', producto);
+  }
+};
 
   return (
     <div className="productos-container">
@@ -201,17 +206,11 @@ function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario })
         <div className="header-actions">
           {!modoLectura && (
             <button className="btn-agregar" onClick={handleNuevoProducto}>
-              + Agregar Producto
+              + Nuevo Producto
             </button>
           )}
         </div>
       </div>
-
-      {mensajeExito && (
-        <div className="mensaje-exito">
-          {mensajeExito}
-        </div>
-      )}
 
       <div className="filtros-container">
         <div className="buscador-productos">
@@ -314,18 +313,19 @@ function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario })
             </thead>
             <tbody>
               {productos.map(producto => (
-                <tr key={producto.id}>
+                <tr key={producto.id} className={estaEnBajoStock(producto) ? 'fila-bajo-stock' : ''}>
                   <td className="codigo-producto centered">{producto.codigo_prod || 'N/A'}</td>
                   <td className="nombre-producto">{producto.nombre_prod}</td>
                   <td className="categoria-producto centered">{producto.categoria_prod}</td>
                   <td className="cantidad-producto centered">
-                    <span className={`badge-cantidad ${obtenerEstadoStock(producto.cantidad)}`}>
+                    <span className={`badge-cantidad ${obtenerEstadoStock(producto)}`}>
                       {producto.cantidad !== undefined && producto.cantidad !== null ? producto.cantidad : 0}
                     </span>
                   </td>
                   <td className="estado-producto centered">
-                    <span className={`estado-stock ${obtenerEstadoStock(producto.cantidad)}`}>
-                      {obtenerTextoStock(producto.cantidad)}
+                    <span className={`estado-stock ${obtenerEstadoStock(producto)}`}>
+                      {obtenerTextoStock(producto)}
+                      {estaEnBajoStock(producto) && <FaExclamationTriangle className="icono-alerta" />}
                     </span>
                   </td>
                   <td className="precio-producto centered">{formatearPrecio(producto.precio_venta)}</td>
@@ -373,12 +373,27 @@ function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario })
         </div>
       )}
 
-      <ModalConfirmacion
-        mostrar={mostrarModal}
+      {/* Modal para eliminar producto */}
+      <ModalConfirmacionUniversal
+        mostrar={mostrarModal && productoAEliminar}
         tipo="eliminar"
+        modo="producto"
         mensaje={`¿Está seguro que desea eliminar el producto "${productoAEliminar?.nombre_prod}"?`}
-        onCancelar={() => setMostrarModal(false)}
         onConfirmar={handleEliminar}
+        onCancelar={() => {
+          setMostrarModal(false);
+          setProductoAEliminar(null);
+        }}
+      />
+
+      {/* Modal de éxito después de eliminar */}
+      <ModalConfirmacionUniversal
+        mostrar={mostrarModal && !productoAEliminar}
+        tipo="exito"
+        modo="producto"
+        mensaje="✅ Producto eliminado correctamente"
+        onConfirmar={() => setMostrarModal(false)}
+        onCancelar={() => setMostrarModal(false)}
       />
 
       {productoDetalles && (
@@ -401,8 +416,9 @@ function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario })
                   <span className="badge-categoria-grande">
                     {productoDetalles.categoria_prod}
                   </span>
-                  <span className={`estado-stock-grande ${obtenerEstadoStock(productoDetalles.cantidad)}`}>
-                    {obtenerTextoStock(productoDetalles.cantidad)}
+                  <span className={`estado-stock-grande ${obtenerEstadoStock(productoDetalles)}`}>
+                    {obtenerTextoStock(productoDetalles)}
+                    {estaEnBajoStock(productoDetalles) && <FaExclamationTriangle className="icono-alerta" />}
                   </span>
                 </div>
                 <div className="codigo-principal-grande">
@@ -447,7 +463,7 @@ function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario })
                   </div>
                   <div className="contenido-detalle-grande">
                     <label>Stock Disponible</label>
-                    <span className={`total-destacado ${obtenerEstadoStock(productoDetalles.cantidad)}`}>
+                    <span className={`total-destacado ${obtenerEstadoStock(productoDetalles)}`}>
                       {productoDetalles.cantidad || 0} unidades
                     </span>
                   </div>
@@ -462,28 +478,6 @@ function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario })
                     <span className="total-destacado">{formatearPrecio(productoDetalles.precio_venta)}</span>
                   </div>
                 </div>
-
-                <div className="detalle-item-grande">
-                  <div className="icono-detalle-grande">
-                    <FaClipboardList />
-                  </div>
-                  <div className="contenido-detalle-grande">
-                    <label>Fecha de Entrada</label>
-                    <span>{formatearFecha(productoDetalles.fecha_entrada)}</span>
-                  </div>
-                </div>
-
-                {productoDetalles.fecha_vencimiento && (
-                  <div className="detalle-item-grande">
-                    <div className="icono-detalle-grande">
-                      <FaClipboardList />
-                    </div>
-                    <div className="contenido-detalle-grande">
-                      <label>Fecha de Vencimiento</label>
-                      <span>{formatearFecha(productoDetalles.fecha_vencimiento)}</span>
-                    </div>
-                  </div>
-                )}
 
                 <div className="detalle-item-grande completo">
                   <div className="icono-detalle-grande">

@@ -391,6 +391,70 @@ class ProductoViewSet(viewsets.ModelViewSet):
             )
         return queryset
 
+    def update(self, request, *args, **kwargs):
+        try:
+            print("📥 Datos recibidos para actualizar producto:", request.data)
+            
+            instance = self.get_object()
+            data = request.data.copy()
+            
+            # Asegurar que los datos numéricos estén en formato correcto
+            if 'precio_venta' in data:
+                data['precio_venta'] = float(data['precio_venta'])
+            if 'cantidad' in data:
+                data['cantidad'] = int(data['cantidad'])
+            if 'stock_minimo' in data:
+                data['stock_minimo'] = int(data['stock_minimo'])
+            
+            print("📤 Datos procesados para actualizar:", data)
+            
+            serializer = self.get_serializer(instance, data=data, partial=False)
+            serializer.is_valid(raise_exception=True)
+            self.perform_update(serializer)
+            
+            print(f"✅ Producto {instance.id} actualizado exitosamente")
+            
+            return Response(serializer.data)
+            
+        except Exception as e:
+            print(f"❌ Error al actualizar producto: {str(e)}")
+            return Response(
+                {'error': f'Error al actualizar producto: {str(e)}'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    def partial_update(self, request, *args, **kwargs):
+        try:
+            print("📥 Datos recibidos para actualización parcial:", request.data)
+            
+            instance = self.get_object()
+            data = request.data.copy()
+            
+            # Asegurar que los datos numéricos estén en formato correcto
+            if 'precio_venta' in data:
+                data['precio_venta'] = float(data['precio_venta'])
+            if 'cantidad' in data:
+                data['cantidad'] = int(data['cantidad'])
+            if 'stock_minimo' in data:
+                data['stock_minimo'] = int(data['stock_minimo'])
+            
+            print("📤 Datos procesados para actualización parcial:", data)
+            
+            serializer = self.get_serializer(instance, data=data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            self.perform_update(serializer)
+            
+            print(f"✅ Producto {instance.id} actualizado parcialmente")
+            
+            return Response(serializer.data)
+            
+        except Exception as e:
+            print(f"❌ Error en actualización parcial: {str(e)}")
+            return Response(
+                {'error': f'Error en actualización parcial: {str(e)}'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
 class ProveedorViewSet(viewsets.ModelViewSet):
     queryset = Proveedor.objects.all().order_by('id')
     serializer_class = ProveedorSerializer
@@ -423,56 +487,35 @@ class ProveedorViewSet(viewsets.ModelViewSet):
         return queryset
 
 class CompraViewSet(viewsets.ModelViewSet):
-    queryset = Compra.objects.all().select_related('producto').prefetch_related('proveedores').order_by('-fecha_entrada')  # CAMBIO: prefetch_related
+    queryset = Compra.objects.all().select_related('producto').prefetch_related('proveedores').order_by('-fecha_compra')
     serializer_class = CompraSerializer
     permission_classes = [IsJefaOrReadOnly]
 
-    def get_queryset(self):
-        queryset = Compra.objects.all().select_related('producto').prefetch_related('proveedores').order_by('-fecha_entrada')
-        search = self.request.query_params.get('search', None)
-        if search:
-            queryset = queryset.filter(
-                Q(producto__nombre_prod__icontains=search) |
-                Q(proveedores__nombre_prov__icontains=search)  # CAMBIO: proveedores (plural)
-            ).distinct()  # Agregar distinct para evitar duplicados
-        return queryset
-
     def create(self, request, *args, **kwargs):
         try:
-            print("Datos recibidos para crear compra:", request.data)
+            print("🎯 Creando compra con datos:", request.data)
             
-            data = request.data.copy()
-            
-            # Asegurar que los datos numéricos estén en formato correcto
-            if 'cantidad' in data:
-                data['cantidad'] = int(data['cantidad'])
-            if 'precio_total' in data:
-                data['precio_total'] = float(data['precio_total'])
-            if 'precio_venta' in data:
-                data['precio_venta'] = float(data['precio_venta'])
-            
-            # Convertir proveedores a lista si es necesario
-            if 'proveedores' in data:
-                if isinstance(data['proveedores'], str):
-                    try:
-                        data['proveedores'] = json.loads(data['proveedores'])
-                    except json.JSONDecodeError:
-                        data['proveedores'] = [data['proveedores']]
-            
-            print("Datos procesados para compra:", data)
-            
-            serializer = self.get_serializer(data=data)
+            # Validación simple
+            if not request.data.get('producto'):
+                return Response(
+                    {'error': 'Producto es requerido'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Usar el serializer directamente
+            serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
-            self.perform_create(serializer)
-            
-            headers = self.get_success_headers(serializer.data)
-            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-            
+            compra = serializer.save()
+
+            print(f"✅ Compra creada: {compra.codigo_compra}, Cantidad: {compra.cantidad}")
+
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
         except Exception as e:
-            print("Error completo al crear compra:", str(e))
+            print("💥 Error:", str(e))
             return Response(
-                {'error': f'Error al crear compra: {str(e)}'}, 
-                status=status.HTTP_400_BAD_REQUEST
+                {'error': 'Error interno del servidor'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
 class CajaViewSet(viewsets.ModelViewSet):
