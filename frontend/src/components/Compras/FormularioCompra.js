@@ -15,7 +15,8 @@ import {
   FaPlus,
   FaEdit,
   FaArrowLeft,
-  FaLock
+  FaLock,
+  FaExclamationTriangle
 } from 'react-icons/fa';
 
 function FormularioCompra({ modo, compraEditar, onCancelar, onGuardado }) {
@@ -62,21 +63,23 @@ function FormularioCompra({ modo, compraEditar, onCancelar, onGuardado }) {
     const today = new Date().toISOString().split('T')[0];
     
     if (modo === 'editar' && compraEditar) {
-      // Modo edición
-      setForm({
-        codigo_compra: compraEditar.codigo_compra,
-        proveedores: compraEditar.proveedores?.map(p => p.id) || [],
-        producto: compraEditar.producto?.id || '',
-        fecha_compra: compraEditar.fecha_compra || today,
-        cantidad: compraEditar.cantidad || '',
-        precio_total: compraEditar.precio_total || '',
-        descripcion: compraEditar.descripcion || ''
+      // Modo edición - DESHABILITADO
+      console.log('❌ Modo edición deshabilitado');
+      setModalConfig({
+        tipo: 'error',
+        modo: 'compra',
+        mensaje: 'La edición de compras no está disponible. Por favor, anule la compra existente y cree una nueva.',
+        onConfirmar: () => {
+          setMostrarModalConfirmacion(false);
+          onCancelar?.();
+        },
+        onCancelar: () => {
+          setMostrarModalConfirmacion(false);
+          onCancelar?.();
+        }
       });
-      
-      if (compraEditar.producto) {
-        setProductoSeleccionado(compraEditar.producto);
-      }
-      setProveedoresSeleccionados(compraEditar.proveedores || []);
+      setMostrarModalConfirmacion(true);
+      return;
     } else {
       // Modo creación
       setForm({
@@ -106,6 +109,21 @@ function FormularioCompra({ modo, compraEditar, onCancelar, onGuardado }) {
       );
       
       setProveedores(proveedoresActivos);
+      
+      // Mostrar advertencia si no hay proveedores
+      if (proveedoresActivos.length === 0) {
+        setModalConfig({
+          tipo: 'advertencia',
+          modo: 'compra',
+          mensaje: '⚠️ No hay proveedores activos disponibles. Debe crear al menos un proveedor antes de registrar una compra.',
+          onConfirmar: () => setMostrarModalConfirmacion(false),
+          onCancelar: () => {
+            setMostrarModalConfirmacion(false);
+            onCancelar?.();
+          }
+        });
+        setMostrarModalConfirmacion(true);
+      }
     } catch (error) {
       console.error('Error al cargar proveedores', error);
     }
@@ -252,7 +270,7 @@ function FormularioCompra({ modo, compraEditar, onCancelar, onGuardado }) {
     setForm(prev => ({ ...prev, proveedores: nuevosProveedores.map(p => p.id) }));
   };
 
-  // VALIDACIÓN MODIFICADA: Proveedor no obligatorio y precio puede ser 0
+  // ✅ VALIDACIÓN MODIFICADA: Proveedor ahora es OBLIGATORIO
   const validarFormulario = () => {
     const nuevosErrores = {};
 
@@ -261,15 +279,17 @@ function FormularioCompra({ modo, compraEditar, onCancelar, onGuardado }) {
     if (!form.fecha_compra) nuevosErrores.fecha_compra = 'Fecha de compra obligatoria';
     if (!form.cantidad || form.cantidad <= 0) nuevosErrores.cantidad = 'Cantidad debe ser mayor a 0';
     
-    // MODIFICADO: Precio total puede ser 0 o mayor
+    // Precio total puede ser 0 o mayor
     if (form.precio_total === '' || form.precio_total === null || form.precio_total === undefined) {
       nuevosErrores.precio_total = 'Precio total es obligatorio';
     } else if (parseFloat(form.precio_total) < 0) {
       nuevosErrores.precio_total = 'Precio total no puede ser negativo';
     }
     
-    // MODIFICADO: Proveedores no son obligatorios
-    // if (form.proveedores.length === 0) nuevosErrores.proveedores = 'Seleccione al menos un proveedor';
+    // ✅ MODIFICADO: Proveedores ahora son OBLIGATORIOS
+    if (form.proveedores.length === 0) {
+      nuevosErrores.proveedores = 'Seleccione al menos un proveedor';
+    }
 
     setErrores(nuevosErrores);
     return Object.keys(nuevosErrores).length === 0;
@@ -279,111 +299,88 @@ function FormularioCompra({ modo, compraEditar, onCancelar, onGuardado }) {
   const handleConfirmarGuardado = () => {
     if (!validarFormulario()) return;
 
-    // MENSAJE MEJORADO: Indicar cuando es una reposición sin proveedor/costo
+    // Mensaje de confirmación
     let mensajeConfirmacion = '';
-    if (modo === 'editar') {
-      mensajeConfirmacion = '¿Está seguro que desea actualizar esta compra?';
+    const esReposicionSinCosto = parseFloat(form.precio_total) === 0;
+    
+    if (esReposicionSinCosto) {
+      mensajeConfirmacion = `¿Registrar compra de ${form.cantidad} unidades sin costo?`;
     } else {
-      const esReposicionSinCosto = parseFloat(form.precio_total) === 0;
-      const esReposicionSinProveedor = form.proveedores.length === 0;
-      
-      if (esReposicionSinCosto && esReposicionSinProveedor) {
-        mensajeConfirmacion = `¿Registrar reposición de ${form.cantidad} unidades sin costo y sin proveedor?`;
-      } else if (esReposicionSinCosto) {
-        mensajeConfirmacion = `¿Registrar reposición de ${form.cantidad} unidades sin costo?`;
-      } else if (esReposicionSinProveedor) {
-        mensajeConfirmacion = `¿Registrar compra de ${form.cantidad} unidades sin proveedor?`;
-      } else {
-        mensajeConfirmacion = `¿Está seguro que desea registrar la compra ${form.codigo_compra}?`;
-      }
+      mensajeConfirmacion = `¿Está seguro que desea registrar la compra ${form.codigo_compra}?`;
     }
 
     setModalConfig({
       tipo: 'confirmar',
       modo: 'compra',
       mensaje: mensajeConfirmacion,
-      textoConfirmar: modo === 'editar' ? 'Actualizar' : 'Registrar',
+      textoConfirmar: 'Registrar',
       onConfirmar: handleGuardarReal,
       onCancelar: () => setMostrarModalConfirmacion(false)
     });
     setMostrarModalConfirmacion(true);
   };
 
-  // Guardar sin duplicar cantidades
+  // Guardar compra
   const handleGuardarReal = async () => {
-  setMostrarModalConfirmacion(false);
-  setGuardando(true);
-  
-  try {
-    const token = localStorage.getItem('token');
-
-    const compraData = {
-      codigo_compra: form.codigo_compra,
-      proveedores: form.proveedores,
-      producto: form.producto,
-      fecha_compra: form.fecha_compra,
-      cantidad: Number(form.cantidad),
-      precio_total: Number(form.precio_total),
-      descripcion: form.descripcion,
-      estado: 'activa'
-    };
-
-    console.log('📦 Datos enviados al backend:', compraData);
-
-    let response;
-    if (modo === 'editar' && compraEditar?.id) {
-      response = await axios.put(`http://localhost:8000/api/compras/${compraEditar.id}/`, compraData, {
-        headers: { Authorization: `Token ${token}` }
-      });
-    } else {
-      response = await axios.post('http://localhost:8000/api/compras/', compraData, {
-        headers: { Authorization: `Token ${token}` }
-      });
-    }
-
-    // ✅ CONFIGURACIÓN MEJORADA DEL MODAL DE ÉXITO
-    setModalConfig({
-      tipo: 'exito',
-      modo: 'compra',
-      mensaje: modo === 'editar' ? '✅ Compra actualizada exitosamente!' : '✅ Compra registrada exitosamente!',
-      onConfirmar: () => {
-        console.log('✅ Confirmando éxito, llamando onGuardado...');
-        setMostrarModalConfirmacion(false);
-        // Llamar onGuardado después de cerrar el modal
-        setTimeout(() => {
-          onGuardado?.();
-        }, 100);
-      },
-      onCancelar: () => {
-        console.log('✅ Cerrando modal de éxito, llamando onGuardado...');
-        setMostrarModalConfirmacion(false);
-        // También llamar onGuardado si cancelan el modal
-        setTimeout(() => {
-          onGuardado?.();
-        }, 100);
-      }
-    });
-    setMostrarModalConfirmacion(true);
-
-  } catch (error) {
-    console.error('Error al guardar compra:', error);
-    setModalConfig({
-      tipo: 'error',
-      modo: 'compra',
-      mensaje: error.response?.data ? JSON.stringify(error.response.data) : 'Error al procesar la compra',
-      onConfirmar: () => setMostrarModalConfirmacion(false),
-      onCancelar: () => setMostrarModalConfirmacion(false)
-    });
-    setMostrarModalConfirmacion(true);
-  } finally {
-    setGuardando(false);
-  }
-};
-
-  const handleCerrarModalExito = () => {
     setMostrarModalConfirmacion(false);
-    if (modalConfig.tipo === 'exito') {
-      onGuardado?.();
+    setGuardando(true);
+    
+    try {
+      const token = localStorage.getItem('token');
+
+      const compraData = {
+        codigo_compra: form.codigo_compra,
+        proveedores: form.proveedores,
+        producto: form.producto,
+        fecha_compra: form.fecha_compra,
+        cantidad: Number(form.cantidad),
+        precio_total: Number(form.precio_total),
+        descripcion: form.descripcion,
+        estado: 'activa'
+      };
+
+      console.log('📦 Datos enviados al backend:', compraData);
+
+      const response = await axios.post('http://localhost:8000/api/compras/', compraData, {
+        headers: { Authorization: `Token ${token}` }
+      });
+
+      // ✅ CONFIGURACIÓN MEJORADA DEL MODAL DE ÉXITO
+      setModalConfig({
+        tipo: 'exito',
+        modo: 'compra',
+        mensaje: '✅ Compra registrada exitosamente!',
+        onConfirmar: () => {
+          console.log('✅ Confirmando éxito, llamando onGuardado...');
+          setMostrarModalConfirmacion(false);
+          // Llamar onGuardado después de cerrar el modal
+          setTimeout(() => {
+            onGuardado?.();
+          }, 100);
+        },
+        onCancelar: () => {
+          console.log('✅ Cerrando modal de éxito, llamando onGuardado...');
+          setMostrarModalConfirmacion(false);
+          // También llamar onGuardado si cancelan el modal
+          setTimeout(() => {
+            onGuardado?.();
+          }, 100);
+        }
+      });
+      setMostrarModalConfirmacion(true);
+
+    } catch (error) {
+      console.error('Error al guardar compra:', error);
+      setModalConfig({
+        tipo: 'error',
+        modo: 'compra',
+        mensaje: error.response?.data ? JSON.stringify(error.response.data) : 'Error al procesar la compra',
+        onConfirmar: () => setMostrarModalConfirmacion(false),
+        onCancelar: () => setMostrarModalConfirmacion(false)
+      });
+      setMostrarModalConfirmacion(true);
+    } finally {
+      setGuardando(false);
     }
   };
 
@@ -404,13 +401,9 @@ function FormularioCompra({ modo, compraEditar, onCancelar, onGuardado }) {
       {/* Header */}
       <div className="formulario-header">
         <div className="header-content">
-          <h2>
-            {modo === 'editar' ? 'Editar Compra' : 'Compras'}
-          </h2>
+          <h2>Compras</h2>
           <p className="header-description">
-            {modo === 'editar' 
-              ? 'Actualice los datos de la compra existente' 
-              : 'Complete la información para registrar una nueva compra o reposición'}
+            Complete la información para registrar una nueva compra o reposición
           </p>
         </div>
       </div>
@@ -448,9 +441,7 @@ function FormularioCompra({ modo, compraEditar, onCancelar, onGuardado }) {
                     value={form.fecha_compra} 
                     onChange={handleChange}
                     className={errores.fecha_compra ? 'error' : ''}
-                    disabled={modo === 'editar'}
                   />
-                  {modo === 'editar' && <FaLock className="input-icon-lock" />}
                 </div>
                 {errores.fecha_compra && <span className="mensaje-error">{errores.fecha_compra}</span>}
               </div>
@@ -470,18 +461,14 @@ function FormularioCompra({ modo, compraEditar, onCancelar, onGuardado }) {
                     type="button"
                     className="btn-opcion-producto btn-existente"
                     onClick={() => setMostrarBuscadorProductos(true)}
-                    disabled={modo === 'editar'}
                   >
                     <FaSearch />
                     <div className="opcion-content">
-                      <span className="opcion-titulo">
-                        {modo === 'editar' ? 'Producto (Bloqueado)' : 'Seleccionar Producto Existente'}
-                      </span>
+                      <span className="opcion-titulo">Seleccionar Producto Existente</span>
                       <span className="opcion-descripcion">
                         Buscar en el inventario actual
                       </span>
                     </div>
-                    {modo === 'editar' && <FaLock className="opcion-lock" />}
                   </button>
                   
                   {/* NUEVO BOTÓN: Crear Producto */}
@@ -489,17 +476,13 @@ function FormularioCompra({ modo, compraEditar, onCancelar, onGuardado }) {
                     type="button"
                     className="btn-opcion-producto btn-nuevo"
                     onClick={() => setMostrarFormularioProducto(true)}
-                    disabled={modo === 'editar'}
                   >
                     <div className="opcion-content">
-                      <span className="opcion-titulo">
-                        {modo === 'editar' ? 'Crear Producto (Bloqueado)' : 'Crear Nuevo Producto'}
-                      </span>
+                      <span className="opcion-titulo">Crear Nuevo Producto</span>
                       <span className="opcion-descripcion">
                         Agregar nuevo producto al inventario
                       </span>
                     </div>
-                    {modo === 'editar' && <FaLock className="opcion-lock" />}
                   </button>
                 </div>
                 {errores.producto && <span className="mensaje-error">{errores.producto}</span>}
@@ -518,13 +501,11 @@ function FormularioCompra({ modo, compraEditar, onCancelar, onGuardado }) {
                   type="button"
                   className="btn-cambiar-producto"
                   onClick={() => {
-                    if (modo !== 'editar') {
-                      setProductoSeleccionado(null);
-                      setForm(prev => ({ ...prev, producto: '' }));
-                    }
+                    setProductoSeleccionado(null);
+                    setForm(prev => ({ ...prev, producto: '' }));
                   }}
-                  disabled={modo === 'editar'}
                 >
+                  Cambiar
                 </button>
               </div>
             )}
@@ -547,9 +528,7 @@ function FormularioCompra({ modo, compraEditar, onCancelar, onGuardado }) {
                     onChange={handleChange}
                     className={errores.cantidad ? 'error' : ''}
                     min="1"
-                    disabled={modo === 'editar'}
                   />
-                  {modo === 'editar' && <FaLock className="input-icon-lock" />}
                 </div>
                 {errores.cantidad && <span className="mensaje-error">{errores.cantidad}</span>}
               </div>
@@ -567,9 +546,7 @@ function FormularioCompra({ modo, compraEditar, onCancelar, onGuardado }) {
                     onChange={handleChange}
                     className={errores.precio_total ? 'error' : ''}
                     min="0"
-                    disabled={modo === 'editar'}
                   />
-                  {modo === 'editar' && <FaLock className="input-icon-lock" />}
                 </div>
                 {errores.precio_total && <span className="mensaje-error">{errores.precio_total}</span>}
                
@@ -577,11 +554,11 @@ function FormularioCompra({ modo, compraEditar, onCancelar, onGuardado }) {
             </div>
           </div>
 
-          {/* SECCIÓN MODIFICADA: Proveedores ahora opcionales */}
+          {/* ✅ SECCIÓN MODIFICADA: Proveedores ahora OBLIGATORIOS */}
           <div className="seccion-formulario">
             <div className="seccion-header">
               <h3>Proveedores</h3>
-              <span className="campo-opcional">Opcional</span>
+              <span className="campo-obligatorio">Obligatorio</span>
             </div>
             <div className="campo-form">
               <div className="buscador-proveedores-multiple">
@@ -590,7 +567,7 @@ function FormularioCompra({ modo, compraEditar, onCancelar, onGuardado }) {
                   className="btn-buscador"
                   onClick={() => setMostrarBuscadorProveedores(true)}
                 >
-                  {modo === 'editar' ? 'Modificar proveedores...' : 'Seleccionar proveedores...'}
+                  Seleccionar proveedores...
                 </button>
                 
                 {proveedoresSeleccionados.length > 0 && (
@@ -612,6 +589,21 @@ function FormularioCompra({ modo, compraEditar, onCancelar, onGuardado }) {
                   </div>
                 )}
                 
+                {/* ✅ MENSAJE DE ERROR MEJORADO */}
+                {errores.proveedores && (
+                  <div className="mensaje-error-proveedores">
+                    <FaExclamationTriangle className="icono-alerta" />
+                    {errores.proveedores}
+                  </div>
+                )}
+
+                {/* ✅ ADVERTENCIA SI NO HAY PROVEEDORES DISPONIBLES */}
+                {proveedores.length === 0 && (
+                  <div className="advertencia-sin-proveedores">
+                    <FaExclamationTriangle className="icono-alerta" />
+                    <span>No hay proveedores activos disponibles. Debe crear al menos un proveedor antes de registrar una compra.</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -619,8 +611,8 @@ function FormularioCompra({ modo, compraEditar, onCancelar, onGuardado }) {
           {/* Sección: Descripción */}
           <div className="seccion-formulario">
             <div className="seccion-header">
-            
               <h3>Descripción Adicional</h3>
+              <span className="campo-opcional">Opcional</span>
             </div>
             <div className="campo-form">
               <textarea 
@@ -639,9 +631,9 @@ function FormularioCompra({ modo, compraEditar, onCancelar, onGuardado }) {
               type="button" 
               className="btn-guardar" 
               onClick={handleConfirmarGuardado}
-              disabled={guardando || !productoSeleccionado}
+              disabled={guardando || !productoSeleccionado || proveedores.length === 0}
             >
-              {guardando ? 'Guardando...' : (modo === 'editar' ? 'Actualizar Compra' : 'Registrar Compra')}
+              {guardando ? 'Guardando...' : 'Registrar Compra'}
             </button>
             <button type="button" className="btn-cancelar" onClick={onCancelar}>
               Cancelar

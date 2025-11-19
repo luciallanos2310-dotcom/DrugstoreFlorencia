@@ -10,6 +10,7 @@ import Ventas from './Ventas/Ventas';
 import Empleados from './Empleados/Empleados';
 import Compras from './Compras/Compras';
 import FormularioCompra from './Compras/FormularioCompra';
+import Reportes from './Reportes/Reportes';
 import './Dashboard.css';
 
 function Dashboard({ usuario, onCerrarSesion }) {
@@ -36,7 +37,7 @@ function Dashboard({ usuario, onCerrarSesion }) {
     
     // Empleada solo puede editar estos módulos
     const modulosEditablesEmpleada = [
-      'inicio', 'ventas', 'caja', 'compras'
+      'inicio', 'ventas', 'caja', 'compras', 'reportes'
     ];
     
     return modulosEditablesEmpleada.includes(modulo);
@@ -205,15 +206,12 @@ function Dashboard({ usuario, onCerrarSesion }) {
               modo={modoFormularioCompra}
               compraEditar={compraEditando}
               onCancelar={() => {
-                console.log('❌ Cancelando compra, volviendo a lista...');
                 setVistaCompras('lista');
                 setCompraEditando(null);
               }}
               onGuardado={() => {
-                console.log('✅ Compra guardada exitosamente, volviendo a lista...');
                 setVistaCompras('lista');
                 setCompraEditando(null);
-                // También puedes recargar los datos si es necesario
               }}
             />
           );
@@ -221,7 +219,6 @@ function Dashboard({ usuario, onCerrarSesion }) {
         return (
           <Compras 
             onNavegarAFormulario={(modo, compra) => {
-              console.log('📝 Navegando a formulario de compra:', modo);
               setModoFormularioCompra(modo);
               setCompraEditando(compra);
               setVistaCompras('formulario');
@@ -234,19 +231,13 @@ function Dashboard({ usuario, onCerrarSesion }) {
           return (
             <FormularioProducto 
               modo={modoFormulario}
-              producto={productoEditando}
-              onCancelar={() => {
-                console.log('❌ Cancelando producto, volviendo a lista...');
+              productoEditar={productoEditando}
+              onCancelar={() => setVistaProductos('lista')}
+              onGuardado={() => {
                 setVistaProductos('lista');
                 setProductoEditando(null);
               }}
-              onGuardadoExitoso={() => {
-                console.log('✅ Producto guardado exitosamente, volviendo a lista...');
-                setVistaProductos('lista');
-                setProductoEditando(null);
-                // ✅ OPCIONAL: Recargar los productos si es necesario
-                // Puedes agregar lógica aquí para refrescar la lista
-              }}
+              mostrarProveedores={true} 
             />
           );
         }
@@ -267,6 +258,9 @@ function Dashboard({ usuario, onCerrarSesion }) {
       case 'empleados':
         return <Empleados usuario={usuario} />;
 
+      case 'reportes':
+        return <Reportes datosCaja={datosCaja} cajaAbierta={cajaAbierta} />;
+
       case 'configuracion':
         return (
           <div className="modulo-contenido">
@@ -274,6 +268,7 @@ function Dashboard({ usuario, onCerrarSesion }) {
             <p>Ajustes y preferencias</p>
           </div>
         );
+        
 
       default:
         return (
@@ -311,6 +306,12 @@ function Dashboard({ usuario, onCerrarSesion }) {
                   onClick={() => setModuloActivo('compras')}
                 >
                   Nueva compra
+                </button>
+                <button 
+                  className="btn-reportes"
+                  onClick={() => setModuloActivo('reportes')}
+                >
+                  Ver Reportes
                 </button>
               </div>
             </div>

@@ -3,7 +3,7 @@ import axios from 'axios';
 import './Compras.css';
 import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal';
 import FormularioCompra from './FormularioCompra';
-import { FaEdit, FaEye, FaList, FaArrowLeft, FaTimes, FaCalendarAlt, FaBox, FaDollarSign, FaUserTie, FaStickyNote, FaHashtag, FaClipboardList, FaSyncAlt, FaExclamationTriangle, FaBan } from 'react-icons/fa';
+import { FaEye, FaArrowLeft, FaTimes, FaCalendarAlt, FaBox, FaDollarSign, FaUserTie, FaStickyNote, FaHashtag, FaClipboardList, FaExclamationTriangle, FaBan, FaChevronLeft, FaChevronRight, FaStepBackward, FaStepForward } from 'react-icons/fa';
 
 function Compras({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
   const [compras, setCompras] = useState([]);
@@ -11,14 +11,17 @@ function Compras({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
   const [productos, setProductos] = useState([]);
   const [proveedores, setProveedores] = useState([]);
   const [vista, setVista] = useState('lista');
-  const [compraEditar, setCompraEditar] = useState(null);
   const [compraAAnular, setCompraAAnular] = useState(null);
   const [busqueda, setBusqueda] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('');
   const [loading, setLoading] = useState(false);
   const [haBuscado, setHaBuscado] = useState(false);
-  const [mostrarTodos, setMostrarTodos] = useState(false);
   const [compraDetalles, setCompraDetalles] = useState(null);
+
+  // ✅ ESTADOS PARA PAGINACIÓN
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [comprasPorPagina, setComprasPorPagina] = useState(10);
+  const [totalPaginas, setTotalPaginas] = useState(1);
 
   // Estados para modal universal
   const [modalConfig, setModalConfig] = useState({});
@@ -58,10 +61,16 @@ function Compras({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
       console.log('Productos:', productosRes.data);
       console.log('Proveedores:', proveedoresRes.data);
 
-      setTodasCompras(comprasRes.data);
+      // ✅ ENRIQUECER LAS COMPRAS CON DATOS RELACIONADOS ANTES DE GUARDARLAS
+      const comprasEnriquecidas = enriquecerComprasConDatos(comprasRes.data, productosRes.data, proveedoresRes.data);
+      
+      setTodasCompras(comprasEnriquecidas);
       setProductos(productosRes.data);
       setProveedores(proveedoresRes.data);
-      setCompras([]);
+      setCompras(comprasEnriquecidas);
+      
+      // ✅ CALCULAR PAGINACIÓN INICIAL
+      calcularPaginacion(comprasEnriquecidas);
     } catch (error) {
       console.error('Error al cargar datos:', error);
       setModalConfig({
@@ -75,11 +84,118 @@ function Compras({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
     }
   };
 
-  
+  // ✅ FUNCIÓN CORREGIDA: Enriquecer compras con datos relacionados
+  const enriquecerComprasConDatos = (comprasList, productosList, proveedoresList) => {
+    console.log('Enriqueciendo compras con datos relacionados...');
+    
+    return comprasList.map(compra => {
+      // ✅ OBTENER PRODUCTO
+      let productoEncontrado = null;
+      if (compra.producto) {
+        // Buscar por ID (puede ser número o string)
+        productoEncontrado = productosList.find(p => 
+          p.id === compra.producto || 
+          p.id === parseInt(compra.producto) ||
+          p.id?.toString() === compra.producto?.toString()
+        );
+      }
+      
+      // ✅ OBTENER PROVEEDORES
+      let proveedoresEncontrados = [];
+      if (compra.proveedores && Array.isArray(compra.proveedores)) {
+        proveedoresEncontrados = compra.proveedores.map(provId => 
+          proveedoresList.find(p => 
+            p.id === provId || 
+            p.id === parseInt(provId) ||
+            p.id?.toString() === provId?.toString()
+          )
+        ).filter(prov => prov != null); // Filtrar nulls
+      } else if (compra.proveedor) {
+        // Si viene como proveedor individual
+        const proveedor = proveedoresList.find(p => 
+          p.id === compra.proveedor || 
+          p.id === parseInt(compra.proveedor) ||
+          p.id?.toString() === compra.proveedor?.toString()
+        );
+        if (proveedor) proveedoresEncontrados = [proveedor];
+      }
+      
+      console.log(`Compra ${compra.codigo_compra}:`, {
+        productoOriginal: compra.producto,
+        productoEncontrado: productoEncontrado,
+        proveedoresOriginal: compra.proveedores || compra.proveedor,
+        proveedoresEncontrados: proveedoresEncontrados
+      });
+      
+      return {
+        ...compra,
+        producto: productoEncontrado,
+        proveedores: proveedoresEncontrados
+      };
+    });
+  };
+
+  // ✅ FUNCIÓN PARA CALCULAR PAGINACIÓN
+  const calcularPaginacion = (listaCompras) => {
+    const total = listaCompras.length;
+    const paginas = Math.ceil(total / comprasPorPagina);
+    setTotalPaginas(paginas);
+    setPaginaActual(1); // Resetear a primera página
+  };
+
+  // ✅ FUNCIÓN PARA OBTENER COMPRAS DE LA PÁGINA ACTUAL
+  const obtenerComprasPaginaActual = () => {
+    const inicio = (paginaActual - 1) * comprasPorPagina;
+    const fin = inicio + comprasPorPagina;
+    return compras.slice(inicio, fin);
+  };
+
+  // ✅ FUNCIONES DE PAGINACIÓN
+  const irAPagina = (numeroPagina) => {
+    setPaginaActual(numeroPagina);
+  };
+
+  const paginaAnterior = () => {
+    if (paginaActual > 1) {
+      setPaginaActual(paginaActual - 1);
+    }
+  };
+
+  const paginaSiguiente = () => {
+    if (paginaActual < totalPaginas) {
+      setPaginaActual(paginaActual + 1);
+    }
+  };
+
+  const irAPrimeraPagina = () => {
+    setPaginaActual(1);
+  };
+
+  const irAUltimaPagina = () => {
+    setPaginaActual(totalPaginas);
+  };
+
+  // ✅ FUNCIÓN PARA GENERAR RANGO DE PÁGINAS (máximo 5 páginas visibles)
+  const obtenerRangoPaginas = () => {
+    const paginasVisibles = 5;
+    let inicio = Math.max(1, paginaActual - Math.floor(paginasVisibles / 2));
+    let fin = Math.min(totalPaginas, inicio + paginasVisibles - 1);
+    
+    // Ajustar si estamos cerca del final
+    if (fin - inicio + 1 < paginasVisibles) {
+      inicio = Math.max(1, fin - paginasVisibles + 1);
+    }
+    
+    const paginas = [];
+    for (let i = inicio; i <= fin; i++) {
+      paginas.push(i);
+    }
+    return paginas;
+  };
 
   // ✅ FUNCIÓN PARA VERIFICAR SI UN PROVEEDOR ESTÁ ACTIVO
   const estaActivo = (proveedor) => {
-    return proveedor.estado !== false;
+    return proveedor.estado !== false && proveedor.estado !== 'inactivo';
   };
 
   // ✅ FUNCIÓN PARA VERIFICAR SI UNA COMPRA TIENE ALGÚN PROVEEDOR INACTIVO
@@ -89,47 +205,17 @@ function Compras({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
     return compra.proveedores.some(proveedor => !estaActivo(proveedor));
   };
 
-  // Función para obtener producto por ID
-  const obtenerProductoPorId = (productoId) => {
-    return productos.find(p => p.id === productoId) || null;
-  };
-
-  // Función para obtener proveedor por ID (maneja tanto array como ID individual)
-  const obtenerProveedores = (proveedorData) => {
-    if (!proveedorData) return [];
-    
-    // Si es un array de IDs
-    if (Array.isArray(proveedorData)) {
-      return proveedores.filter(p => proveedorData.includes(p.id));
-    }
-    
-    // Si es un solo ID
-    const proveedor = proveedores.find(p => p.id === proveedorData);
-    return proveedor ? [proveedor] : [];
-  };
-
-  // Función para enriquecer compras con datos relacionados
-  const enriquecerComprasConDatos = (comprasList) => {
-    return comprasList.map(compra => ({
-      ...compra,
-      producto: obtenerProductoPorId(compra.producto),
-      proveedores: obtenerProveedores(compra.proveedores || compra.proveedor) // Maneja ambos casos
-    }));
-  };
-
   // Filtrar compras en el frontend
   const filtrarCompras = () => {
     if (busqueda === '' && filtroCategoria === '') {
-      setCompras([]);
-      setHaBuscado(false);
-      setMostrarTodos(false);
+      // ✅ SI NO HAY FILTROS, MOSTRAMOS TODAS LAS COMPRAS CON PAGINACIÓN
+      setCompras(todasCompras);
+      setHaBuscado(true);
+      calcularPaginacion(todasCompras);
       return;
     }
 
     let filtradas = [...todasCompras];
-
-    // Enriquecer con datos relacionados antes de filtrar
-    filtradas = enriquecerComprasConDatos(filtradas);
 
     // FILTRO POR CATEGORÍA (EXACTO)
     if (filtroCategoria.trim()) {
@@ -154,25 +240,17 @@ function Compras({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
 
     setCompras(filtradas);
     setHaBuscado(true);
-    setMostrarTodos(false);
+    
+    // ✅ CALCULAR PAGINACIÓN PARA LOS RESULTADOS FILTRADOS
+    calcularPaginacion(filtradas);
   };
 
-  // Mostrar todas las compras
-  const mostrarTodasCompras = () => {
-    const comprasEnriquecidas = enriquecerComprasConDatos(todasCompras);
-    setCompras(comprasEnriquecidas);
-    setHaBuscado(true);
-    setMostrarTodos(true);
-    setBusqueda('');
-    setFiltroCategoria('');
-  };
-
-  // Ocultar lista y volver al estado inicial
   const ocultarCompras = () => {
-    setCompras([]);
-    setHaBuscado(false);
-    setMostrarTodos(false);
+    setCompras(todasCompras); // ✅ VOLVEMOS A MOSTRAR TODAS CON PAGINACIÓN
+    setHaBuscado(true);
     setCompraDetalles(null);
+    setPaginaActual(1);
+    calcularPaginacion(todasCompras);
   };
 
   // Efecto para filtrar cuando cambian los criterios
@@ -182,7 +260,15 @@ function Compras({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [busqueda, filtroCategoria, todasCompras, productos, proveedores]);
+  }, [busqueda, filtroCategoria, todasCompras]);
+
+  // ✅ EFECTO PARA SCROLLAR AL TOP AL CAMBIAR DE PÁGINA
+  useEffect(() => {
+    const tablaContainer = document.querySelector('.tabla-contenedor-con-scroll-compacta');
+    if (tablaContainer) {
+      tablaContainer.scrollTop = 0;
+    }
+  }, [paginaActual]);
 
   // Manejar cambio en el filtro de categoría
   const handleFiltroCategoriaChange = (e) => {
@@ -194,91 +280,80 @@ function Compras({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
   const limpiarFiltros = () => {
     setBusqueda('');
     setFiltroCategoria('');
-    setCompras([]);
-    setHaBuscado(false);
-    setMostrarTodos(false);
+    setCompras(todasCompras); // ✅ VOLVEMOS A MOSTRAR TODAS CON PAGINACIÓN
+    setHaBuscado(true);
     setCompraDetalles(null);
+    setPaginaActual(1);
+    calcularPaginacion(todasCompras);
   };
 
-  // ✅ NUEVA FUNCIÓN: Anular compra
   // ✅ FUNCIÓN CORREGIDA: Anular compra
-const handleAnularCompra = async () => {
-  if (!compraAAnular) return;
-  try {
-    const token = localStorage.getItem('token');
-    
-    console.log('Anulando compra:', compraAAnular.id);
-    
-    // Usar PATCH y estado en minúsculas según el modelo Django
-    const response = await axios.patch(`http://localhost:8000/api/compras/${compraAAnular.id}/`, {
-      estado: 'anulada'  // ✅ Cambiado a minúsculas
-    }, {
-      headers: { 
-        Authorization: `Token ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
+  const handleAnularCompra = async () => {
+    if (!compraAAnular) return;
+    try {
+      const token = localStorage.getItem('token');
+      
+      console.log('Anulando compra:', compraAAnular.id);
+      
+      // Usar PATCH y estado en minúsculas según el modelo Django
+      const response = await axios.patch(`http://localhost:8000/api/compras/${compraAAnular.id}/`, {
+        estado: 'anulada'  // ✅ Cambiado a minúsculas
+      }, {
+        headers: { 
+          Authorization: `Token ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
 
-    console.log('Respuesta anulación:', response.data);
-    
-    await cargarTodosDatos();
-    
-    setModalConfig({
-      tipo: 'exito',
-      modo: 'compra',
-      mensaje: `✅ Compra "${compraAAnular.codigo_compra}" anulada correctamente. El stock ha sido restado.`
-    });
-    setMostrarModalConfirmacion(true);
-    
-  } catch (error) {
-    console.error('Error completo al anular compra:', error);
-    console.error('Detalles del error:', error.response?.data);
-    
-    setModalConfig({
-      tipo: 'error',
-      modo: 'compra',
-      mensaje: error.response?.data 
-        ? `❌ Error al anular: ${JSON.stringify(error.response.data)}`
-        : '❌ Error de conexión al anular la compra'
-    });
-    setMostrarModalConfirmacion(true);
-  } finally {
-    setCompraAAnular(null);
-  }
-};
+      console.log('Respuesta anulación:', response.data);
+      
+      await cargarTodosDatos();
+      
+      setModalConfig({
+        tipo: 'exito',
+        modo: 'compra',
+        mensaje: `✅ Compra "${compraAAnular.codigo_compra}" anulada correctamente. El stock ha sido restado.`
+      });
+      setMostrarModalConfirmacion(true);
+      
+    } catch (error) {
+      console.error('Error completo al anular compra:', error);
+      console.error('Detalles del error:', error.response?.data);
+      
+      setModalConfig({
+        tipo: 'error',
+        modo: 'compra',
+        mensaje: error.response?.data 
+          ? `❌ Error al anular: ${JSON.stringify(error.response.data)}`
+          : '❌ Error de conexión al anular la compra'
+      });
+      setMostrarModalConfirmacion(true);
+    } finally {
+      setCompraAAnular(null);
+    }
+  };
 
   const handleCerrarModal = () => {
     setMostrarModalConfirmacion(false);
     if (modalConfig.tipo === 'exito') {
       // Recargar datos después de éxito
-      if (mostrarTodos) {
-        const comprasEnriquecidas = enriquecerComprasConDatos(todasCompras);
-        setCompras(comprasEnriquecidas);
-      } else {
-        filtrarCompras();
-      }
+      cargarTodosDatos();
     }
   };
 
-  const handleGuardadoExitoso = (onGuardado) => {
-  console.log('✅ Guardado exitoso, volviendo a lista...');
-  setVista('lista');
-  setCompraEditar(null);
-  cargarTodosDatos(); // Recargar los datos
-  
-  // Mostrar mensaje de éxito
-  setModalConfig({
-    tipo: 'exito',
-    modo: 'compra',
-    mensaje: '✅ Compra registrada correctamente'
-  });
-  setMostrarModalConfirmacion(true);
-  
-  // ✅ LLAMAR AL CALLBACK SI EXISTE
-  if (onGuardado) {
-    onGuardado();
-  }
-};
+  const handleGuardadoExitoso = () => {
+    console.log('✅ Guardado exitoso, volviendo a lista...');
+    setVista('lista');
+    cargarTodosDatos(); // Recargar los datos
+    
+    // Mostrar mensaje de éxito
+    setModalConfig({
+      tipo: 'exito',
+      modo: 'compra',
+      mensaje: '✅ Compra registrada correctamente'
+    });
+    setMostrarModalConfirmacion(true);
+  };
 
   // Función para manejar nueva compra
   const handleNuevaCompra = () => {
@@ -291,35 +366,23 @@ const handleAnularCompra = async () => {
     }
   };
 
-  // Función para manejar editar compra
-  const handleEditarCompra = (compra) => {
-    console.log('🔄 Editando compra:', compra);
-    if (onNavegarAFormulario) {
-      onNavegarAFormulario('editar', compra);
-    } else {
-      // Fallback si no se pasa la prop
-      setCompraEditar(compra);
-      setVista('editar');
-    }
-  };
-
   // ✅ NUEVA FUNCIÓN: Confirmar anulación
-    const confirmarAnulacion = (compra) => {
-      setCompraAAnular(compra);
-      setModalConfig({
-        tipo: 'eliminar',
-        modo: 'compra',
-        mensaje: `¿Está seguro que desea ANULAR la compra "${compra.codigo_compra}" del producto "${compra.producto?.nombre_prod || 'este producto'}"?\n\n⚠️ Esta acción restará ${compra.cantidad} unidades del stock del producto.`,
-        textoConfirmar: 'Anular Compra',
-        textoCancelar: 'Cancelar'
-      });
-      setMostrarModalConfirmacion(true);
-    };
-
+  const confirmarAnulacion = (compra) => {
+    setCompraAAnular(compra);
+    setModalConfig({
+      tipo: 'eliminar',
+      modo: 'compra',
+      mensaje: `¿Está seguro que desea ANULAR la compra "${compra.codigo_compra}" del producto "${compra.producto?.nombre_prod || 'este producto'}"?\n\n⚠️ Esta acción restará ${compra.cantidad} unidades del stock del producto.`,
+      textoConfirmar: 'Anular Compra',
+      textoCancelar: 'Cancelar'
+    });
+    setMostrarModalConfirmacion(true);
+  };
 
   // Verificar si hay filtros activos
   const hayFiltrosActivos = busqueda || filtroCategoria;
   const hayResultados = compras.length > 0;
+  const comprasMostrar = obtenerComprasPaginaActual();
 
   // Formatear fecha para mostrar
   const formatearFecha = (fecha) => {
@@ -336,12 +399,12 @@ const handleAnularCompra = async () => {
     }).format(precio);
   };
 
-  // Obtener nombre seguro del producto
+  // ✅ FUNCIÓN CORREGIDA: Obtener nombre seguro del producto
   const obtenerNombreProducto = (compra) => {
     return compra.producto?.nombre_prod || 'Producto no disponible';
   };
 
-  // Obtener categoría segura del producto
+  // ✅ FUNCIÓN CORREGIDA: Obtener categoría segura del producto
   const obtenerCategoriaProducto = (compra) => {
     return compra.producto?.categoria_prod || 'Sin categoría';
   };
@@ -356,7 +419,7 @@ const handleAnularCompra = async () => {
     
     // Si hay múltiples proveedores, mostrar el primero + "..."
     if (compra.proveedores.length > 1) {
-      const primerProveedor = compra.proveedores[0].nombre_prov;
+      const primerProveedor = compra.proveedores[0]?.nombre_prov || 'Proveedor';
       return (
         <span className={tieneInactivos ? 'proveedor-inactivo-tachado' : ''}>
           {primerProveedor} +{compra.proveedores.length - 1} más
@@ -366,6 +429,8 @@ const handleAnularCompra = async () => {
     
     // Si solo hay un proveedor
     const proveedor = compra.proveedores[0];
+    if (!proveedor?.nombre_prov) return 'Proveedor no disponible';
+    
     return (
       <span className={!estaActivo(proveedor) ? 'proveedor-inactivo-tachado' : ''}>
         {proveedor.nombre_prov}
@@ -373,44 +438,41 @@ const handleAnularCompra = async () => {
     );
   };
 
- // ✅ FUNCIÓN CORREGIDA: Obtener clase CSS para estado de compra
-const obtenerClaseEstado = (estado) => {
-  switch(estado?.toLowerCase()) {  // ✅ Usar toLowerCase()
-    case 'activa': return 'estado-activa';
-    case 'anulada': return 'estado-anulada';
-    default: return 'estado-desconocido';
-  }
-};
+  // ✅ FUNCIÓN CORREGIDA: Obtener clase CSS para estado de compra
+  const obtenerClaseEstado = (estado) => {
+    switch(estado?.toLowerCase()) {
+      case 'activa': return 'estado-activa';
+      case 'anulada': return 'estado-anulada';
+      default: return 'estado-desconocido';
+    }
+  };
 
-// ✅ FUNCIÓN CORREGIDA: Obtener texto para estado de compra
-const obtenerTextoEstado = (estado) => {
-  switch(estado?.toLowerCase()) {  // ✅ Usar toLowerCase()
-    case 'activa': return 'Activa';
-    case 'anulada': return 'Anulada';
-    default: return estado;
-  }
-};
+  // ✅ FUNCIÓN CORREGIDA: Obtener texto para estado de compra
+  const obtenerTextoEstado = (estado) => {
+    switch(estado?.toLowerCase()) {
+      case 'activa': return 'Activa';
+      case 'anulada': return 'Anulada';
+      default: return estado;
+    }
+  };
 
-  // SI ESTAMOS EN MODO CREAR O EDITAR, MOSTRAR EL FORMULARIO
-if (vista === 'crear' || vista === 'editar') {
-  return (
-    <FormularioCompra
-      modo={vista}
-      compraEditar={compraEditar}
-      onCancelar={() => {
-        console.log('❌ Cancelando, volviendo a lista...');
-        setVista('lista');
-        setCompraEditar(null);
-      }}
-      onGuardado={() => {
-        console.log('✅ Guardado completado, volviendo a lista...');
-        setVista('lista');
-        setCompraEditar(null);
-        cargarTodosDatos(); // Recargar datos
-      }}
-    />
-  );
-}
+  // SI ESTAMOS EN MODO CREAR, MOSTRAR EL FORMULARIO
+  if (vista === 'crear') {
+    return (
+      <FormularioCompra
+        modo="nueva"
+        onCancelar={() => {
+          console.log('❌ Cancelando, volviendo a lista...');
+          setVista('lista');
+        }}
+        onGuardado={() => {
+          console.log('✅ Guardado completado, volviendo a lista...');
+          setVista('lista');
+          cargarTodosDatos(); // Recargar datos
+        }}
+      />
+    );
+  }
 
   // SI ESTAMOS EN MODO LISTA, MOSTRAR LA TABLA
   return (
@@ -456,24 +518,14 @@ if (vista === 'crear' || vista === 'editar') {
           </select>
         </div>
 
-        {/* BOTÓN MOSTRAR TODOS */}
-        {!mostrarTodos && !hayFiltrosActivos && (
-          <button className="btn-mostrar-todos" onClick={mostrarTodasCompras}>
-            <FaList className="icono-btn" />
-            Mostrar todos
-          </button>
-        )}
-
-        {/* BOTÓN LIMPIAR FILTROS */}
-        {(hayFiltrosActivos || mostrarTodos) && (
+        {hayFiltrosActivos && (
           <button className="btn-limpiar-grande" onClick={limpiarFiltros}>
             <FaArrowLeft className="icono-btn" />
-            Ocultar lista
+            Limpiar filtros
           </button>
         )}
       </div>
 
-      {/* MENSAJES DE BÚSQUEDA */}
       {hayFiltrosActivos && (
         <div className="mensaje-busqueda">
           {compras.length === 0 ? 
@@ -491,9 +543,9 @@ if (vista === 'crear' || vista === 'editar') {
         </div>
       )}
 
-      {mostrarTodos && (
+      {!hayFiltrosActivos && (
         <div className="mensaje-busqueda">
-          Mostrando todas las compras ({compras.length})
+          Mostrando {compras.length} compras en total
         </div>
       )}
 
@@ -509,85 +561,157 @@ if (vista === 'crear' || vista === 'editar') {
           <p>No se encontraron compras con los criterios de búsqueda</p>
           <button className="btn-limpiar-grande" onClick={limpiarFiltros}>
             <FaArrowLeft className="icono-btn" />
-            Ocultar lista
+            Limpiar filtros
           </button>
         </div>
-      ) : !hayFiltrosActivos && !haBuscado && !mostrarTodos ? (
-        <div className="sin-busqueda">
-          <div className="mensaje-inicial">
-            <p>Utilice el buscador, los filtros o el botón "Mostrar todos" para encontrar compras específicas</p>
-          </div>
-        </div>
       ) : hayResultados ? (
-        <div className="tabla-contenedor-con-scroll-compacta">
-          <table className="tabla-compras-compacta">
-            <thead>
-              <tr>
-                <th className="columna-codigo">Código</th>
-                <th className="columna-producto">Producto</th>
-                <th className="columna-proveedor">Proveedor</th>
-                <th className="columna-fecha">Fecha Compra</th>
-                <th className="columna-cantidad">Cant.</th>
-                <th className="columna-precio">Precio Total</th>
-                <th className="columna-estado">Estado</th>
-                {!modoLectura && <th className="columna-acciones">Acciones</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {compras.map(compra => (
-                <tr key={compra.id} className={compra.estado?.toLowerCase() === 'anulada' ? 'compra-anulada' : ''}>
-                  <td className="codigo-compra centered">{compra.codigo_compra || 'N/A'}</td>
-                  <td className="producto-compra">{obtenerNombreProducto(compra)}</td>
-                  <td className="proveedor-compra centered">
-                    {obtenerNombresProveedores(compra)}
-                  </td>
-                  <td className="fecha-compra centered">{formatearFecha(compra.fecha_compra)}</td>
-                  <td className="cantidad-compra centered">{compra.cantidad || 0}</td>
-                  <td className="precio-compra centered">{formatearPrecio(compra.precio_total)}</td>
-                  <td className="estado-compra centered">
-                    <span className={`badge-estado ${obtenerClaseEstado(compra.estado)}`}>
-                      {obtenerTextoEstado(compra.estado)}
-                    </span>
-                  </td>
-                  {!modoLectura && (
-                    <td className="acciones-compra centered">
-                      <button
-                        className="btn-icon editar"
-                        onClick={() => handleEditarCompra(compra)}
-                        title="Editar compra"
-                        disabled={compra.estado === 'ANULADA'}
-                      >
-                        <FaEdit />
-                      </button>  
-                    
-                        <button
-                          className="btn-icon anular"
-                          onClick={() => confirmarAnulacion(compra)}
-                          title="Anular compra (restará stock)"
-                        >
-                          <FaBan />
-                        </button>
-                                    
-                      <button
-                        className="btn-icon detalles"
-                        onClick={() => setCompraDetalles(compra)}
-                        title="Ver detalles completos"
-                      >
-                        <FaEye />
-                      </button>
-                                            
-                    </td>
-                  )}
+        <>
+          <div className="tabla-contenedor-con-scroll-compacta">
+            <table className="tabla-compras-compacta">
+              <thead>
+                <tr>
+                  <th className="columna-codigo">Código</th>
+                  <th className="columna-producto">Producto</th>
+                  <th className="columna-proveedor">Proveedor</th>
+                  <th className="columna-fecha">Fecha Compra</th>
+                  <th className="columna-cantidad">Cant.</th>
+                  <th className="columna-precio">Precio Total</th>
+                  <th className="columna-estado">Estado</th>
+                  {!modoLectura && <th className="columna-acciones">Acciones</th>}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {comprasMostrar.map(compra => (
+                  <tr key={compra.id} className={compra.estado?.toLowerCase() === 'anulada' ? 'compra-anulada' : ''}>
+                    <td className="codigo-compra centered">{compra.codigo_compra || 'N/A'}</td>
+                    <td className="producto-compra">{obtenerNombreProducto(compra)}</td>
+                    <td className="proveedor-compra centered">
+                      {obtenerNombresProveedores(compra)}
+                    </td>
+                    <td className="fecha-compra centered">{formatearFecha(compra.fecha_compra)}</td>
+                    <td className="cantidad-compra centered">{compra.cantidad || 0}</td>
+                    <td className="precio-compra centered">{formatearPrecio(compra.precio_total)}</td>
+                    <td className="estado-compra centered">
+                      <span className={`badge-estado ${obtenerClaseEstado(compra.estado)}`}>
+                        {obtenerTextoEstado(compra.estado)}
+                      </span>
+                    </td>
+                    {!modoLectura && (
+                      <td className="acciones-compra centered">
+                        {compra.estado?.toLowerCase() === 'activa' && (
+                          <button
+                            className="btn-icon anular"
+                            onClick={() => confirmarAnulacion(compra)}
+                            title="Anular compra (restará stock)"
+                          >
+                            <FaBan />
+                          </button>
+                        )}
+                        <button
+                          className="btn-icon detalles"
+                          onClick={() => setCompraDetalles(compra)}
+                          title="Ver detalles completos"
+                        >
+                          <FaEye />
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* ✅ PAGINACIÓN - SIEMPRE VISIBLE (a menos que no haya compras) */}
+          {compras.length > 0 && (
+            <div className="paginacion-container">
+              <div className="paginacion-info">
+                Mostrando {((paginaActual - 1) * comprasPorPagina) + 1} - {Math.min(paginaActual * comprasPorPagina, compras.length)} de {compras.length} compras
+              </div>
+              
+              <div className="paginacion-controles">
+                <button 
+                  className="btn-paginacion" 
+                  onClick={irAPrimeraPagina}
+                  disabled={paginaActual === 1}
+                  title="Primera página"
+                >
+                  <FaStepBackward />
+                </button>
+                
+                <button 
+                  className="btn-paginacion" 
+                  onClick={paginaAnterior}
+                  disabled={paginaActual === 1}
+                  title="Página anterior"
+                >
+                  <FaChevronLeft />
+                </button>
+
+                <div className="numeros-pagina">
+                  {obtenerRangoPaginas().map(numero => (
+                    <button
+                      key={numero}
+                      className={`numero-pagina ${numero === paginaActual ? 'activa' : ''}`}
+                      onClick={() => irAPagina(numero)}
+                    >
+                      {numero}
+                    </button>
+                  ))}
+                </div>
+
+                <button 
+                  className="btn-paginacion" 
+                  onClick={paginaSiguiente}
+                  disabled={paginaActual === totalPaginas}
+                  title="Página siguiente"
+                >
+                  <FaChevronRight />
+                </button>
+                
+                <button 
+                  className="btn-paginacion" 
+                  onClick={irAUltimaPagina}
+                  disabled={paginaActual === totalPaginas}
+                  title="Última página"
+                >
+                  <FaStepForward />
+                </button>
+              </div>
+
+              {/* ✅ SELECTOR DE COMPRAS POR PÁGINA */}
+              <div className="paginacion-selector">
+                <label>Compras por página:</label>
+                <select 
+                  value={comprasPorPagina} 
+                  onChange={(e) => {
+                    const nuevoValor = Number(e.target.value);
+                    setComprasPorPagina(nuevoValor);
+                    setPaginaActual(1);
+                    calcularPaginacion(compras);
+                  }}
+                  className="select-compras-pagina"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+            </div>
+          )}
+        </>
       ) : (
         <div className="sin-busqueda">
           <div className="mensaje-inicial">
-            <h3>No hay resultados</h3>
-            <p>Intente con otros términos de búsqueda o filtros</p>
+            <h3>No hay compras registradas</h3>
+            <p>Comience registrando una nueva compra</p>
+            {!modoLectura && (
+              <button className="btn-agregar" onClick={handleNuevaCompra} style={{marginTop: '10px'}}>
+                + Registrar primera compra
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -685,12 +809,12 @@ if (vista === 'crear' || vista === 'editar') {
                       <div className="lista-proveedores-detalle">
                         {compraDetalles.proveedores.map((proveedor, index) => (
                           <div 
-                            key={proveedor.id} 
+                            key={proveedor?.id || index} 
                             className={`proveedor-item ${!estaActivo(proveedor) ? 'proveedor-inactivo-detalle' : ''}`}
                           >
                             <span className="nombre-proveedor">
-                              {proveedor.nombre_prov}
-                              {!estaActivo(proveedor) && (
+                              {proveedor?.nombre_prov || 'Proveedor no disponible'}
+                              {proveedor && !estaActivo(proveedor) && (
                                 <span className="estado-proveedor inactivo"> (Inactivo)</span>
                               )}
                             </span>
