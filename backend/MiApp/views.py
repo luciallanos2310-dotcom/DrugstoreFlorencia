@@ -427,30 +427,29 @@ class ProductoViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             data = request.data.copy()
             
-            # Si solo viene cantidad, es actualización automática desde ventas
-            campos_recibidos = set(data.keys())
+            print(f"🔄 Actualizando producto {instance.id} con datos:", data)
             
-            if campos_recibidos == {'cantidad'}:
-                # Actualización automática de stock desde ventas
+            # Permitir actualización de cantidad desde ventas
+            if 'cantidad' in data:
                 data['cantidad'] = int(data['cantidad'])
-            else:
-                # Edición manual desde formulario - No permitir modificar cantidad
-                if 'cantidad' in data:
-                    del data['cantidad']
-                
-                # Procesar otros campos
-                if 'precio_venta' in data:
-                    data['precio_venta'] = float(data['precio_venta'])
-                if 'stock_minimo' in data:
-                    data['stock_minimo'] = int(data['stock_minimo'])
+                print(f"📦 Actualizando cantidad a: {data['cantidad']}")
             
-            serializer = self.get_serializer(instance, data=data, partial=True)
+            # Procesar otros campos
+            if 'precio_venta' in data:
+                data['precio_venta'] = float(data['precio_venta'])
+            if 'stock_minimo' in data:
+                data['stock_minimo'] = int(data['stock_minimo'])
+            
+            serializer = self.get_serializer(instance, data=data, partial=False)  # ✅ Cambiado a partial=False
             serializer.is_valid(raise_exception=True)
             self.perform_update(serializer)
+            
+            print(f"✅ Producto actualizado: {instance.nombre_prod}, Nueva cantidad: {instance.cantidad}")
             
             return Response(serializer.data)
             
         except Exception as e:
+            print(f"❌ Error al actualizar producto: {str(e)}")
             return Response(
                 {'error': f'Error al actualizar producto: {str(e)}'}, 
                 status=status.HTTP_400_BAD_REQUEST

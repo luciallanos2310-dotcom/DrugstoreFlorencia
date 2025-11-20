@@ -219,68 +219,73 @@ function Ventas({ datosCaja, onCerrarCaja }) {
   };
 
   // ✅ FUNCIÓN MEJORADA: Actualizar stock de productos (solo productos normales, no Saeta)
-  const actualizarStockProductos = async (productosVendidos) => {
-    try {
-      const token = localStorage.getItem('token');
-      const actualizaciones = [];
+  // ✅ FUNCIÓN MEJORADA: Actualizar stock de productos
+const actualizarStockProductos = async (productosVendidos) => {
+  try {
+    const token = localStorage.getItem('token');
+    const actualizaciones = [];
 
-      for (const producto of productosVendidos) {
-        // Saltar productos Saeta (no tienen stock)
-        if (producto.esSaeta) {
-          console.log('⏭️ Saltando actualización de stock para producto Saeta');
-          continue;
-        }
-
-        console.log(`🔄 Actualizando stock producto ${producto.id}: ${producto.cantidad} unidades vendidas`);
-
-        // Obtener producto actual
-        const response = await fetch(`http://localhost:8000/api/productos/${producto.id}/`, {
-          headers: { 'Authorization': `Token ${token}` }
-        });
-
-        if (response.ok) {
-          const productoActual = await response.json();
-          const nuevaCantidad = Math.max(productoActual.cantidad - producto.cantidad, 0);
-
-          // Actualizar con PATCH - CORREGIDO: enviar solo los campos necesarios
-          const updateResponse = await fetch(`http://localhost:8000/api/productos/${producto.id}/`, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Token ${token}`
-            },
-            body: JSON.stringify({ 
-              cantidad: nuevaCantidad,
-              nombre_prod: productoActual.nombre_prod,
-              precio_venta: productoActual.precio_venta,
-              categoria_prod: productoActual.categoria_prod,
-              precio_total: productoActual.precio_total
-            })
-          });
-
-          if (updateResponse.ok) {
-            console.log(`✅ Stock actualizado: ${producto.nombre} - ${nuevaCantidad} unidades`);
-            actualizaciones.push({ success: true, producto: producto.nombre });
-          } else {
-            const errorText = await updateResponse.text();
-            console.error(`❌ Error actualizando ${producto.nombre}:`, errorText);
-            actualizaciones.push({ success: false, producto: producto.nombre, error: errorText });
-          }
-        } else {
-          console.error(`❌ Error obteniendo producto ${producto.id}`);
-          actualizaciones.push({ success: false, producto: producto.nombre, error: 'No se pudo obtener el producto' });
-        }
+    for (const producto of productosVendidos) {
+      // Saltar productos Saeta (no tienen stock)
+      if (producto.esSaeta) {
+        console.log('⏭️ Saltando actualización de stock para producto Saeta');
+        continue;
       }
 
-      // Actualizar lista de productos en el estado
-      await cargarProductos();
-      return actualizaciones;
+      console.log(`🔄 Actualizando stock producto ${producto.id}: ${producto.cantidad} unidades vendidas`);
 
-    } catch (error) {
-      console.error('❌ Error en actualizarStockProductos:', error);
-      throw error;
+      // Obtener producto actual para verificar stock
+      const response = await fetch(`http://localhost:8000/api/productos/${producto.id}/`, {
+        headers: { 'Authorization': `Token ${token}` }
+      });
+
+      if (response.ok) {
+        const productoActual = await response.json();
+        const nuevaCantidad = Math.max(productoActual.cantidad - producto.cantidad, 0);
+
+        console.log(`📊 Producto: ${productoActual.nombre_prod}, Stock actual: ${productoActual.cantidad}, Vendido: ${producto.cantidad}, Nuevo stock: ${nuevaCantidad}`);
+
+        // ✅ USAR PUT EN LUGAR DE PATCH - enviar todos los campos requeridos
+        const updateResponse = await fetch(`http://localhost:8000/api/productos/${producto.id}/`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Token ${token}`
+          },
+          body: JSON.stringify({ 
+            nombre_prod: productoActual.nombre_prod,
+            categoria_prod: productoActual.categoria_prod,
+            descripcion_prod: productoActual.descripcion_prod || '',
+            codigo_prod: productoActual.codigo_prod || '',
+            precio_venta: parseFloat(productoActual.precio_venta),
+            cantidad: nuevaCantidad,
+            stock_minimo: productoActual.stock_minimo || 5
+          })
+        });
+
+        if (updateResponse.ok) {
+          console.log(`✅ Stock actualizado: ${productoActual.nombre_prod} - ${nuevaCantidad} unidades`);
+          actualizaciones.push({ success: true, producto: productoActual.nombre_prod });
+        } else {
+          const errorText = await updateResponse.text();
+          console.error(`❌ Error actualizando ${productoActual.nombre_prod}:`, errorText);
+          actualizaciones.push({ success: false, producto: productoActual.nombre_prod, error: errorText });
+        }
+      } else {
+        console.error(`❌ Error obteniendo producto ${producto.id}`);
+        actualizaciones.push({ success: false, producto: producto.nombre, error: 'No se pudo obtener el producto' });
+      }
     }
-  };
+
+    // Actualizar lista de productos en el estado
+    await cargarProductos();
+    return actualizaciones;
+
+  } catch (error) {
+    console.error('❌ Error en actualizarStockProductos:', error);
+    throw error;
+  }
+};
 
   const calcularTotal = () => {
     return productosSeleccionados.reduce((total, producto) => {
@@ -317,13 +322,18 @@ function Ventas({ datosCaja, onCerrarCaja }) {
       const productosNormales = productosSeleccionados.filter(p => !p.esSaeta);
       
       if (productosNormales.length > 0) {
+        console.log(`📦 Actualizando stock para ${productosNormales.length} productos normales`);
         const resultadosStock = await actualizarStockProductos(productosNormales);
         const erroresStock = resultadosStock.filter(r => !r.success);
+        
         if (erroresStock.length > 0) {
+          console.error('❌ Errores en actualización de stock:', erroresStock);
           alert('❌ Error al actualizar stock. Venta cancelada.');
           return;
         }
         console.log('✅ Stock actualizado correctamente');
+      } else {
+        console.log('📦 No hay productos normales para actualizar stock');
       }
 
       // ✅ 2. CREAR VENTA PRINCIPAL (para todos los productos)
@@ -366,6 +376,8 @@ function Ventas({ datosCaja, onCerrarCaja }) {
           subtotal: producto.subtotal
         };
 
+        console.log(`📝 Creando detalle para ${producto.nombre}:`, detalleData);
+
         const responseDetalle = await fetch('http://localhost:8000/api/detalle_ventas/', {
           method: 'POST',
           headers: {
@@ -391,6 +403,8 @@ function Ventas({ datosCaja, onCerrarCaja }) {
           const saetaUpdateData = {
             venta: ventaCreada.id
           };
+
+          console.log(`🔄 Actualizando venta Saeta ${productoSaeta.datosSaeta.id} con venta principal`);
 
           const responseSaeta = await fetch(`http://localhost:8000/api/ventas_saeta/${productoSaeta.datosSaeta.id}/`, {
             method: 'PATCH',

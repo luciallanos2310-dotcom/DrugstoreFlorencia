@@ -1,5 +1,3 @@
-/* AperturaCaja.css - Versión con scroll en toda la pantalla */
-
 .apertura-caja-container {
   width: 60%;
   min-height: 100vh;
@@ -43,7 +41,7 @@
 .formulario-apertura {
   display: flex;
   flex-direction: column;
-  padding-top: 15px;
+  padding-top: 15px 0;
 }
 
 .campo-grupo {
