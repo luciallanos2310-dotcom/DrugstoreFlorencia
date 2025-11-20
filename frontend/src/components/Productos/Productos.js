@@ -2,22 +2,26 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './Productos.css';
 import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal';
-import { FaEdit, FaTrash, FaEye, FaArrowLeft, FaTimes, FaBox, FaDollarSign, FaHashtag, FaClipboardList, FaExclamationTriangle, FaChevronLeft, FaChevronRight, FaStepBackward, FaStepForward } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaEye, FaArrowLeft, FaTimes, FaBox, FaDollarSign, FaHashtag, FaClipboardList, FaExclamationTriangle, FaChevronLeft, FaChevronRight, FaStepBackward, FaStepForward, FaUserTie } from 'react-icons/fa';
 
 function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
   const [productos, setProductos] = useState([]);
   const [todosProductos, setTodosProductos] = useState([]);
+  const [compras, setCompras] = useState([]);
+  const [proveedores, setProveedores] = useState([]);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [productoAEliminar, setProductoAEliminar] = useState(null);
   const [busqueda, setBusqueda] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('');
   const [loading, setLoading] = useState(false);
-  const [haBuscado, setHaBuscado] = useState(false);
   const [productoDetalles, setProductoDetalles] = useState(null);
+  const [proveedoresProducto, setProveedoresProducto] = useState([]);
+  const [modalTipo, setModalTipo] = useState('eliminar');
+  const [modalMensaje, setModalMensaje] = useState('');
 
-  // ✅ ESTADOS PARA PAGINACIÓN
+  // Estados para paginación
   const [paginaActual, setPaginaActual] = useState(1);
-  const [productosPorPagina, setProductosPorPagina] = useState(10);
+  const [productosPorPagina] = useState(6);
   const [totalPaginas, setTotalPaginas] = useState(1);
 
   const categorias = [
@@ -35,15 +39,23 @@ function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario })
       setLoading(true);
       const token = localStorage.getItem('token');
       
-      const productosRes = await axios.get('http://localhost:8000/api/productos/', {
-        headers: { Authorization: `Token ${token}` }
-      });
+      const [productosRes, comprasRes, proveedoresRes] = await Promise.all([
+        axios.get('http://localhost:8000/api/productos/', {
+          headers: { Authorization: `Token ${token}` }
+        }),
+        axios.get('http://localhost:8000/api/compras/', {
+          headers: { Authorization: `Token ${token}` }
+        }),
+        axios.get('http://localhost:8000/api/proveedores/', {
+          headers: { Authorization: `Token ${token}` }
+        })
+      ]);
 
-      console.log('✅ Productos cargados:', productosRes.data);
       setTodosProductos(productosRes.data);
-      setProductos(productosRes.data); // ✅ AHORA SIEMPRE MOSTRAMOS PRODUCTOS CON PAGINACIÓN
+      setProductos(productosRes.data);
+      setCompras(comprasRes.data);
+      setProveedores(proveedoresRes.data);
       
-      // ✅ CALCULAR PAGINACIÓN INICIAL
       calcularPaginacion(productosRes.data);
     } catch (error) {
       console.error('Error al cargar datos:', error);
@@ -52,22 +64,115 @@ function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario })
     }
   };
 
-  // ✅ FUNCIÓN PARA CALCULAR PAGINACIÓN
+  // ✅ FUNCIÓN CORREGIDA: Manejar eliminación de producto
+  const handleEliminarProducto = (producto) => {
+    // Mostrar modal de confirmación directamente
+    // La verificación de ventas se hará en el backend
+    setModalTipo('eliminar');
+    setModalMensaje(`¿Está seguro que desea eliminar el producto "${producto.nombre_prod}"?`);
+    setProductoAEliminar(producto);
+    setMostrarModal(true);
+  };
+
+  // ✅ FUNCIÓN CORREGIDA: Ejecutar eliminación después de confirmación
+  // En productos.js - modificar la función handleEliminarConfirmado
+const handleEliminarConfirmado = async () => {
+    if (!productoAEliminar) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await axios.delete(`http://localhost:8000/api/productos/${productoAEliminar.id}/`, {
+        headers: { Authorization: `Token ${token}` }
+      });
+      
+      // ✅ ÉXITO: Producto eliminado (no tenía ventas)
+      await cargarTodosDatos();
+      
+      setModalTipo('exito');
+      setModalMensaje('Producto y sus compras asociadas eliminados correctamente');
+      setProductoAEliminar(null);
+      
+    } catch (error) {
+      console.error('Error al eliminar producto:', error);
+      
+      // ✅ VERIFICAR SI EL ERROR ES POR VENTAS ASOCIADAS
+      if (error.response && error.response.data && error.response.data.error) {
+        const mensajeError = error.response.data.error;
+        
+        if (mensajeError.includes('ventas asociadas')) {
+          // ❌ ERROR: Tiene ventas asociadas - ENVIAR MENSAJE ESPECÍFICO
+          setModalTipo('error');
+          setModalMensaje(mensajeError); // El backend ya envía el mensaje específico
+        } else {
+          // ❌ OTRO ERROR
+          setModalTipo('error');
+          setModalMensaje('Error al eliminar el producto. Por favor, intente nuevamente.');
+        }
+      } else {
+        setModalTipo('error');
+        setModalMensaje('Error al eliminar el producto. Por favor, intente nuevamente.');
+      }
+      
+      setProductoAEliminar(null);
+    }
+  };
+  // Obtener proveedores de un producto
+  const obtenerProveedoresDelProducto = (productoId) => {
+    if (!productoId || !compras.length || !proveedores.length) return [];
+
+    const comprasDelProducto = compras.filter(compra => 
+      compra.producto === productoId || 
+      compra.producto?.id === productoId
+    );
+
+    const proveedoresEncontrados = [];
+    
+    comprasDelProducto.forEach(compra => {
+      if (compra.proveedores && Array.isArray(compra.proveedores)) {
+        compra.proveedores.forEach(provId => {
+          const proveedor = proveedores.find(p => 
+            p.id === provId || 
+            p.id === parseInt(provId)
+          );
+          if (proveedor && !proveedoresEncontrados.some(p => p.id === proveedor.id)) {
+            proveedoresEncontrados.push(proveedor);
+          }
+        });
+      }
+    });
+
+    return proveedoresEncontrados;
+  };
+
+  // Abrir detalles con proveedores
+  const abrirDetallesConProveedores = (producto) => {
+    const proveedoresDelProducto = obtenerProveedoresDelProducto(producto.id);
+    setProveedoresProducto(proveedoresDelProducto);
+    setProductoDetalles(producto);
+  };
+
+  // Verificar si un proveedor está activo
+  const estaActivo = (proveedor) => {
+    return proveedor.estado !== false && proveedor.estado !== 'inactivo';
+  };
+
+  // Calcular paginación
   const calcularPaginacion = (listaProductos) => {
     const total = listaProductos.length;
     const paginas = Math.ceil(total / productosPorPagina);
     setTotalPaginas(paginas);
-    setPaginaActual(1); // Resetear a primera página
+    setPaginaActual(1);
   };
 
-  // ✅ FUNCIÓN PARA OBTENER PRODUCTOS DE LA PÁGINA ACTUAL
+  // Obtener productos de la página actual
   const obtenerProductosPaginaActual = () => {
     const inicio = (paginaActual - 1) * productosPorPagina;
     const fin = inicio + productosPorPagina;
     return productos.slice(inicio, fin);
   };
 
-  // ✅ FUNCIONES DE PAGINACIÓN
+  // Funciones de paginación
   const irAPagina = (numeroPagina) => {
     setPaginaActual(numeroPagina);
   };
@@ -92,13 +197,12 @@ function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario })
     setPaginaActual(totalPaginas);
   };
 
-  // ✅ FUNCIÓN PARA GENERAR RANGO DE PÁGINAS (máximo 5 páginas visibles)
+  // Generar rango de páginas
   const obtenerRangoPaginas = () => {
     const paginasVisibles = 5;
     let inicio = Math.max(1, paginaActual - Math.floor(paginasVisibles / 2));
     let fin = Math.min(totalPaginas, inicio + paginasVisibles - 1);
     
-    // Ajustar si estamos cerca del final
     if (fin - inicio + 1 < paginasVisibles) {
       inicio = Math.max(1, fin - paginasVisibles + 1);
     }
@@ -112,9 +216,7 @@ function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario })
 
   const filtrarProductos = () => {
     if (busqueda === '' && filtroCategoria === '') {
-      // ✅ SI NO HAY FILTROS, MOSTRAMOS TODOS LOS PRODUCTOS CON PAGINACIÓN
       setProductos(todosProductos);
-      setHaBuscado(true);
       calcularPaginacion(todosProductos);
       return;
     }
@@ -138,18 +240,7 @@ function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario })
     }
 
     setProductos(filtrados);
-    setHaBuscado(true);
-    
-    // ✅ CALCULAR PAGINACIÓN PARA LOS RESULTADOS FILTRADOS
     calcularPaginacion(filtrados);
-  };
-
-  const ocultarProductos = () => {
-    setProductos(todosProductos); // ✅ VOLVEMOS A MOSTRAR TODOS CON PAGINACIÓN
-    setHaBuscado(true);
-    setProductoDetalles(null);
-    setPaginaActual(1);
-    calcularPaginacion(todosProductos);
   };
 
   useEffect(() => {
@@ -160,7 +251,7 @@ function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario })
     return () => clearTimeout(timeoutId);
   }, [busqueda, filtroCategoria, todosProductos]);
 
-  // ✅ EFECTO PARA SCROLLAR AL TOP AL CAMBIAR DE PÁGINA
+  // Scrollear al top al cambiar de página
   useEffect(() => {
     const tablaContainer = document.querySelector('.tabla-contenedor-con-scroll-compacta');
     if (tablaContainer) {
@@ -169,43 +260,28 @@ function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario })
   }, [paginaActual]);
 
   const handleFiltroCategoriaChange = (e) => {
-    const categoria = e.target.value;
-    setFiltroCategoria(categoria);
+    setFiltroCategoria(e.target.value);
   };
 
   const limpiarFiltros = () => {
     setBusqueda('');
     setFiltroCategoria('');
-    setProductos(todosProductos); // ✅ VOLVEMOS A MOSTRAR TODOS CON PAGINACIÓN
-    setHaBuscado(true);
+    setProductos(todosProductos);
     setProductoDetalles(null);
     setPaginaActual(1);
     calcularPaginacion(todosProductos);
   };
 
-  const handleEliminar = async () => {
-    if (!productoAEliminar) return;
-    try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:8000/api/productos/${productoAEliminar.id}/`, {
-        headers: { Authorization: `Token ${token}` }
-      });
-      await cargarTodosDatos(); // ✅ RECARGAMOS TODOS LOS DATOS
-      
-      // Mostrar modal de éxito
-      setMostrarModal(true);
-      
-    } catch (error) {
-      console.error('Error al eliminar producto:', error);
-      // Mostrar modal de error
-      setMostrarModal(true);
-    } finally {
-      setProductoAEliminar(null);
+  const handleNuevoProducto = () => {
+    if (onNavegarAFormulario) {
+      onNavegarAFormulario('crear', null);
     }
   };
 
-  const handleGuardadoExitoso = () => {
-    cargarTodosDatos();
+  const handleEditarProducto = (producto) => {
+    if (onNavegarAFormulario) {
+      onNavegarAFormulario('editar', producto);
+    }
   };
 
   const hayFiltrosActivos = busqueda || filtroCategoria;
@@ -220,7 +296,7 @@ function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario })
     }).format(precio);
   };
 
-  // ✅ Función para obtener el estado del stock (usando stock_minimo del backend)
+  // Función para obtener el estado del stock
   const obtenerEstadoStock = (producto) => {
     const cantidad = producto.cantidad || 0;
     const stockMinimo = producto.stock_minimo || 5;
@@ -231,7 +307,7 @@ function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario })
     return 'stock-normal';
   };
 
-  // ✅ Función para obtener texto del estado del stock
+  // Función para obtener texto del estado del stock
   const obtenerTextoStock = (producto) => {
     const cantidad = producto.cantidad || 0;
     const stockMinimo = producto.stock_minimo || 5;
@@ -242,27 +318,11 @@ function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario })
     return 'Stock Normal';
   };
 
-  // ✅ Función para verificar si está en bajo stock
+  // Función para verificar si está en bajo stock
   const estaEnBajoStock = (producto) => {
     const cantidad = producto.cantidad || 0;
     const stockMinimo = producto.stock_minimo || 5;
     return cantidad <= stockMinimo;
-  };
-
-  // Función para manejar nuevo producto
-  const handleNuevoProducto = () => {
-    console.log('Nuevo producto');
-    if (onNavegarAFormulario) {
-      onNavegarAFormulario('crear', null);
-    }
-  };
-
-  // Función para manejar editar producto
-  const handleEditarProducto = (producto) => {
-    console.log('Editando producto:', producto);
-    if (onNavegarAFormulario) {
-      onNavegarAFormulario('editar', producto);
-    }
   };
 
   return (
@@ -304,8 +364,6 @@ function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario })
             ))}
           </select>
         </div>
-
-        {/* ❌ ELIMINADO EL BOTÓN "MOSTRAR TODOS" */}
 
         {hayFiltrosActivos && (
           <button className="btn-limpiar-grande" onClick={limpiarFiltros}>
@@ -375,7 +433,7 @@ function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario })
                     <td className="categoria-producto centered">{producto.categoria_prod}</td>
                     <td className="cantidad-producto centered">
                       <span className={`badge-cantidad ${obtenerEstadoStock(producto)}`}>
-                        {producto.cantidad !== undefined && producto.cantidad !== null ? producto.cantidad : 0}
+                        {producto.cantidad || 0}
                       </span>
                     </td>
                     <td className="estado-producto centered">
@@ -397,10 +455,7 @@ function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario })
                         {esJefa && (
                           <button
                             className="btn-icon eliminar"
-                            onClick={() => {
-                              setProductoAEliminar(producto);
-                              setMostrarModal(true);
-                            }}
+                            onClick={() => handleEliminarProducto(producto)}
                             title="Eliminar producto"
                           >
                             <FaTrash />
@@ -408,7 +463,7 @@ function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario })
                         )}
                         <button
                           className="btn-icon detalles"
-                          onClick={() => setProductoDetalles(producto)}
+                          onClick={() => abrirDetallesConProveedores(producto)}
                           title="Ver detalles completos"
                         >
                           <FaEye />
@@ -421,7 +476,7 @@ function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario })
             </table>
           </div>
 
-          {/* ✅ PAGINACIÓN - SIEMPRE VISIBLE (a menos que no haya productos) */}
+          {/* PAGINACIÓN */}
           {productos.length > 0 && (
             <div className="paginacion-container">
               <div className="paginacion-info">
@@ -477,27 +532,6 @@ function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario })
                   <FaStepForward />
                 </button>
               </div>
-
-              {/* ✅ SELECTOR DE PRODUCTOS POR PÁGINA - AQUÍ ELIGES CUÁNTOS MOSTRAR */}
-              <div className="paginacion-selector">
-                <label>Productos por página:</label>
-                <select 
-                  value={productosPorPagina} 
-                  onChange={(e) => {
-                    const nuevoValor = Number(e.target.value);
-                    setProductosPorPagina(nuevoValor);
-                    setPaginaActual(1); // Resetear a primera página
-                    calcularPaginacion(productos); // Recalcular paginación
-                  }}
-                  className="select-productos-pagina"
-                >
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
-              </div>
             </div>
           )}
         </>
@@ -515,29 +549,23 @@ function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario })
         </div>
       )}
 
-      {/* Modal para eliminar producto */}
+      {/* Modal para eliminar producto o mostrar resultados */}
       <ModalConfirmacionUniversal
-        mostrar={mostrarModal && productoAEliminar}
-        tipo="eliminar"
+        mostrar={mostrarModal}
+        tipo={modalTipo}
         modo="producto"
-        mensaje={`¿Está seguro que desea eliminar el producto "${productoAEliminar?.nombre_prod}"?`}
-        onConfirmar={handleEliminar}
+        mensaje={modalMensaje}
+        datosAdicionales={productoAEliminar}
+        onConfirmar={modalTipo === 'eliminar' ? handleEliminarConfirmado : () => setMostrarModal(false)}
         onCancelar={() => {
           setMostrarModal(false);
           setProductoAEliminar(null);
         }}
+        textoConfirmar={modalTipo === 'eliminar' ? 'Eliminar' : 'Aceptar'}
+        mostrarResumen={modalTipo === 'eliminar'}
       />
 
-      {/* Modal de éxito después de eliminar */}
-      <ModalConfirmacionUniversal
-        mostrar={mostrarModal && !productoAEliminar}
-        tipo="exito"
-        modo="producto"
-        mensaje="✅ Producto eliminado correctamente"
-        onConfirmar={() => setMostrarModal(false)}
-        onCancelar={() => setMostrarModal(false)}
-      />
-
+      {/* Modal de detalles del producto */}
       {productoDetalles && (
         <div className="modal-overlay-detalles" onClick={() => setProductoDetalles(null)}>
           <div className="modal-detalles-grande" onClick={(e) => e.stopPropagation()}>
@@ -598,6 +626,34 @@ function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario })
                     <span>{productoDetalles.categoria_prod}</span>
                   </div>
                 </div>
+
+                {/* SECCIÓN: PROVEEDORES DEL PRODUCTO */}
+                {proveedoresProducto.length > 0 && (
+                  <div className="detalle-item-grande">
+                    <div className="icono-detalle-grande">
+                      <FaUserTie />
+                    </div>
+                    <div className="contenido-detalle-grande">
+                      <label>Proveedor{proveedoresProducto.length > 1 ? 'es' : ''}</label>
+                      <div className="lista-proveedores-detalle">
+                        {proveedoresProducto.map((proveedor, index) => (
+                          <div 
+                            key={proveedor?.id || index} 
+                            className={`proveedor-item ${!estaActivo(proveedor) ? 'proveedor-inactivo-detalle' : ''}`}
+                          >
+                            <span className="nombre-proveedor">
+                              {proveedor?.nombre_prov || 'Proveedor no disponible'}
+                              {proveedor && !estaActivo(proveedor) && (
+                                <span className="estado-proveedor inactivo"> (Inactivo)</span>
+                              )}
+                            </span>
+                            {index < proveedoresProducto.length - 1 && <br />}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="detalle-item-grande">
                   <div className="icono-detalle-grande">

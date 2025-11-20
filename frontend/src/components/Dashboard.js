@@ -226,32 +226,32 @@ function Dashboard({ usuario, onCerrarSesion }) {
           />
         );
 
-      case 'inventario':
-        if (vistaProductos === 'formulario') {
-          return (
-            <FormularioProducto 
-              modo={modoFormulario}
-              productoEditar={productoEditando}
-              onCancelar={() => setVistaProductos('lista')}
-              onGuardado={() => {
-                setVistaProductos('lista');
-                setProductoEditando(null);
-              }}
-              mostrarProveedores={true} 
-            />
-          );
-        }
-        return (
-          <Productos 
-            onNavegarAFormulario={(modo, producto) => {
-              setModoFormulario(modo);
-              setProductoEditando(producto);
-              setVistaProductos('formulario');
-            }}
-            esJefa={esJefa}
-          />
-        );
-
+ case 'inventario':
+  if (vistaProductos === 'formulario') {
+    return (
+      <FormularioProducto 
+        modo={modoFormulario}
+        producto={productoEditando}  // ✅ Cambiado de productoEditar a producto
+        onCancelar={() => setVistaProductos('lista')}
+        onGuardadoExitoso={() => {
+          console.log('🔄 Guardado exitoso, volviendo a lista...');
+          setVistaProductos('lista');
+          setProductoEditando(null);
+        }}
+      />
+    );
+  }
+  return (
+    <Productos 
+      onNavegarAFormulario={(modo, producto) => {
+        console.log('🔄 Navegando a formulario:', modo, producto);
+        setModoFormulario(modo);
+        setProductoEditando(producto);
+        setVistaProductos('formulario');
+      }}
+      esJefa={esJefa}
+    />
+  );
       case 'proveedores':
         return <Proveedores esJefa={esJefa} />;
 

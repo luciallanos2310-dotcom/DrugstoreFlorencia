@@ -24,8 +24,9 @@ class EmpleadoSerializer(serializers.ModelSerializer):
 class ProveedorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Proveedor
-        fields = ['id', 'nombre_prov', 'tipo_prov', 'telefono_prov', 'correo_prov', 'direccion_prov', 'descripcion', 'dni_proveedor', 'estado']
+        fields = ['id', 'nombre_prov', 'tipo_prov', 'telefono_prov', 'correo_prov', 'direccion_prov', 'descripcion', 'codigo_proveedor', 'estado']  # ✅ CAMBIADO
 
+# En serializers.py - ProductoSerializer
 class ProductoSerializer(serializers.ModelSerializer):
     estado_stock = serializers.SerializerMethodField()
     

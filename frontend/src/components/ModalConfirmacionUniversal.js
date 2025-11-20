@@ -39,7 +39,6 @@ function ModalConfirmacionUniversal({
         if (modo === 'compra') return datosAdicionales?.modo === 'editar' ? 'Confirmar Edición' : 'Confirmar Compra';
         if (modo === 'venta') return 'Confirmar Venta';
         if (modo === 'empleado') {
-          // ✅ DETECTAR SI ES EDICIÓN POR EL MENSAJE O DATOS
           const esEdicion = mensaje?.includes('actualizar') || 
                            datosAdicionales?.modo === 'editar' ||
                            datosAdicionales?.id !== undefined;
@@ -49,7 +48,12 @@ function ModalConfirmacionUniversal({
         return 'Confirmar Acción';
       
       case 'exito': return '¡Éxito!';
-      case 'error': return 'Error';
+      case 'error': 
+        // ✅ TÍTULO ESPECÍFICO PARA ERROR DE ELIMINACIÓN DE PRODUCTO
+        if (modo === 'producto' && mensaje?.includes('ventas asociadas')) {
+          return 'No se puede eliminar';
+        }
+        return 'Error';
       case 'advertencia': return 'Advertencia';
       case 'info': return 'Información';
       default: return 'Confirmar Acción';
@@ -70,7 +74,6 @@ function ModalConfirmacionUniversal({
       case 'confirmar': 
         if (modo === 'compra') return datosAdicionales?.modo === 'editar' ? 'Actualizar' : 'Confirmar';
         if (modo === 'empleado') {
-          // ✅ DETECTAR SI ES EDICIÓN POR EL MENSAJE O DATOS
           const esEdicion = mensaje?.includes('actualizar') || 
                            datosAdicionales?.modo === 'editar' ||
                            datosAdicionales?.id !== undefined;
@@ -78,7 +81,7 @@ function ModalConfirmacionUniversal({
         }
         return 'Confirmar';
       case 'exito': return 'Aceptar';
-      case 'error': return 'Aceptar';
+      case 'error': return 'Entendido';
       case 'advertencia': return 'Entendido';
       case 'info': return 'Aceptar';
       default: return 'Confirmar';
@@ -97,6 +100,58 @@ function ModalConfirmacionUniversal({
 
   // Verificar si es un modal de solo lectura (éxito, error, info, advertencia)
   const esAlerta = ['exito', 'error', 'advertencia', 'info'].includes(tipo);
+
+  // ✅ FUNCIÓN CORREGIDA: Manejar clic en confirmar
+  const handleConfirmar = () => {
+    if (esAlerta) {
+      onCancelar(); // Para modales de alerta, usar onCancelar
+    } else {
+      onConfirmar(); // Para modales de acción, usar onConfirmar
+    }
+  };
+
+  // ✅ FUNCIÓN CORREGIDA: Manejar clic en cancelar
+  const handleCancelar = () => {
+    onCancelar();
+  };
+
+  // ✅ FUNCIÓN NUEVA: Obtener icono según el tipo de modal
+  const getIcono = () => {
+    switch(tipo) {
+      case 'exito': return '✅';
+      case 'error': 
+        // ✅ ICONO ESPECÍFICO PARA ERROR DE ELIMINACIÓN
+        if (modo === 'producto' && mensaje?.includes('ventas asociadas')) {
+          return '⚠️';
+        }
+        return '❌';
+      case 'advertencia': return '⚠️';
+      case 'info': return 'ℹ️';
+      default: return null;
+    }
+  };
+
+  // ✅ FUNCIÓN NUEVA: Formatear mensaje para errores de producto
+  const getMensajeFormateado = () => {
+    if (tipo === 'error' && modo === 'producto' && mensaje?.includes('ventas asociadas')) {
+      return (
+        <div className="mensaje-error-especifico">
+          <div className="contenido-error">
+            <p>No se puede eliminar el producto porque tiene ventas asociadas.</p>
+          </div>
+        </div>
+      );
+    }
+    
+    // Mensaje normal para otros casos
+    const icono = getIcono();
+    return (
+      <div className="mensaje-normal">
+        {icono && <span className="icono-mensaje">{icono}</span>}
+        <span>{mensaje}</span>
+      </div>
+    );
+  };
 
   // Renderizar resumen según el tipo de datos
   const renderResumen = () => {
@@ -121,9 +176,7 @@ function ModalConfirmacionUniversal({
 
       case 'caja':
         if (tipo === 'confirmar' && datosAdicionales) {
-          // ✅ DIFERENCIAR ENTRE APERTURA Y CIERRE
           if (datosAdicionales.montoContado !== undefined) {
-            // ES UN CIERRE
             return (
               <div className="resumen-cierre">
                 <h4>Resumen del Cierre:</h4>
@@ -137,7 +190,6 @@ function ModalConfirmacionUniversal({
               </div>
             );
           } else {
-            // ES UNA APERTURA
             return (
               <div className="resumen-apertura">
                 <p><strong>Empleado:</strong> {datosAdicionales.empleadoNombre}</p>
@@ -160,7 +212,6 @@ function ModalConfirmacionUniversal({
         }
         return null;
 
-      // ✅ AGREGADO: Caso para empleados
       case 'empleado':
         if (tipo === 'confirmar' && datosAdicionales) {
           return (
@@ -171,6 +222,21 @@ function ModalConfirmacionUniversal({
               <p><strong>Email:</strong> {datosAdicionales.email}</p>
               <p><strong>Puesto:</strong> {datosAdicionales.tipo_usuario === 'jefa' ? 'Jefa/Encargada' : 'Empleada'}</p>
               <p><strong>Teléfono:</strong> {datosAdicionales.telefono_emp || 'No especificado'}</p>
+            </div>
+          );
+        }
+        return null;
+
+      // ✅ AGREGADO: Resumen para productos
+      case 'producto':
+        if (tipo === 'eliminar' && datosAdicionales) {
+          return (
+            <div className="resumen-producto">
+              <h4>Resumen del Producto:</h4>
+              <p><strong>Nombre:</strong> {datosAdicionales.nombre_prod}</p>
+              <p><strong>Código:</strong> {datosAdicionales.codigo_prod || 'N/A'}</p>
+              <p><strong>Categoría:</strong> {datosAdicionales.categoria_prod}</p>
+              <p><strong>Stock actual:</strong> {datosAdicionales.cantidad} unidades</p>
             </div>
           );
         }
@@ -189,7 +255,7 @@ function ModalConfirmacionUniversal({
         </div>
         
         <div className="modal-body-universal">
-          <p>{mensaje}</p>
+          {getMensajeFormateado()}
           {renderResumen()}
         </div>
         
@@ -197,7 +263,7 @@ function ModalConfirmacionUniversal({
           {!esAlerta && (
             <button 
               className="btn-cancelar-universal" 
-              onClick={onCancelar}
+              onClick={handleCancelar}
             >
               {getTextoCancelarAuto()}
             </button>
@@ -212,7 +278,7 @@ function ModalConfirmacionUniversal({
               tipo === 'advertencia' ? 'btn-advertencia-universal' : 
               tipo === 'info' ? 'btn-info-universal' : ''
             }`}
-            onClick={esAlerta ? onCancelar : onConfirmar}
+            onClick={handleConfirmar}
           >
             {getTextoConfirmarAuto()}
           </button>

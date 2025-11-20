@@ -20,7 +20,7 @@ function Compras({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
 
   // ✅ ESTADOS PARA PAGINACIÓN
   const [paginaActual, setPaginaActual] = useState(1);
-  const [comprasPorPagina, setComprasPorPagina] = useState(10);
+  const [comprasPorPagina, setComprasPorPagina] = useState(6);
   const [totalPaginas, setTotalPaginas] = useState(1);
 
   // Estados para modal universal
@@ -680,7 +680,7 @@ function Compras({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
               </div>
 
               {/* ✅ SELECTOR DE COMPRAS POR PÁGINA */}
-              <div className="paginacion-selector">
+              {/*<div className="paginacion-selector">
                 <label>Compras por página:</label>
                 <select 
                   value={comprasPorPagina} 
@@ -699,6 +699,7 @@ function Compras({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
                   <option value={100}>100</option>
                 </select>
               </div>
+              */}
             </div>
           )}
         </>

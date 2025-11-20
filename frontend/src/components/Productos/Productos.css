@@ -181,7 +181,6 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 0;
   border: 1px solid #e1e5e9;
 }
 
@@ -355,25 +354,6 @@
   animation: pulse 2s infinite;
 }
 
-/* Scroll personalizado para tabla */
-.tabla-contenedor-con-scroll-compacta::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-.tabla-contenedor-con-scroll-compacta::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
-}
-
-.tabla-contenedor-con-scroll-compacta::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 4px;
-}
-
-.tabla-contenedor-con-scroll-compacta::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
-}
 
 /* Modal de Detalles */
 .modal-overlay-detalles {

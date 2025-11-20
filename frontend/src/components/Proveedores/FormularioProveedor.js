@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import ModalConfirmacion from './ModalConfirmacion';
+import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal';
 import './FormularioProveedor.css';
 
 function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) {
@@ -10,14 +10,20 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
     telefono_prov: '',
     correo_prov: '',
     direccion_prov: '',
-    descripcion: '', // ✅ CAMBIAR de 'descripcion' a 'observaciones'
-    dni_proveedor: ''
+    descripcion: '',
+    codigo_proveedor: ''
   });
 
-  const [mostrarModal, setMostrarModal] = useState(false);
+  const [modalConfig, setModalConfig] = useState({
+    mostrar: false,
+    tipo: '',
+    mensaje: '',
+    onConfirmar: null,
+    onCancelar: null
+  });
+  
   const [errores, setErrores] = useState({});
   const [guardando, setGuardando] = useState(false);
-  const [mostrarModalExito, setMostrarModalExito] = useState(false);
   const [proveedoresExistentes, setProveedoresExistentes] = useState([]);
 
   const rubros = [
@@ -49,23 +55,54 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
         tipo_prov: proveedorEditar.tipo_prov || '',
         telefono_prov: proveedorEditar.telefono_prov || '',
         correo_prov: proveedorEditar.correo_prov || '',
-        direccion_prov: proveedorEditar.direccion_prov || '', // ✅ Esto debería cargar la dirección
-        descripcion: proveedorEditar.descripcion || '', // ✅ CAMBIAR a 'observaciones'
-        dni_proveedor: proveedorEditar.dni_proveedor || ''
+        direccion_prov: proveedorEditar.direccion_prov || '',
+        descripcion: proveedorEditar.descripcion || '',
+        codigo_proveedor: proveedorEditar.codigo_proveedor || ''
       });
     } else {
-      // ✅ LIMPIAR FORMULARIO EN MODO CREAR
-      setForm({
-        nombre_prov: '',
-        tipo_prov: '',
-        telefono_prov: '',
-        correo_prov: '',
-        direccion_prov: '',
-        descripcion: '', // ✅ CAMBIAR a 'observaciones'
-        dni_proveedor: ''
-      });
+      generarCodigoAutomatico();
     }
   }, [modo, proveedorEditar]);
+
+  // ✅ FUNCIÓN PARA GENERAR CÓDIGO AUTOMÁTICO
+  const generarCodigoAutomatico = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get('http://localhost:8000/api/proveedores/', {
+        headers: { Authorization: `Token ${token}` }
+      });
+      
+      const proveedoresExistentes = res.data;
+      const ultimoCodigo = proveedoresExistentes
+        .map(p => p.codigo_proveedor)
+        .filter(codigo => codigo && codigo.startsWith('PROV-'))
+        .sort()
+        .pop();
+
+      let nuevoNumero = 1;
+      if (ultimoCodigo) {
+        const ultimoNumero = parseInt(ultimoCodigo.split('-')[1]) || 0;
+        nuevoNumero = ultimoNumero + 1;
+      }
+
+      const nuevoCodigo = `PROV-${nuevoNumero.toString().padStart(3, '0')}`;
+      
+      setForm(prev => ({
+        ...prev,
+        codigo_proveedor: nuevoCodigo
+      }));
+      
+    } catch (error) {
+      console.error('Error al generar código automático:', error);
+      const timestamp = Date.now().toString().slice(-4);
+      const codigoRespaldo = `PROV-${timestamp}`;
+      
+      setForm(prev => ({
+        ...prev,
+        codigo_proveedor: codigoRespaldo
+      }));
+    }
+  };
 
   const cargarProveedoresExistentes = async () => {
     try {
@@ -84,10 +121,20 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
     
-    // Limpiar error del campo cuando el usuario empiece a escribir
     if (errores[name]) {
       setErrores(prev => ({ ...prev, [name]: '' }));
     }
+  };
+
+  // ✅ FUNCIÓN PARA CERRAR MODAL
+  const cerrarModal = () => {
+    setModalConfig({
+      mostrar: false,
+      tipo: '',
+      mensaje: '',
+      onConfirmar: null,
+      onCancelar: null
+    });
   };
 
   // ✅ FUNCIÓN MEJORADA: Validar duplicados en tiempo real
@@ -100,7 +147,7 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
 
     const campoMap = {
       nombre_prov: { campo: 'nombre_prov', mensaje: 'nombre' },
-      dni_proveedor: { campo: 'dni_proveedor', mensaje: 'DNI' },
+      codigo_proveedor: { campo: 'codigo_proveedor', mensaje: 'código' },
       telefono_prov: { campo: 'telefono_prov', mensaje: 'teléfono' },
       correo_prov: { campo: 'correo_prov', mensaje: 'email' },
       direccion_prov: { campo: 'direccion_prov', mensaje: 'dirección' }
@@ -113,11 +160,9 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
       const valorExistente = p[config.campo];
       if (!valorExistente) return false;
       
-      // Comparación case-insensitive para texto
       if (typeof valorExistente === 'string' && typeof valor === 'string') {
         return valorExistente.toLowerCase().trim() === valor.toLowerCase().trim();
       }
-      // Comparación exacta para números
       return valorExistente.trim() === valor.trim();
     });
 
@@ -128,7 +173,6 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
   const validarFormulario = () => {
     const nuevosErrores = {};
 
-    // Validaciones básicas de requeridos
     if (!form.nombre_prov.trim()) {
       nuevosErrores.nombre_prov = 'El nombre es obligatorio';
     }
@@ -137,7 +181,6 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
       nuevosErrores.tipo_prov = 'El rubro es obligatorio';
     }
 
-    // Validaciones de formato
     if (form.telefono_prov && !/^[\d\s\+\(\)\-]*$/.test(form.telefono_prov)) {
       nuevosErrores.telefono_prov = 'El teléfono solo puede contener números, espacios y los caracteres + - ( )';
     }
@@ -146,14 +189,9 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
       nuevosErrores.correo_prov = 'El email no es válido';
     }
 
-    if (form.dni_proveedor && !/^\d*$/.test(form.dni_proveedor)) {
-      nuevosErrores.dni_proveedor = 'El DNI solo puede contener números';
-    }
-
-    // ✅ VALIDACIONES DE DUPLICADOS MEJORADAS
     const camposParaValidar = [
       'nombre_prov', 
-      'dni_proveedor', 
+      'codigo_proveedor',
       'telefono_prov', 
       'correo_prov', 
       'direccion_prov'
@@ -184,23 +222,37 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
       telefono_prov: proveedorEditar.telefono_prov || '',
       correo_prov: proveedorEditar.correo_prov || '',
       direccion_prov: proveedorEditar.direccion_prov || '',
-      descripcion: proveedorEditar.descripcion || '', // ✅ CAMBIAR a 'observaciones'
-      dni_proveedor: proveedorEditar.dni_proveedor || ''
+      descripcion: proveedorEditar.descripcion || '',
+      codigo_proveedor: proveedorEditar.codigo_proveedor || ''
     };
 
     return JSON.stringify(original) !== JSON.stringify(form);
   };
 
-  const handleGuardar = async () => {
-    // Verificar si hay cambios en modo edición
+  // ✅ FUNCIÓN CORREGIDA: Manejar guardado exitoso
+  const handleGuardarConfirmado = async () => {
+    cerrarModal();
+    
     if (modo === 'editar' && !hayCambios()) {
-      alert('No se detectaron cambios para guardar');
+      setModalConfig({
+        mostrar: true,
+        tipo: 'advertencia',
+        mensaje: 'No se detectaron cambios para guardar',
+        onConfirmar: cerrarModal,
+        onCancelar: cerrarModal
+      });
       return;
     }
 
     if (!validarFormulario()) {
       const mensajeError = Object.values(errores).join('\n• ');
-      alert(`❌ Errores en el formulario:\n\n• ${mensajeError}`);
+      setModalConfig({
+        mostrar: true,
+        tipo: 'error',
+        mensaje: `❌ Errores en el formulario:\n\n• ${mensajeError}`,
+        onConfirmar: cerrarModal,
+        onCancelar: cerrarModal
+      });
       return;
     }
 
@@ -208,28 +260,28 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
     try {
       const token = localStorage.getItem('token');
       
-      // Preparar datos para enviar
       const datosEnviar = {
         nombre_prov: form.nombre_prov.trim(),
         tipo_prov: form.tipo_prov,
         telefono_prov: form.telefono_prov.trim() || null,
         correo_prov: form.correo_prov.trim() || null,
         direccion_prov: form.direccion_prov.trim() || null,
-        descripcion: form.descripcion.trim() || null, // ✅ CAMBIAR a 'observaciones'
-        dni_proveedor: form.dni_proveedor.trim() || null
+        descripcion: form.descripcion.trim() || null,
+        codigo_proveedor: form.codigo_proveedor.trim()
       };
 
       console.log('Enviando datos:', datosEnviar);
 
+      let response;
       if (modo === 'crear') {
-        await axios.post('http://localhost:8000/api/proveedores/', datosEnviar, {
+        response = await axios.post('http://localhost:8000/api/proveedores/', datosEnviar, {
           headers: { 
             'Authorization': `Token ${token}`,
             'Content-Type': 'application/json'
           }
         });
       } else {
-        await axios.put(`http://localhost:8000/api/proveedores/${proveedorEditar.id}/`, datosEnviar, {
+        response = await axios.put(`http://localhost:8000/api/proveedores/${proveedorEditar.id}/`, datosEnviar, {
           headers: { 
             'Authorization': `Token ${token}`,
             'Content-Type': 'application/json'
@@ -237,27 +289,44 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
         });
       }
       
-      // Mostrar modal de éxito
-      setMostrarModalExito(true);
+      // ✅ CORREGIDO: Mostrar modal de éxito y redirigir cuando se cierre
+      setModalConfig({
+        mostrar: true,
+        tipo: 'exito',
+        modo: 'proveedor',
+        mensaje: `✅ Proveedor ${modo === 'crear' ? 'creado' : 'actualizado'} correctamente`,
+        onConfirmar: () => {
+          cerrarModal();
+          if (onGuardado) {
+            onGuardado(response.data);
+          }
+        },
+        onCancelar: () => {
+          cerrarModal();
+          if (onGuardado) {
+            onGuardado(response.data);
+          }
+        }
+      });
       
     } catch (error) {
       console.error('Error al guardar proveedor:', error);
       
-      // Manejar errores del servidor de forma más robusta
+      let mensajeError = 'Error de conexión. Intente nuevamente.';
+      
       if (error.response?.data) {
         const erroresServidor = error.response.data;
         console.log('Errores del servidor:', erroresServidor);
         
         const erroresTraducidos = {};
         
-        // Mapeo completo de errores del servidor
         const mapeoErrores = {
           'nombre_prov': 'nombre del proveedor',
           'telefono_prov': 'teléfono',
           'correo_prov': 'email', 
-          'dni_proveedor': 'DNI',
+          'codigo_proveedor': 'código',
           'direccion_prov': 'dirección',
-          'descripcion': 'descripcion' // ✅ AGREGAR observaciones
+          'descripcion': 'descripcion'
         };
 
         for (const [campo, mensaje] of Object.entries(mapeoErrores)) {
@@ -286,31 +355,39 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
         
         setErrores(erroresTraducidos);
         
-        // Mostrar alerta con el error
         if (Object.keys(erroresTraducidos).length > 0) {
-          const mensajeError = Object.values(erroresTraducidos).join('\n• ');
-          alert(`❌ Error del servidor:\n\n• ${mensajeError}`);
+          mensajeError = `❌ Error del servidor:\n\n• ${Object.values(erroresTraducidos).join('\n• ')}`;
         } else {
-          alert('❌ Error al guardar el proveedor. Por favor, verifique los datos.');
+          mensajeError = '❌ Error al guardar el proveedor. Por favor, verifique los datos.';
         }
-      } else {
-        alert('❌ Error de conexión al guardar el proveedor');
       }
+
+      setModalConfig({
+        mostrar: true,
+        tipo: 'error',
+        mensaje: mensajeError,
+        onConfirmar: cerrarModal,
+        onCancelar: cerrarModal
+      });
     } finally {
       setGuardando(false);
-      setMostrarModal(false);
     }
   };
 
-  const handleConfirmarExito = () => {
-    setMostrarModalExito(false);
-    onGuardado();
+  const handleGuardar = () => {
+    setModalConfig({
+      mostrar: true,
+      tipo: 'confirmar',
+      modo: 'proveedor',
+      mensaje: `¿Está seguro que desea ${modo === 'crear' ? 'agregar' : 'editar'} este proveedor?`,
+      onConfirmar: handleGuardarConfirmado,
+      onCancelar: cerrarModal
+    });
   };
 
   // ✅ VERIFICACIÓN MEJORADA: Solo verificar errores de campos con valor
   const hayErroresVisibles = () => {
     return Object.keys(errores).some(key => {
-      // Solo considerar errores que realmente existen en el objeto de errores
       return errores[key] && errores[key].trim() !== '';
     });
   };
@@ -325,24 +402,28 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
 
       <form className="formulario-proveedor" onSubmit={(e) => e.preventDefault()}>
         <div className="form-grid">
-          {/* Campo DNI */}
+          {/* Campo CÓDIGO (automático) */}
           <div className="campo-form">
-            <label>DNI Proveedor</label>
+            <label>Código Proveedor</label>
             <input 
-              name="dni_proveedor" 
-              placeholder="Ej: 12345678" 
-              value={form.dni_proveedor} 
+              name="codigo_proveedor"
+              placeholder="Se generará automáticamente"
+              value={form.codigo_proveedor}
               onChange={handleChange}
-              className={errores.dni_proveedor ? 'error' : ''}
+              className={errores.codigo_proveedor ? 'error' : ''}
               maxLength="20"
+              disabled={modo === 'crear'}
               onBlur={() => {
-                if (form.dni_proveedor.trim()) {
-                  const error = validarDuplicadosEnTiempoReal('dni_proveedor', form.dni_proveedor);
-                  if (error) setErrores(prev => ({ ...prev, dni_proveedor: error }));
+                if (form.codigo_proveedor.trim()) {
+                  const error = validarDuplicadosEnTiempoReal('codigo_proveedor', form.codigo_proveedor);
+                  if (error) setErrores(prev => ({ ...prev, codigo_proveedor: error }));
                 }
               }}
             />
-            {errores.dni_proveedor && <span className="mensaje-error">{errores.dni_proveedor}</span>}
+            {errores.codigo_proveedor && <span className="mensaje-error">{errores.codigo_proveedor}</span>}
+            {modo === 'crear' && (
+              <small className="texto-ayuda">Código generado automáticamente</small>
+            )}
           </div>
 
           <div className="campo-form">
@@ -439,9 +520,9 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
         <div className="campo-form campo-completo">
           <label>Descripcion</label>
           <textarea 
-            name="descripcion" // ✅ CAMBIAR de 'descripcion' a 'observaciones'
+            name="descripcion"
             placeholder="Información adicional sobre el proveedor..." 
-            value={form.descripcion} // ✅ CAMBIAR de 'descripcion' a 'observaciones'
+            value={form.descripcion}
             onChange={handleChange}
             rows="3"
           ></textarea>
@@ -451,7 +532,7 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
           <button 
             type="button" 
             className="btn-guardar" 
-            onClick={() => setMostrarModal(true)}
+            onClick={handleGuardar}
             disabled={guardando || !puedeGuardar}
           >
             {guardando ? 'Guardando...' : (modo === 'crear' ? 'Agregar Proveedor' : 'Guardar Cambios')}
@@ -462,22 +543,14 @@ function FormularioProveedor({ modo, proveedorEditar, onCancelar, onGuardado }) 
         </div>
       </form>
 
-      {/* Modal de confirmación */}
-      <ModalConfirmacion
-        mostrar={mostrarModal}
-        tipo="confirmar"
-        mensaje={`¿Está seguro que desea ${modo === 'crear' ? 'agregar' : 'editar'} este proveedor?`}
-        onCancelar={() => setMostrarModal(false)}
-        onConfirmar={handleGuardar}
-      />
-
-      {/* Modal de éxito */}
-      <ModalConfirmacion
-        mostrar={mostrarModalExito}
-        tipo="exito"
-        mensaje={`Proveedor ${modo === 'crear' ? 'creado' : 'actualizado'} correctamente`}
-        onCancelar={handleConfirmarExito}
-        onConfirmar={handleConfirmarExito}
+      {/* ✅ MODAL UNIVERSAL */}
+      <ModalConfirmacionUniversal
+        mostrar={modalConfig.mostrar}
+        tipo={modalConfig.tipo}
+        modo={modalConfig.modo}
+        mensaje={modalConfig.mensaje}
+        onConfirmar={modalConfig.onConfirmar}
+        onCancelar={modalConfig.onCancelar}
       />
     </div>
   );

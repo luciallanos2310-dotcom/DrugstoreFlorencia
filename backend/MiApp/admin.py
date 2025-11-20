@@ -74,13 +74,13 @@ class ProveedorAdmin(admin.ModelAdmin):
         'correo_prov', 'estado_display'
     ]
     list_filter = ['tipo_prov', 'estado']
-    search_fields = ['nombre_prov', 'dni_proveedor', 'telefono_prov', 'correo_prov']
+    search_fields = ['nombre_prov', 'codigo_proveedor', 'telefono_prov', 'correo_prov']  # ✅ CAMBIADO
     
     readonly_fields = ['estado_display']
     
     fieldsets = (
         ('Información Básica', {
-            'fields': ('nombre_prov', 'tipo_prov', 'dni_proveedor', 'estado', 'estado_display')
+            'fields': ('nombre_prov', 'tipo_prov', 'codigo_proveedor', 'estado', 'estado_display')  # ✅ CAMBIADO
         }),
         ('Información de Contacto', {
             'fields': ('telefono_prov', 'correo_prov', 'direccion_prov')
@@ -133,7 +133,7 @@ class CompraAdmin(admin.ModelAdmin):
     def proveedores_display(self, obj):
         return ", ".join([p.nombre_prov for p in obj.proveedores.all()])
     proveedores_display.short_description = 'Proveedores'
-    
+
 @admin.register(Venta)
 class VentaAdmin(admin.ModelAdmin):
     list_display = [

@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './FormularioProducto.css';
 import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal';
-import { FaSave, FaTimes, FaBox, FaDollarSign, FaHashtag, FaClipboardList, FaEye, FaPlus, FaShoppingCart, FaCube } from 'react-icons/fa';
+import { FaSave, FaTimes, FaBox, FaDollarSign, FaHashtag, FaClipboardList, FaCube } from 'react-icons/fa';
 
-function FormularioProducto({ modo = 'crear', producto = null, onGuardadoExitoso, onCancelar, onIrACompras }) {
+function FormularioProducto({ modo = 'crear', producto = null, onGuardadoExitoso, onCancelar }) {
   const [formData, setFormData] = useState({
     nombre_prod: '',
     categoria_prod: '',
@@ -16,8 +16,13 @@ function FormularioProducto({ modo = 'crear', producto = null, onGuardadoExitoso
   
   const [loading, setLoading] = useState(false);
   const [errores, setErrores] = useState({});
-  const [mostrarModalConfirmacion, setMostrarModalConfirmacion] = useState(false);
-  const [modalConfig, setModalConfig] = useState({});
+  const [modalConfig, setModalConfig] = useState({
+    mostrar: false,
+    tipo: '',
+    mensaje: '',
+    onConfirmar: null,
+    onCancelar: null
+  });
 
   const categorias = [
     'Bebidas', 'Lácteos', 'Golosinas', 'Limpieza', 'Verduras', 
@@ -25,21 +30,24 @@ function FormularioProducto({ modo = 'crear', producto = null, onGuardadoExitoso
     'Electrodomésticos', 'Papelería', 'Otros'
   ];
 
+  // ✅ CORREGIDO: Mejor useEffect para cargar datos
   useEffect(() => {
-    if (modo === 'editar' && producto && producto.id) {
+    if (modo === 'editar' && producto) {
       console.log('📝 Cargando datos del producto para edición:', producto);
+      
+      // ✅ Asegurar que los datos se carguen correctamente
       setFormData({
         nombre_prod: producto.nombre_prod || '',
         categoria_prod: producto.categoria_prod || '',
-        precio_venta: producto.precio_venta || '',
+        precio_venta: producto.precio_venta?.toString() || '',
         descripcion_prod: producto.descripcion_prod || '',
         codigo_prod: producto.codigo_prod || '',
-        cantidad: producto.cantidad || '0'
+        cantidad: producto.cantidad?.toString() || '0'
       });
     } else if (modo === 'crear') {
       generarCodigoAutomatico();
     }
-  }, [modo, producto]);
+  }, [modo, producto]); // ✅ AGREGAR producto como dependencia
 
   const generarCodigoAutomatico = () => {
     const prefijo = 'PROD';
@@ -67,6 +75,17 @@ function FormularioProducto({ modo = 'crear', producto = null, onGuardadoExitoso
         [name]: ''
       }));
     }
+  };
+
+  // ✅ FUNCIÓN PARA CERRAR MODAL
+  const cerrarModal = () => {
+    setModalConfig({
+      mostrar: false,
+      tipo: '',
+      mensaje: '',
+      onConfirmar: null,
+      onCancelar: null
+    });
   };
 
   const validarProductoExistente = async () => {
@@ -117,10 +136,13 @@ function FormularioProducto({ modo = 'crear', producto = null, onGuardadoExitoso
       nuevosErrores.codigo_prod = 'El código del producto es obligatorio';
     }
 
-    if (!formData.cantidad && formData.cantidad !== '0') {
-      nuevosErrores.cantidad = 'La cantidad es obligatoria';
-    } else if (parseInt(formData.cantidad) < 0) {
-      nuevosErrores.cantidad = 'La cantidad no puede ser negativa';
+    // ✅ EN MODO EDICIÓN, NO VALIDAR CANTIDAD (se maneja desde compras)
+    if (modo === 'crear') {
+      if (!formData.cantidad && formData.cantidad !== '0') {
+        nuevosErrores.cantidad = 'La cantidad inicial es obligatoria';
+      } else if (parseInt(formData.cantidad) < 0) {
+        nuevosErrores.cantidad = 'La cantidad no puede ser negativa';
+      }
     }
 
     setErrores(nuevosErrores);
@@ -133,36 +155,42 @@ function FormularioProducto({ modo = 'crear', producto = null, onGuardadoExitoso
     const esValido = await validarFormulario();
     if (!esValido) return;
 
-    const configModal = {
+    setModalConfig({
+      mostrar: true,
       tipo: 'confirmar',
       modo: 'producto',
       mensaje: modo === 'crear' 
         ? `¿Está seguro que desea crear el producto "${formData.nombre_prod}"?` 
         : `¿Está seguro que desea actualizar el producto "${formData.nombre_prod}"?`,
-      datosAdicionales: {
-        modo: modo,
-        ...formData
-      },
-      mostrarResumen: true
-    };
-
-    setModalConfig(configModal);
-    setMostrarModalConfirmacion(true);
+      onConfirmar: handleGuardarConfirmado,
+      onCancelar: cerrarModal
+    });
   };
 
-  // ✅ FUNCIÓN CORREGIDA: Redirigir a lista de productos después de guardar
-  const confirmarGuardado = async () => {
+  // ✅ FUNCIÓN CORREGIDA: Manejar guardado
+  const handleGuardarConfirmado = async () => {
+    cerrarModal();
     setLoading(true);
-    setMostrarModalConfirmacion(false);
 
     try {
       const token = localStorage.getItem('token');
+      
+      // ✅ PREPARAR DATOS CORRECTAMENTE
       const dataEnvio = {
-        ...formData,
+        nombre_prod: formData.nombre_prod.trim(),
+        categoria_prod: formData.categoria_prod,
         precio_venta: parseFloat(formData.precio_venta),
-        cantidad: parseInt(formData.cantidad) || 0,
+        descripcion_prod: formData.descripcion_prod.trim() || null,
+        codigo_prod: formData.codigo_prod.trim(),
         stock_minimo: 5
       };
+
+      // ✅ EN MODO CREAR AGREGAR CANTIDAD, EN EDICIÓN NO
+      if (modo === 'crear') {
+        dataEnvio.cantidad = parseInt(formData.cantidad) || 0;
+      }
+
+      console.log('📤 Enviando datos:', dataEnvio);
 
       let response;
       if (modo === 'crear') {
@@ -170,10 +198,6 @@ function FormularioProducto({ modo = 'crear', producto = null, onGuardadoExitoso
           headers: { Authorization: `Token ${token}` }
         });
       } else {
-        if (!producto || !producto.id) {
-          throw new Error('No se pudo identificar el producto a editar');
-        }
-        
         response = await axios.put(`http://localhost:8000/api/productos/${producto.id}/`, dataEnvio, {
           headers: { Authorization: `Token ${token}` }
         });
@@ -181,39 +205,26 @@ function FormularioProducto({ modo = 'crear', producto = null, onGuardadoExitoso
 
       const productoCompleto = response.data;
       
-      // ✅ MOSTRAR MODAL DE ÉXITO Y LUEGO REDIRIGIR
+      // ✅ MOSTRAR MODAL DE ÉXITO
       setModalConfig({
+        mostrar: true,
         tipo: 'exito',
         modo: 'producto',
-        mensaje: modo === 'crear' 
-          ? '✅ Producto creado correctamente. Redirigiendo a lista de productos...' 
-          : '✅ Producto actualizado correctamente. Redirigiendo a lista de productos...',
-        datosAdicionales: {
-          nombre: formData.nombre_prod,
-          codigo: formData.codigo_prod,
-          categoria: formData.categoria_prod,
-          cantidad: formData.cantidad
-        },
-        mostrarResumen: true,
-        // ✅ CALLBACK PARA REDIRIGIR CUANDO SE CIERRE EL MODAL
+        mensaje: `✅ Producto ${modo === 'crear' ? 'creado' : 'actualizado'} correctamente`,
         onConfirmar: () => {
-          console.log('✅ Redirigiendo a lista de productos...');
-          setMostrarModalConfirmacion(false);
+          cerrarModal();
           if (onGuardadoExitoso) {
             onGuardadoExitoso(productoCompleto);
           }
         },
         onCancelar: () => {
-          console.log('✅ Redirigiendo a lista de productos...');
-          setMostrarModalConfirmacion(false);
+          cerrarModal();
           if (onGuardadoExitoso) {
             onGuardadoExitoso(productoCompleto);
           }
         }
       });
-
-      setMostrarModalConfirmacion(true);
-
+      
     } catch (error) {
       console.error('Error al guardar producto:', error);
       
@@ -233,27 +244,14 @@ function FormularioProducto({ modo = 'crear', producto = null, onGuardadoExitoso
       }
 
       setModalConfig({
+        mostrar: true,
         tipo: 'error',
-        modo: 'producto',
         mensaje: `❌ ${mensajeError}`,
-        onConfirmar: () => setMostrarModalConfirmacion(false),
-        onCancelar: () => setMostrarModalConfirmacion(false)
+        onConfirmar: cerrarModal,
+        onCancelar: cerrarModal
       });
-      setMostrarModalConfirmacion(true);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleCancelarGuardado = () => {
-    setMostrarModalConfirmacion(false);
-  };
-
-  // ✅ ELIMINAR handleCerrarModalExito ya que se maneja en los callbacks del modal
-
-  const handleIrACompras = () => {
-    if (onIrACompras && producto) {
-      onIrACompras(producto);
     }
   };
 
@@ -266,7 +264,9 @@ function FormularioProducto({ modo = 'crear', producto = null, onGuardadoExitoso
           <p><strong>Código:</strong> {formData.codigo_prod}</p>
           <p><strong>Categoría:</strong> {formData.categoria_prod}</p>
           <p><strong>Precio de Venta:</strong> ${parseFloat(formData.precio_venta || 0).toFixed(2)}</p>
-          <p><strong>Cantidad Inicial:</strong> {formData.cantidad} unidades</p>
+          {modo === 'crear' && (
+            <p><strong>Cantidad Inicial:</strong> {formData.cantidad} unidades</p>
+          )}
           {formData.descripcion_prod && (
             <p><strong>Descripción:</strong> {formData.descripcion_prod}</p>
           )}
@@ -309,7 +309,7 @@ function FormularioProducto({ modo = 'crear', producto = null, onGuardadoExitoso
                   value={formData.codigo_prod}
                   onChange={handleChange}
                   placeholder="Se generará automáticamente"
-                  disabled={loading || modo === 'editar'}
+                  disabled={loading || modo === 'editar'} // ✅ Código no editable en edición
                   className="input-codigo"
                 />
               </div>
@@ -372,29 +372,34 @@ function FormularioProducto({ modo = 'crear', producto = null, onGuardadoExitoso
             </div>
           </div>
 
-          <div className="campos-grid">
-            <div className={`campo-formulario ${errores.cantidad ? 'campo-error' : ''}`}>
-              <label htmlFor="cantidad">
-                <FaCube /> Cantidad Inicial *
-              </label>
-              <input
-                type="number"
-                id="cantidad"
-                name="cantidad"
-                value={formData.cantidad}
-                onChange={handleChange}
-                min="0"
-                step="1"
-                placeholder="0"
-                disabled={loading || modo === 'editar'}
-              />
-              {errores.cantidad && <span className="mensaje-error">{errores.cantidad}</span>}
+          // ✅ CANTIDAD SOLO EN MODO CREAR - NO EDITABLE EN EDICIÓN
+          {modo === 'crear' && (
+            <div className="campos-grid">
+              <div className={`campo-formulario ${errores.cantidad ? 'campo-error' : ''}`}>
+                <label htmlFor="cantidad">
+                  <FaCube /> Cantidad Inicial *
+                </label>
+                <input
+                  type="number"
+                  id="cantidad"
+                  name="cantidad"
+                  value={formData.cantidad}
+                  onChange={handleChange}
+                  min="0"
+                  step="1"
+                  placeholder="0"
+                  disabled={loading}
+                />
+                {errores.cantidad && <span className="mensaje-error">{errores.cantidad}</span>}
+                <small className="texto-ayuda">
+                  La cantidad solo se puede modificar desde el módulo de Compras
+                </small>
+              </div>
+              <div className="campo-formulario">
+                {/* Espacio para mantener el grid balanceado */}
+              </div>
             </div>
-
-            <div className="campo-formulario">
-              {/* Espacio para mantener el grid balanceado */}
-            </div>
-          </div>
+          )}
 
           <div className={`campo-formulario ${errores.descripcion_prod ? 'campo-error' : ''}`}>
             <label htmlFor="descripcion_prod">
@@ -424,15 +429,19 @@ function FormularioProducto({ modo = 'crear', producto = null, onGuardadoExitoso
         </div>
       </form>
 
+      {/* ✅ MODAL UNIVERSAL */}
       <ModalConfirmacionUniversal
-        mostrar={mostrarModalConfirmacion}
+        mostrar={modalConfig.mostrar}
         tipo={modalConfig.tipo}
         modo={modalConfig.modo}
         mensaje={modalConfig.mensaje}
-        datosAdicionales={modalConfig.datosAdicionales}
-        mostrarResumen={modalConfig.mostrarResumen}
-        onConfirmar={modalConfig.tipo === 'confirmar' ? confirmarGuardado : (modalConfig.onConfirmar || (() => setMostrarModalConfirmacion(false)))}
-        onCancelar={modalConfig.tipo === 'confirmar' ? handleCancelarGuardado : (modalConfig.onCancelar || (() => setMostrarModalConfirmacion(false)))}
+        datosAdicionales={modo === 'confirmar' ? {
+          modo: modo,
+          ...formData
+        } : null}
+        mostrarResumen={modalConfig.tipo === 'confirmar'}
+        onConfirmar={modalConfig.onConfirmar}
+        onCancelar={modalConfig.onCancelar}
       />
     </div>
   );

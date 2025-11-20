@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './Proveedores.css';
-import ModalConfirmacion from './ModalConfirmacion';
+import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal';
 import FormularioProveedor from './FormularioProveedor';
-import { FaEdit, FaEye, FaList, FaArrowLeft, FaTimes, FaPhone, FaEnvelope, FaStickyNote, FaMapMarkerAlt, FaIdCard, FaUser, FaCheck } from 'react-icons/fa';
+import { FaEdit, FaEye, FaArrowLeft, FaTimes, FaPhone, FaEnvelope, FaStickyNote, FaMapMarkerAlt, FaIdCard, FaUser, FaCheck, FaChevronLeft, FaChevronRight, FaStepBackward, FaStepForward } from 'react-icons/fa';
 import { BsBan } from 'react-icons/bs';
 
 function Proveedores({ esJefa = true, modoLectura = false }) {
@@ -11,16 +11,26 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
   const [todosProveedores, setTodosProveedores] = useState([]);
   const [vista, setVista] = useState('lista');
   const [proveedorEditar, setProveedorEditar] = useState(null);
-  const [mostrarModal, setMostrarModal] = useState(false);
-  const [proveedorAInhabilitar, setProveedorAInhabilitar] = useState(null);
-  const [accionModal, setAccionModal] = useState('');
   const [busqueda, setBusqueda] = useState('');
   const [filtroRubro, setFiltroRubro] = useState('');
   const [loading, setLoading] = useState(false);
   const [haBuscado, setHaBuscado] = useState(false);
   const [mensajeExito, setMensajeExito] = useState('');
-  const [mostrarTodos, setMostrarTodos] = useState(false);
   const [proveedorDetalles, setProveedorDetalles] = useState(null);
+
+  // ✅ ESTADOS PARA PAGINACIÓN
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [proveedoresPorPagina, setProveedoresPorPagina] = useState(5);
+  const [totalPaginas, setTotalPaginas] = useState(1);
+
+  // ✅ ESTADO PARA MODAL UNIVERSAL
+  const [modalConfig, setModalConfig] = useState({
+    mostrar: false,
+    tipo: '',
+    mensaje: '',
+    proveedor: null,
+    onConfirmar: null
+  });
 
   const rubros = [
     'Bebidas',
@@ -44,6 +54,7 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
 
   const cargarTodosProveedores = async () => {
     try {
+      setLoading(true);
       const token = localStorage.getItem('token');
       const res = await axios.get('http://localhost:8000/api/proveedores/', {
         headers: { Authorization: `Token ${token}` }
@@ -51,17 +62,154 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
       
       console.log('Proveedores cargados:', res.data);
       setTodosProveedores(res.data);
-      setProveedores([]);
+      setProveedores(res.data);
+      
+      // ✅ CALCULAR PAGINACIÓN INICIAL
+      calcularPaginacion(res.data);
     } catch (error) {
       console.error('Error al cargar todos los proveedores', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ FUNCIÓN PARA CALCULAR PAGINACIÓN
+  const calcularPaginacion = (listaProveedores) => {
+    const total = listaProveedores.length;
+    const paginas = Math.ceil(total / proveedoresPorPagina);
+    setTotalPaginas(paginas);
+    setPaginaActual(1);
+  };
+
+  // ✅ FUNCIÓN PARA OBTENER PROVEEDORES DE LA PÁGINA ACTUAL
+  const obtenerProveedoresPaginaActual = () => {
+    const inicio = (paginaActual - 1) * proveedoresPorPagina;
+    const fin = inicio + proveedoresPorPagina;
+    return proveedores.slice(inicio, fin);
+  };
+
+  // ✅ FUNCIONES DE PAGINACIÓN
+  const irAPagina = (numeroPagina) => {
+    setPaginaActual(numeroPagina);
+  };
+
+  const paginaAnterior = () => {
+    if (paginaActual > 1) {
+      setPaginaActual(paginaActual - 1);
+    }
+  };
+
+  const paginaSiguiente = () => {
+    if (paginaActual < totalPaginas) {
+      setPaginaActual(paginaActual + 1);
+    }
+  };
+
+  const irAPrimeraPagina = () => {
+    setPaginaActual(1);
+  };
+
+  const irAUltimaPagina = () => {
+    setPaginaActual(totalPaginas);
+  };
+
+  // ✅ FUNCIÓN PARA GENERAR RANGO DE PÁGINAS
+  const obtenerRangoPaginas = () => {
+    const paginasVisibles = 5;
+    let inicio = Math.max(1, paginaActual - Math.floor(paginasVisibles / 2));
+    let fin = Math.min(totalPaginas, inicio + paginasVisibles - 1);
+    
+    if (fin - inicio + 1 < paginasVisibles) {
+      inicio = Math.max(1, fin - paginasVisibles + 1);
+    }
+    
+    const paginas = [];
+    for (let i = inicio; i <= fin; i++) {
+      paginas.push(i);
+    }
+    return paginas;
+  };
+
+  // ✅ FUNCIÓN PARA ABRIR MODAL UNIVERSAL
+  const abrirModalConfirmacion = (proveedor, accion) => {
+    const mensajes = {
+      inhabilitar: `¿Está seguro que desea INHABILITAR el proveedor "${proveedor.nombre_prov}"? El proveedor aparecerá como "Inactivo" pero no se eliminará del sistema.`,
+      habilitar: `¿Está seguro que desea HABILITAR el proveedor "${proveedor.nombre_prov}"?`
+    };
+
+    setModalConfig({
+      mostrar: true,
+      tipo: accion,
+      mensaje: mensajes[accion],
+      proveedor: proveedor,
+      onConfirmar: () => handleInhabilitarHabilitar(proveedor, accion)
+    });
+  };
+
+  // ✅ FUNCIÓN PARA CERRAR MODAL
+  const cerrarModal = () => {
+    setModalConfig({
+      mostrar: false,
+      tipo: '',
+      mensaje: '',
+      proveedor: null,
+      onConfirmar: null
+    });
+  };
+
+  const handleInhabilitarHabilitar = async (proveedor, accion) => {
+    if (!proveedor) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      const nuevoEstado = accion === 'inhabilitar' ? false : true;
+      
+      console.log(`Cambiando estado del proveedor ${proveedor.id} a:`, nuevoEstado);
+      
+      const datosActualizar = {
+        nombre_prov: proveedor.nombre_prov,
+        tipo_prov: proveedor.tipo_prov,
+        telefono_prov: proveedor.telefono_prov || '',
+        correo_prov: proveedor.correo_prov || '',
+        direccion_prov: proveedor.direccion_prov || '',
+        descripcion: proveedor.descripcion || '',
+        codigo_proveedor: proveedor.codigo_proveedor || '', // ✅ CAMBIADO
+        estado: nuevoEstado
+      };
+      
+      await axios.put(`http://localhost:8000/api/proveedores/${proveedor.id}/`, datosActualizar, {
+        headers: { 
+          Authorization: `Token ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      await cargarTodosProveedores();
+      
+      const accionTexto = accion === 'inhabilitar' ? 'inhabilitado' : 'habilitado';
+      setMensajeExito(`Proveedor ${accionTexto} correctamente`);
+      setTimeout(() => setMensajeExito(''), 3000);
+      
+      cerrarModal();
+    } catch (error) {
+      console.error(`Error al ${accion} proveedor:`, error);
+      console.error('Detalles del error:', error.response?.data);
+      
+      setModalConfig({
+        mostrar: true,
+        tipo: 'error',
+        mensaje: `Error al ${accion} el proveedor. Por favor, intente nuevamente.`,
+        proveedor: null,
+        onConfirmar: cerrarModal
+      });
     }
   };
 
   const filtrarProveedores = () => {
     if (busqueda === '' && filtroRubro === '') {
-      setProveedores([]);
-      setHaBuscado(false);
-      setMostrarTodos(false);
+      setProveedores(todosProveedores);
+      setHaBuscado(true);
+      calcularPaginacion(todosProveedores);
       return;
     }
 
@@ -83,22 +231,8 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
 
     setProveedores(filtrados);
     setHaBuscado(true);
-    setMostrarTodos(false);
-  };
-
-  const mostrarTodosProveedores = () => {
-    setProveedores(todosProveedores);
-    setHaBuscado(true);
-    setMostrarTodos(true);
-    setBusqueda('');
-    setFiltroRubro('');
-  };
-
-  const ocultarProveedores = () => {
-    setProveedores([]);
-    setHaBuscado(false);
-    setMostrarTodos(false);
-    setProveedorDetalles(null);
+    
+    calcularPaginacion(filtrados);
   };
 
   useEffect(() => {
@@ -109,6 +243,14 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
     return () => clearTimeout(timeoutId);
   }, [busqueda, filtroRubro, todosProveedores]);
 
+  // ✅ EFECTO PARA SCROLLAR AL TOP AL CAMBIAR DE PÁGINA
+  useEffect(() => {
+    const tablaContainer = document.querySelector('.tabla-contenedor-con-scroll');
+    if (tablaContainer) {
+      tablaContainer.scrollTop = 0;
+    }
+  }, [paginaActual]);
+
   const handleFiltroRubroChange = (e) => {
     const rubro = e.target.value;
     setFiltroRubro(rubro);
@@ -117,58 +259,11 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
   const limpiarFiltros = () => {
     setBusqueda('');
     setFiltroRubro('');
-    setProveedores([]);
-    setHaBuscado(false);
-    setMostrarTodos(false);
+    setProveedores(todosProveedores);
+    setHaBuscado(true);
     setProveedorDetalles(null);
-  };
-
-  const handleInhabilitarHabilitar = async () => {
-    if (!proveedorAInhabilitar) return;
-    
-    try {
-      const token = localStorage.getItem('token');
-      const nuevoEstado = accionModal === 'inhabilitar' ? false : true;
-      
-      console.log(`Cambiando estado del proveedor ${proveedorAInhabilitar.id} a:`, nuevoEstado);
-      
-      const datosActualizar = {
-        nombre_prov: proveedorAInhabilitar.nombre_prov,
-        tipo_prov: proveedorAInhabilitar.tipo_prov,
-        telefono_prov: proveedorAInhabilitar.telefono_prov || '',
-        correo_prov: proveedorAInhabilitar.correo_prov || '',
-        direccion_prov: proveedorAInhabilitar.direccion_prov || '',
-        descripcion: proveedorAInhabilitar.descripcion || '',
-        dni_proveedor: proveedorAInhabilitar.dni_proveedor || '',
-        estado: nuevoEstado
-      };
-      
-      await axios.put(`http://localhost:8000/api/proveedores/${proveedorAInhabilitar.id}/`, datosActualizar, {
-        headers: { 
-          Authorization: `Token ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      await cargarTodosProveedores();
-      
-      if (mostrarTodos) {
-        setProveedores(todosProveedores);
-      } else if (busqueda || filtroRubro) {
-        filtrarProveedores();
-      }
-      
-      const accionTexto = accionModal === 'inhabilitar' ? 'inhabilitado' : 'habilitado';
-      setMensajeExito(`Proveedor ${accionTexto} correctamente`);
-      setTimeout(() => setMensajeExito(''), 3000);
-    } catch (error) {
-      console.error(`Error al ${accionModal} proveedor:`, error);
-      console.error('Detalles del error:', error.response?.data);
-    } finally {
-      setMostrarModal(false);
-      setProveedorAInhabilitar(null);
-      setAccionModal('');
-    }
+    setPaginaActual(1);
+    calcularPaginacion(todosProveedores);
   };
 
   const handleGuardadoExitoso = () => {
@@ -181,6 +276,7 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
 
   const hayFiltrosActivos = busqueda || filtroRubro;
   const hayResultados = proveedores.length > 0;
+  const proveedoresMostrar = obtenerProveedoresPaginaActual();
 
   const estaActivo = (proveedor) => {
     return proveedor.estado !== false;
@@ -244,17 +340,10 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
           </select>
         </div>
 
-        {!mostrarTodos && !hayFiltrosActivos && (
-          <button className="btn-mostrar-todos" onClick={mostrarTodosProveedores}>
-            <FaList className="icono-btn" />
-            Mostrar todos
-          </button>
-        )}
-
-        {(hayFiltrosActivos || mostrarTodos) && (
+        {hayFiltrosActivos && (
           <button className="btn-limpiar" onClick={limpiarFiltros}>
             <FaArrowLeft className="icono-btn" />
-            Ocultar lista
+            Limpiar filtros
           </button>
         )}
       </div>
@@ -276,145 +365,188 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
         </div>
       )}
 
-      {mostrarTodos && (
+      {!hayFiltrosActivos && (
         <div className="mensaje-busqueda">
-          Mostrando todos los proveedores ({proveedores.length})
+          Mostrando {proveedores.length} proveedores en total
         </div>
       )}
 
-      {hayFiltrosActivos && proveedores.length === 0 ? (
+      {loading ? (
+        <div className="sin-busqueda">
+          <div className="mensaje-inicial">
+            <p>Cargando proveedores...</p>
+          </div>
+        </div>
+      ) : hayFiltrosActivos && proveedores.length === 0 ? (
         <div className="sin-resultados">
           <p>No se encontraron proveedores con los criterios de búsqueda</p>
           <button className="btn-limpiar" onClick={limpiarFiltros}>
             <FaArrowLeft className="icono-btn" />
-            Ocultar lista
+            Limpiar filtros
           </button>
         </div>
-      ) : !hayFiltrosActivos && !haBuscado && !mostrarTodos ? (
-        <div className="sin-busqueda">
-          <div className="mensaje-inicial">
-            <p>Utilice el buscador, los filtros o el botón "Mostrar todos" para encontrar proveedores específicos</p>
-          </div>
-        </div>
       ) : hayResultados ? (
-        <div className="tabla-contenedor-con-scroll">
-          <table className="tabla-proveedores">
-            <thead>
-              <tr>
-                {mostrarTodos ? (
-                  <th className="columna-dni">DNI</th>
-                ) : (
-                  <th className="columna-id">ID</th>
-                )}
-                <th className="columna-nombre">Nombre</th>
-                <th className="columna-rubro">Rubro</th>
-                <th className="columna-estado">Estado</th>
-                <th className="columna-telefono">Teléfono</th>
-                <th className="columna-email">Email</th>
-                {!modoLectura && <th className="columna-acciones">Acciones</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {proveedores.map(p => (
-                <tr key={p.id} className={!estaActivo(p) ? 'proveedor-inactivo' : ''}>
-                  {mostrarTodos ? (
-                    <td className="dni-proveedor centered">
-                      {p.dni_proveedor || 'No especificado'}
-                    </td>
-                  ) : (
-                    <td className="id-proveedor centered">{p.id.toString().padStart(2, '0')}</td>
-                  )}
-                  <td className="nombre-proveedor centered">{p.nombre_prov}</td>
-                  <td className="rubro-proveedor centered">{p.tipo_prov}</td>
-                  <td className="estado-proveedor centered">
-                    <span className={`badge-estado ${estaActivo(p) ? 'activo' : 'inactivo'}`}>
-                      {estaActivo(p) ? 'Activo' : 'Inactivo'}
-                    </span>
-                  </td>
-                  <td className="telefono-proveedor centered">{p.telefono_prov || '-'}</td>
-                  <td className="email-proveedor centered">{p.correo_prov || '-'}</td>
-                  {!modoLectura && (
-                    <td className="acciones-proveedor centered">
-                      <button
-                        className="btn-icon editar"
-                        onClick={() => {
-                          setProveedorEditar(p);
-                          setVista('editar');
-                        }}
-                        title="Editar proveedor"
-                      >
-                        <FaEdit />
-                      </button>
-                      {esJefa && (
-                        <>
-                          {estaActivo(p) ? (
-                            <button
-                              className="btn-icon inhabilitar"
-                              onClick={() => {
-                                setProveedorAInhabilitar(p);
-                                setAccionModal('inhabilitar');
-                                setMostrarModal(true);
-                              }}
-                              title="Inhabilitar proveedor"
-                            >
-                              <BsBan />
-                            </button>
-                          ) : (
-                            <button
-                              className="btn-icon habilitar"
-                              onClick={() => {
-                                setProveedorAInhabilitar(p);
-                                setAccionModal('habilitar');
-                                setMostrarModal(true);
-                              }}
-                              title="Habilitar proveedor"
-                            >
-                              <FaCheck />
-                            </button>
-                          )}
-                        </>
-                      )}
-                      <button
-                        className="btn-icon detalles"
-                        onClick={() => setProveedorDetalles(p)}
-                        title="Ver detalles completos"
-                      >
-                        <FaEye />
-                      </button>
-                    </td>
-                  )}
+        <>
+          <div className="tabla-contenedor-con-scroll">
+            <table className="tabla-proveedores">
+              <thead>
+                <tr>
+                  <th className="columna-codigo">CÓDIGO</th> {/* ✅ CAMBIADO */}
+                  <th className="columna-nombre">Nombre</th>
+                  <th className="columna-rubro">Rubro</th>
+                  <th className="columna-estado">Estado</th>
+                  <th className="columna-telefono">Teléfono</th>
+                  <th className="columna-email">Email</th>
+                  {!modoLectura && <th className="columna-acciones">Acciones</th>}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {proveedoresMostrar.map(p => (
+                  <tr key={p.id} className={!estaActivo(p) ? 'proveedor-inactivo' : ''}>
+                    <td className="codigo-proveedor centered"> {/* ✅ CAMBIADO */}
+                      {p.codigo_proveedor || 'No especificado'} {/* ✅ CAMBIADO */}
+                    </td>
+                    <td className="nombre-proveedor centered">{p.nombre_prov}</td>
+                    <td className="rubro-proveedor centered">{p.tipo_prov}</td>
+                    <td className="estado-proveedor centered">
+                      <span className={`badge-estado ${estaActivo(p) ? 'activo' : 'inactivo'}`}>
+                        {estaActivo(p) ? 'Activo' : 'Inactivo'}
+                      </span>
+                    </td>
+                    <td className="telefono-proveedor centered">{p.telefono_prov || '-'}</td>
+                    <td className="email-proveedor centered">{p.correo_prov || '-'}</td>
+                    {!modoLectura && (
+                      <td className="acciones-proveedor centered">
+                        <button
+                          className="btn-icon editar"
+                          onClick={() => {
+                            setProveedorEditar(p);
+                            setVista('editar');
+                          }}
+                          title="Editar proveedor"
+                        >
+                          <FaEdit />
+                        </button>
+                        {esJefa && (
+                          <>
+                            {estaActivo(p) ? (
+                              <button
+                                className="btn-icon inhabilitar"
+                                onClick={() => abrirModalConfirmacion(p, 'inhabilitar')}
+                                title="Inhabilitar proveedor"
+                              >
+                                <BsBan />
+                              </button>
+                            ) : (
+                              <button
+                                className="btn-icon habilitar"
+                                onClick={() => abrirModalConfirmacion(p, 'habilitar')}
+                                title="Habilitar proveedor"
+                              >
+                                <FaCheck />
+                              </button>
+                            )}
+                          </>
+                        )}
+                        <button
+                          className="btn-icon detalles"
+                          onClick={() => setProveedorDetalles(p)}
+                          title="Ver detalles completos"
+                        >
+                          <FaEye />
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* ✅ PAGINACIÓN */}
+          {proveedores.length > 0 && (
+            <div className="paginacion-container">
+              <div className="paginacion-info">
+                Mostrando {((paginaActual - 1) * proveedoresPorPagina) + 1} - {Math.min(paginaActual * proveedoresPorPagina, proveedores.length)} de {proveedores.length} proveedores
+              </div>
+              
+              <div className="paginacion-controles">
+                <button 
+                  className="btn-paginacion" 
+                  onClick={irAPrimeraPagina}
+                  disabled={paginaActual === 1}
+                  title="Primera página"
+                >
+                  <FaStepBackward />
+                </button>
+                
+                <button 
+                  className="btn-paginacion" 
+                  onClick={paginaAnterior}
+                  disabled={paginaActual === 1}
+                  title="Página anterior"
+                >
+                  <FaChevronLeft />
+                </button>
+
+                <div className="numeros-pagina">
+                  {obtenerRangoPaginas().map(numero => (
+                    <button
+                      key={numero}
+                      className={`numero-pagina ${numero === paginaActual ? 'activa' : ''}`}
+                      onClick={() => irAPagina(numero)}
+                    >
+                      {numero}
+                    </button>
+                  ))}
+                </div>
+
+                <button 
+                  className="btn-paginacion" 
+                  onClick={paginaSiguiente}
+                  disabled={paginaActual === totalPaginas}
+                  title="Página siguiente"
+                >
+                  <FaChevronRight />
+                </button>
+                
+                <button 
+                  className="btn-paginacion" 
+                  onClick={irAUltimaPagina}
+                  disabled={paginaActual === totalPaginas}
+                  title="Última página"
+                >
+                  <FaStepForward />
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       ) : (
         <div className="sin-busqueda">
           <div className="mensaje-inicial">
-            <h3>No hay resultados</h3>
-            <p>Intente con otros términos de búsqueda o filtros</p>
+            <h3>No hay proveedores registrados</h3>
+            <p>Comience agregando un nuevo proveedor</p>
+            {!modoLectura && (
+              <button className="btn-agregar" onClick={() => setVista('crear')} style={{marginTop: '10px'}}>
+                + Agregar primer proveedor
+              </button>
+            )}
           </div>
         </div>
       )}
 
-      <ModalConfirmacion
-        mostrar={mostrarModal}
-        tipo={accionModal}
-        mensaje={
-          accionModal === 'inhabilitar' 
-            ? `¿Está seguro que desea INHABILITAR el proveedor "${proveedorAInhabilitar?.nombre_prov}"? El proveedor aparecerá como "Inactivo" pero no se eliminará del sistema.`
-            : `¿Está seguro que desea HABILITAR el proveedor "${proveedorAInhabilitar?.nombre_prov}"?`
-        }
-        onCancelar={() => {
-          setMostrarModal(false);
-          setProveedorAInhabilitar(null);
-          setAccionModal('');
-        }}
-        onConfirmar={handleInhabilitarHabilitar}
+      {/* ✅ MODAL UNIVERSAL */}
+      <ModalConfirmacionUniversal
+        mostrar={modalConfig.mostrar}
+        tipo={modalConfig.tipo}
+        mensaje={modalConfig.mensaje}
+        onConfirmar={modalConfig.onConfirmar}
+        onCancelar={cerrarModal}
+        modo="proveedor"
       />
 
       {proveedorDetalles && (
-        console.log('Datos del proveedor en detalles:', proveedorDetalles), 
         <div className="modal-overlay-detalles" onClick={() => setProveedorDetalles(null)}>
           <div className="modal-detalles-grande" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header-detalles">
@@ -441,15 +573,13 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
               </div>
 
               <div className="detalles-lista-grande">
-                
-
                 <div className="detalle-item-grande">
                   <div className="icono-detalle-grande">
                     <FaIdCard />
                   </div>
                   <div className="contenido-detalle-grande">
-                    <label>DNI</label>
-                    <span>{proveedorDetalles.dni_proveedor || 'No especificado'}</span>
+                    <label>CÓDIGO</label> {/* ✅ CAMBIADO */}
+                    <span>{proveedorDetalles.codigo_proveedor || 'No especificado'}</span> {/* ✅ CAMBIADO */}
                   </div>
                 </div>
 

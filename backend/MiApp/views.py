@@ -376,6 +376,7 @@ def cambiar_password(request):
 # =======================================================
 # ===== VIEWSETS =====
 # =======================================================
+# En views.py - ProductoViewSet
 class ProductoViewSet(viewsets.ModelViewSet):
     queryset = Producto.objects.all().order_by('id')
     serializer_class = ProductoSerializer
@@ -384,74 +385,74 @@ class ProductoViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = Producto.objects.all().order_by('id')
         search = self.request.query_params.get('search', None)
+        categoria = self.request.query_params.get('categoria', None)
+        
         if search:
             queryset = queryset.filter(
                 Q(nombre_prod__icontains=search) |
+                Q(codigo_prod__icontains=search) |
                 Q(categoria_prod__icontains=search)
             )
+        
+        if categoria:
+            queryset = queryset.filter(categoria_prod=categoria)
+            
         return queryset
 
-    def update(self, request, *args, **kwargs):
+    # ✅ MÉTODO DESTROY CORREGIDO - VERIFICANDO DETALLEVENTA
+    def destroy(self, request, *args, **kwargs):
         try:
-            print("📥 Datos recibidos para actualizar producto:", request.data)
-            
             instance = self.get_object()
-            data = request.data.copy()
             
-            # Asegurar que los datos numéricos estén en formato correcto
-            if 'precio_venta' in data:
-                data['precio_venta'] = float(data['precio_venta'])
-            if 'cantidad' in data:
-                data['cantidad'] = int(data['cantidad'])
-            if 'stock_minimo' in data:
-                data['stock_minimo'] = int(data['stock_minimo'])
-            
-            print("📤 Datos procesados para actualizar:", data)
-            
-            serializer = self.get_serializer(instance, data=data, partial=False)
-            serializer.is_valid(raise_exception=True)
-            self.perform_update(serializer)
-            
-            print(f"✅ Producto {instance.id} actualizado exitosamente")
-            
-            return Response(serializer.data)
+            # Verificar si tiene ventas asociadas a través de DetalleVenta
+            if instance.detalleventa_set.exists():
+                return Response(
+                    {"error": "No se puede eliminar el producto porque tiene ventas asociadas registradas en el sistema."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
+            # Si no tiene ventas, proceder con la eliminación
+            self.perform_destroy(instance)
+            return Response(status=status.HTTP_204_NO_CONTENT)
             
         except Exception as e:
-            print(f"❌ Error al actualizar producto: {str(e)}")
+            print(f"❌ Error al eliminar producto: {str(e)}")
             return Response(
-                {'error': f'Error al actualizar producto: {str(e)}'}, 
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "Error al eliminar el producto. Por favor, intente nuevamente."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
-    def partial_update(self, request, *args, **kwargs):
+        
+    def update(self, request, *args, **kwargs):
         try:
-            print("📥 Datos recibidos para actualización parcial:", request.data)
-            
             instance = self.get_object()
             data = request.data.copy()
             
-            # Asegurar que los datos numéricos estén en formato correcto
-            if 'precio_venta' in data:
-                data['precio_venta'] = float(data['precio_venta'])
-            if 'cantidad' in data:
-                data['cantidad'] = int(data['cantidad'])
-            if 'stock_minimo' in data:
-                data['stock_minimo'] = int(data['stock_minimo'])
+            # Si solo viene cantidad, es actualización automática desde ventas
+            campos_recibidos = set(data.keys())
             
-            print("📤 Datos procesados para actualización parcial:", data)
+            if campos_recibidos == {'cantidad'}:
+                # Actualización automática de stock desde ventas
+                data['cantidad'] = int(data['cantidad'])
+            else:
+                # Edición manual desde formulario - No permitir modificar cantidad
+                if 'cantidad' in data:
+                    del data['cantidad']
+                
+                # Procesar otros campos
+                if 'precio_venta' in data:
+                    data['precio_venta'] = float(data['precio_venta'])
+                if 'stock_minimo' in data:
+                    data['stock_minimo'] = int(data['stock_minimo'])
             
             serializer = self.get_serializer(instance, data=data, partial=True)
             serializer.is_valid(raise_exception=True)
             self.perform_update(serializer)
             
-            print(f"✅ Producto {instance.id} actualizado parcialmente")
-            
             return Response(serializer.data)
             
         except Exception as e:
-            print(f"❌ Error en actualización parcial: {str(e)}")
             return Response(
-                {'error': f'Error en actualización parcial: {str(e)}'}, 
+                {'error': f'Error al actualizar producto: {str(e)}'}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
 

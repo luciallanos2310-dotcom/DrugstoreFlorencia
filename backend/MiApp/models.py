@@ -75,7 +75,7 @@ class Proveedor(models.Model):
     correo_prov = models.EmailField(null=True, blank=True, unique=True)  # ✅ ÚNICO
     direccion_prov = models.CharField(max_length=100, blank=True, null=True, unique=True)  # ✅ ÚNICO
     descripcion = models.TextField(blank=True, null=True)
-    dni_proveedor = models.CharField(max_length=20, blank=True, null=True, unique=True)  # ✅ ÚNICO
+    codigo_proveedor = models.CharField(max_length=20, blank=True, null=True, unique=True)
     estado = models.BooleanField(default=True)
 
     def __str__(self):
@@ -88,6 +88,9 @@ class Proveedor(models.Model):
     class Meta:
         verbose_name = "Proveedor"
         verbose_name_plural = "Proveedores"
+
+from django.db import models
+from django.db.models import Q
 
 class Producto(models.Model):
     nombre_prod = models.CharField(max_length=100)
@@ -111,14 +114,42 @@ class Producto(models.Model):
         self.cantidad += cantidad_sumada
         self.save()
 
+    def delete(self, *args, **kwargs):
+        """Eliminar producto y sus compras en cascada"""
+        # Eliminar compras asociadas primero
+        Compra.objects.filter(producto=self).delete()
+        # Luego eliminar el producto
+        super().delete(*args, **kwargs)
+
     @property
     def disponible(self):
-        return self.cantidad > 0
+        return self.cantidad > 0 and self.estado == 'activo'
 
     @property
     def bajo_stock(self):
         return self.cantidad <= self.stock_minimo
 
+    def desactivar(self):
+        """Método para desactivar el producto (borrado lógico)"""
+        self.estado = 'inactivo'
+        self.save()
+
+    def activar(self):
+        """Método para reactivar el producto"""
+        self.estado = 'activo'
+        self.save()
+
+    @property
+    def tiene_compras_asociadas(self):
+        """Verificar si el producto tiene compras asociadas"""
+        return Compra.objects.filter(producto=self).exists()
+
+    def eliminar_compras_asociadas(self):
+        """Eliminar en cascada las compras asociadas"""
+        compras_asociadas = Compra.objects.filter(producto=self)
+        count = compras_asociadas.count()
+        compras_asociadas.delete()
+        return count
 
 class Compra(models.Model):
     ESTADOS = (
