@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './Productos.css';
-import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal';
+import ModalConfirmacionUniversal from '../ModalConfirmacion.Universal/ModalConfirmacionUniversal';
 import { FaEdit, FaTrash, FaEye, FaArrowLeft, FaTimes, FaBox, FaDollarSign, FaHashtag, FaClipboardList, FaExclamationTriangle, FaChevronLeft, FaChevronRight, FaStepBackward, FaStepForward, FaUserTie } from 'react-icons/fa';
 
 function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {

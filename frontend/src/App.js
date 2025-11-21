@@ -1,8 +1,8 @@
 // src/App.js
 import React, { useState } from 'react';
-import Bienvenida from './components/Bienvenida';
-import Login from './components/Login';
-import Dashboard from './components/Dashboard';
+import Bienvenida from './components/Bienvenida/Bienvenida';
+import Login from './components/Login/Login';
+import Dashboard from './components/Dashboard/Dashboard';
 import './App.css';
 
 function App() {

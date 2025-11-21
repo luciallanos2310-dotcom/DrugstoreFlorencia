@@ -491,33 +491,31 @@ class CompraViewSet(viewsets.ModelViewSet):
     serializer_class = CompraSerializer
     permission_classes = [IsJefaOrReadOnly]
 
-    def create(self, request, *args, **kwargs):
+    def update(self, request, *args, **kwargs):
         try:
-            print("🎯 Creando compra con datos:", request.data)
+            instance = self.get_object()
             
-            # Validación simple
-            if not request.data.get('producto'):
-                return Response(
-                    {'error': 'Producto es requerido'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            # Usar el serializer directamente
-            serializer = self.get_serializer(data=request.data)
+            # Validar si está intentando anular una compra
+            if request.data.get('estado') == 'anulada' and instance.estado == 'activa':
+                puede_anular, mensaje_error = instance.puede_anularse()
+                if not puede_anular:
+                    return Response(
+                        {'error': mensaje_error},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            
+            serializer = self.get_serializer(instance, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
-            compra = serializer.save()
-
-            print(f"✅ Compra creada: {compra.codigo_compra}, Cantidad: {compra.cantidad}")
-
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-
+            self.perform_update(serializer)
+            
+            return Response(serializer.data)
+            
         except Exception as e:
-            print("💥 Error:", str(e))
             return Response(
-                {'error': 'Error interno del servidor'},
+                {'error': f'Error interno: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
+            
 class CajaViewSet(viewsets.ModelViewSet):
     queryset = Caja.objects.all()
     serializer_class = CajaSerializer

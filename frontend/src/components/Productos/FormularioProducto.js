@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './FormularioProducto.css';
-import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal';
+import ModalConfirmacionUniversal from '../ModalConfirmacion.Universal/ModalConfirmacionUniversal';
 import { FaSave, FaTimes, FaBox, FaDollarSign, FaHashtag, FaClipboardList, FaCube } from 'react-icons/fa';
 
 function FormularioProducto({ modo = 'crear', producto = null, onGuardadoExitoso, onCancelar }) {

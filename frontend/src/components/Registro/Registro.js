@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { FaUser, FaUsers, FaIdCard, FaPhone, FaHome, FaEnvelope, FaLock, FaArrowLeft, FaUserTie, FaUserShield } from "react-icons/fa";
-import Confirmacion from "./Confirmacion";
+import Confirmacion from "../Confirmacion/Confirmacion";
 import "./Registro.css";
 
 function Registro({ onVolverABienvenida, onVolverALogin }) {

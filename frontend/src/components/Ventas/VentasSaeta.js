@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal'; // ✅ Cambiado a modal universal
+import ModalConfirmacionUniversal from '../ModalConfirmacion.Universal/ModalConfirmacionUniversal'; // ✅ Cambiado a modal universal
 import './VentasSaeta.css';
 
 function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {

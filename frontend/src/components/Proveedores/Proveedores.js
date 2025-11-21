@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './Proveedores.css';
-import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal';
+import ModalConfirmacionUniversal from '../ModalConfirmacion.Universal/ModalConfirmacionUniversal';
 import FormularioProveedor from './FormularioProveedor';
 import { FaEdit, FaEye, FaArrowLeft, FaTimes, FaPhone, FaEnvelope, FaStickyNote, FaMapMarkerAlt, FaIdCard, FaUser, FaCheck, FaChevronLeft, FaChevronRight, FaStepBackward, FaStepForward } from 'react-icons/fa';
 import { BsBan } from 'react-icons/bs';

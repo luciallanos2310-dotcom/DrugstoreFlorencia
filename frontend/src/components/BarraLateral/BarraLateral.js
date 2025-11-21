@@ -1,11 +1,9 @@
-// src/components/BarraLateral.js
 import React from "react";
 import { 
   FaTachometerAlt, 
   FaBox, 
   FaChartLine, 
   FaTruck, 
-  FaCog, 
   FaSignOutAlt, 
   FaUser, 
   FaShoppingCart, 
@@ -43,10 +41,10 @@ function BarraLateral({
     { id: 'compras', icon: FaShoppingBag, label: 'Compras' },
     { id: 'inventario', icon: FaBox, label: 'Productos' },
     { id: 'caja', icon: FaCashRegister, label: 'Caja' },
-    { id: 'reportes', icon: FaChartLine, label: 'Reportes' }, // ✅ REPORTES AGREGADO
+    { id: 'reportes', icon: FaChartLine, label: 'Reportes' },
     { id: 'empleados', icon: FaUsers, label: 'Empleados' },
-    { id: 'proveedores', icon: FaTruck, label: 'Proveedores' },
-    { id: 'configuracion', icon: FaCog, label: 'Configuración' }
+    { id: 'proveedores', icon: FaTruck, label: 'Proveedores' }
+    // ✅ CONFIGURACIÓN ELIMINADA
   ];
 
   return (

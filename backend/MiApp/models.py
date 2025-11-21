@@ -151,6 +151,30 @@ class Producto(models.Model):
         compras_asociadas.delete()
         return count
 
+    def puede_anularse(self):
+        """Verificar si la compra puede ser anulada"""
+        if self.estado != 'activa':
+            return False, "La compra ya está anulada"
+        
+        # Verificar si se vendieron productos después de esta compra
+        from django.db.models import Sum
+        from .models import DetalleVenta
+        
+        # Obtener todas las ventas de este producto después de la fecha de compra
+        ventas_despues = DetalleVenta.objects.filter(
+            producto=self.producto,
+            venta__fecha_hora_venta__gte=self.fecha_compra
+        ).aggregate(total_vendido=Sum('cantidad'))['total_vendido'] or 0
+        
+        # Calcular stock disponible sin esta compra
+        stock_sin_compra = self.producto.cantidad - self.cantidad
+        
+        # Si el stock sin esta compra sería menor que las ventas realizadas después
+        if stock_sin_compra < 0:
+            return False, "No es posible anular esta compra porque algunas o todas las unidades ya fueron vendidas después de registrada la compra."
+        
+        return True, ""
+
 class Compra(models.Model):
     ESTADOS = (
         ('activa', 'Activa'),
@@ -169,6 +193,30 @@ class Compra(models.Model):
     def __str__(self):
         return f"{self.codigo_compra} - {self.producto.nombre_prod}"
 
+    def puede_anularse(self):
+        """Verificar si la compra puede ser anulada"""
+        if self.estado != 'activa':
+            return False, "La compra ya está anulada"
+        
+        # Verificar si se vendieron productos después de esta compra
+        from django.db.models import Sum
+        from .models import DetalleVenta
+        
+        # Obtener todas las ventas de este producto después de la fecha de compra
+        ventas_despues = DetalleVenta.objects.filter(
+            producto=self.producto,
+            venta__fecha_hora_venta__gte=self.fecha_compra
+        ).aggregate(total_vendido=Sum('cantidad'))['total_vendido'] or 0
+        
+        # Calcular stock disponible sin esta compra
+        stock_sin_compra = self.producto.cantidad - self.cantidad
+        
+        # Si el stock sin esta compra sería menor que las ventas realizadas después
+        if stock_sin_compra < 0:
+            return False, "No es posible anular esta compra porque algunas o todas las unidades ya fueron vendidas después de registrada la compra."
+        
+        return True, ""
+
     def save(self, *args, **kwargs):
         """ Manejo del stock según creación o anulación """
         es_nueva = self.pk is None
@@ -184,17 +232,10 @@ class Compra(models.Model):
             # 🔄 COMPRA EXISTENTE: Verificar cambios de estado
             compra_anterior = Compra.objects.get(pk=self.pk)
             
-            # Si cambió de ACTIVA → ANULADA
+            # Solo permitir cambiar de ACTIVA → ANULADA (no reactivación)
             if compra_anterior.estado == "activa" and self.estado == "anulada":
                 print(f"🔄 Anulando compra - Restando {compra_anterior.cantidad} del stock")
                 self.producto.cantidad -= compra_anterior.cantidad
-                self.producto.save()
-                print(f"✅ Stock actualizado: {self.producto.cantidad}")
-            
-            # Si cambió de ANULADA → ACTIVA  
-            elif compra_anterior.estado == "anulada" and self.estado == "activa":
-                print(f"🔄 Reactivando compra - Sumando {self.cantidad} al stock")
-                self.producto.cantidad += self.cantidad
                 self.producto.save()
                 print(f"✅ Stock actualizado: {self.producto.cantidad}")
             

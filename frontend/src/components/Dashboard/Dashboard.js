@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { FaSignOutAlt, FaUser, FaShoppingCart, FaCashRegister, FaBox, FaChartBar, FaUsers, FaCog, FaStore, FaUserPlus, FaHome, FaTruck, FaLock, FaShoppingBag } from 'react-icons/fa';
-import Registro from './Registro';
-import BarraLateral from './BarraLateral';
-import Productos from './Productos/Productos';
-import Proveedores from './Proveedores/Proveedores';
-import FormularioProducto from './Productos/FormularioProducto';
-import AperturaCaja from './Caja/AperturaCaja';
-import Ventas from './Ventas/Ventas';
-import Empleados from './Empleados/Empleados';
-import Compras from './Compras/Compras';
-import FormularioCompra from './Compras/FormularioCompra';
-import Reportes from './Reportes/Reportes';
+import { FaSignOutAlt, FaUser, FaShoppingCart, FaCashRegister, FaBox, FaChartBar, FaUsers, FaStore, FaUserPlus, FaHome, FaTruck, FaLock, FaShoppingBag } from 'react-icons/fa';
+import Registro from '../Registro/Registro';
+import BarraLateral from '../BarraLateral/BarraLateral';
+import Productos from '../Productos/Productos';
+import Proveedores from '../Proveedores/Proveedores';
+import FormularioProducto from '../Productos/FormularioProducto';
+import AperturaCaja from '../Caja/AperturaCaja';
+import Ventas from '../Ventas/Ventas';
+import Empleados from '../Empleados/Empleados';
+import Compras from '../Compras/Compras';
+import FormularioCompra from '../Compras/FormularioCompra';
+import Reportes from '../Reportes/Reportes';
 import './Dashboard.css';
 
 function Dashboard({ usuario, onCerrarSesion }) {
@@ -150,20 +150,6 @@ function Dashboard({ usuario, onCerrarSesion }) {
             </div>
           );
 
-        case 'configuracion':
-          return (
-            <div className="modulo-contenido modulo-solo-lectura">
-              <div className="modulo-header-solo-lectura">
-                <FaLock className="icono-bloqueo" />
-                <h2>Configuración - Vista de Solo Lectura</h2>
-                <p>No tiene permisos para modificar la configuración</p>
-              </div>
-              <div className="configuracion-solo-lectura">
-                <p>Esta sección está disponible solo para la jefa/encargada.</p>
-              </div>
-            </div>
-          );
-
         default:
           return renderModuloNormal();
       }
@@ -226,32 +212,33 @@ function Dashboard({ usuario, onCerrarSesion }) {
           />
         );
 
- case 'inventario':
-  if (vistaProductos === 'formulario') {
-    return (
-      <FormularioProducto 
-        modo={modoFormulario}
-        producto={productoEditando}  // ✅ Cambiado de productoEditar a producto
-        onCancelar={() => setVistaProductos('lista')}
-        onGuardadoExitoso={() => {
-          console.log('🔄 Guardado exitoso, volviendo a lista...');
-          setVistaProductos('lista');
-          setProductoEditando(null);
-        }}
-      />
-    );
-  }
-  return (
-    <Productos 
-      onNavegarAFormulario={(modo, producto) => {
-        console.log('🔄 Navegando a formulario:', modo, producto);
-        setModoFormulario(modo);
-        setProductoEditando(producto);
-        setVistaProductos('formulario');
-      }}
-      esJefa={esJefa}
-    />
-  );
+      case 'inventario':
+        if (vistaProductos === 'formulario') {
+          return (
+            <FormularioProducto 
+              modo={modoFormulario}
+              producto={productoEditando}
+              onCancelar={() => setVistaProductos('lista')}
+              onGuardadoExitoso={() => {
+                console.log('🔄 Guardado exitoso, volviendo a lista...');
+                setVistaProductos('lista');
+                setProductoEditando(null);
+              }}
+            />
+          );
+        }
+        return (
+          <Productos 
+            onNavegarAFormulario={(modo, producto) => {
+              console.log('🔄 Navegando a formulario:', modo, producto);
+              setModoFormulario(modo);
+              setProductoEditando(producto);
+              setVistaProductos('formulario');
+            }}
+            esJefa={esJefa}
+          />
+        );
+
       case 'proveedores':
         return <Proveedores esJefa={esJefa} />;
 
@@ -260,15 +247,6 @@ function Dashboard({ usuario, onCerrarSesion }) {
 
       case 'reportes':
         return <Reportes datosCaja={datosCaja} cajaAbierta={cajaAbierta} />;
-
-      case 'configuracion':
-        return (
-          <div className="modulo-contenido">
-            <h2>⚙️ Configuración del Sistema</h2>
-            <p>Ajustes y preferencias</p>
-          </div>
-        );
-        
 
       default:
         return (

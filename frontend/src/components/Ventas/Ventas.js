@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaSearch, FaPlus, FaMinus, FaTimes } from 'react-icons/fa';
-import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal';
+import ModalConfirmacionUniversal from '../ModalConfirmacion.Universal/ModalConfirmacionUniversal';
 import VentasSaeta from './VentasSaeta';
 import IngresosEgresos from '../Caja/IngresosEgresos';
 import CierreCaja from '../Caja/CierreCaja';

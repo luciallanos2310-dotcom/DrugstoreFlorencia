@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaCashRegister, FaStickyNote, FaChartLine, FaShoppingCart, FaExchangeAlt, FaMoneyBill, FaList, FaCreditCard, FaMoneyCheckAlt, FaMobileAlt } from 'react-icons/fa';
 import './AperturaCaja.css';
-import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal';
+import ModalConfirmacionUniversal from '../ModalConfirmacion.Universal/ModalConfirmacionUniversal';
 
 function AperturaCaja({ onAperturaConfirmada, onCancelar, cajaAbierta, datosCaja }) {
   const [datosApertura, setDatosApertura] = useState({

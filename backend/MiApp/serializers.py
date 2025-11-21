@@ -84,6 +84,7 @@ class CompraSerializer(serializers.ModelSerializer):
             instance.proveedores.set(proveedores_data)
 
         return instance
+        
 class CajaSerializer(serializers.ModelSerializer):
     empleado_nombre = serializers.CharField(source='empleado.nombre_emp', read_only=True)
     monto_esperado = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)

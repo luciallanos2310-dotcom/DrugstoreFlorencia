@@ -1,18 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { FaPlus, FaEdit, FaTrash, FaSearch, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaSearch, FaEye, FaChevronLeft, FaChevronRight, FaStepBackward, FaStepForward } from 'react-icons/fa';
 import FormularioEmpleado from './FormularioEmpleado';
-import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal';
+import ModalConfirmacionUniversal from '../ModalConfirmacion.Universal/ModalConfirmacionUniversal';
 import './Empleados.css';
 
 function Empleados({ usuario }) {
   const [empleados, setEmpleados] = useState([]);
+  const [todosEmpleados, setTodosEmpleados] = useState([]);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [modoFormulario, setModoFormulario] = useState('crear');
   const [empleadoEditando, setEmpleadoEditando] = useState(null);
-  const [mostrarTodos, setMostrarTodos] = useState(false);
   const [busqueda, setBusqueda] = useState('');
   const [cargando, setCargando] = useState(false);
   
+  // ✅ ESTADOS PARA PAGINACIÓN
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [empleadosPorPagina, setEmpleadosPorPagina] = useState(6); // 6 tarjetas por página
+  const [totalPaginas, setTotalPaginas] = useState(1);
+
   // Estados para modales
   const [mostrarModalEliminar, setMostrarModalEliminar] = useState(false);
   const [mostrarModalExito, setMostrarModalExito] = useState(false);
@@ -36,7 +41,11 @@ function Empleados({ usuario }) {
       
       if (response.ok) {
         const data = await response.json();
+        setTodosEmpleados(data);
         setEmpleados(data);
+        
+        // ✅ CALCULAR PAGINACIÓN INICIAL
+        calcularPaginacion(data);
       } else {
         console.error('Error cargando empleados:', response.status);
         setMensajeModal('Error al cargar los empleados');
@@ -55,18 +64,99 @@ function Empleados({ usuario }) {
     cargarEmpleados();
   }, []);
 
-  // Filtrar empleados basado en la búsqueda
-  const empleadosFiltrados = empleados.filter(empleado => {
-    const nombreCompleto = `${empleado.nombre_emp} ${empleado.apellido_emp}`.toLowerCase();
-    const terminoBusqueda = busqueda.toLowerCase();
-    return nombreCompleto.includes(terminoBusqueda) ||
-           empleado.dni_emp.toString().includes(busqueda) ||
-           empleado.email?.toLowerCase().includes(terminoBusqueda);
-  });
+  // ✅ FUNCIÓN PARA CALCULAR PAGINACIÓN
+  const calcularPaginacion = (listaEmpleados) => {
+    const total = listaEmpleados.length;
+    const paginas = Math.ceil(total / empleadosPorPagina);
+    setTotalPaginas(paginas);
+    setPaginaActual(1);
+  };
 
-  // Determinar qué empleados mostrar
-  const mostrarEmpleados = busqueda || mostrarTodos;
-  const empleadosAMostrar = mostrarEmpleados ? empleadosFiltrados : [];
+  // ✅ FUNCIÓN PARA OBTENER EMPLEADOS DE LA PÁGINA ACTUAL
+  const obtenerEmpleadosPaginaActual = () => {
+    const inicio = (paginaActual - 1) * empleadosPorPagina;
+    const fin = inicio + empleadosPorPagina;
+    return empleados.slice(inicio, fin);
+  };
+
+  // ✅ FUNCIONES DE PAGINACIÓN
+  const irAPagina = (numeroPagina) => {
+    setPaginaActual(numeroPagina);
+  };
+
+  const paginaAnterior = () => {
+    if (paginaActual > 1) {
+      setPaginaActual(paginaActual - 1);
+    }
+  };
+
+  const paginaSiguiente = () => {
+    if (paginaActual < totalPaginas) {
+      setPaginaActual(paginaActual + 1);
+    }
+  };
+
+  const irAPrimeraPagina = () => {
+    setPaginaActual(1);
+  };
+
+  const irAUltimaPagina = () => {
+    setPaginaActual(totalPaginas);
+  };
+
+  // ✅ FUNCIÓN PARA GENERAR RANGO DE PÁGINAS
+  const obtenerRangoPaginas = () => {
+    const paginasVisibles = 5;
+    let inicio = Math.max(1, paginaActual - Math.floor(paginasVisibles / 2));
+    let fin = Math.min(totalPaginas, inicio + paginasVisibles - 1);
+    
+    if (fin - inicio + 1 < paginasVisibles) {
+      inicio = Math.max(1, fin - paginasVisibles + 1);
+    }
+    
+    const paginas = [];
+    for (let i = inicio; i <= fin; i++) {
+      paginas.push(i);
+    }
+    return paginas;
+  };
+
+  // Filtrar empleados basado en la búsqueda
+  const filtrarEmpleados = () => {
+    if (busqueda === '') {
+      setEmpleados(todosEmpleados);
+      calcularPaginacion(todosEmpleados);
+      return;
+    }
+
+    let filtrados = todosEmpleados.filter(empleado => {
+      const nombreCompleto = `${empleado.nombre_emp} ${empleado.apellido_emp}`.toLowerCase();
+      const terminoBusqueda = busqueda.toLowerCase();
+      return nombreCompleto.includes(terminoBusqueda) ||
+             empleado.dni_emp?.toString().includes(busqueda) ||
+             empleado.email?.toLowerCase().includes(terminoBusqueda) ||
+             empleado.telefono_emp?.includes(busqueda);
+    });
+
+    setEmpleados(filtrados);
+    calcularPaginacion(filtrados);
+  };
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      filtrarEmpleados();
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [busqueda, todosEmpleados]);
+
+  // ✅ EFECTO PARA SCROLLAR AL TOP AL CAMBIAR DE PÁGINA
+  useEffect(() => {
+    const listaContainer = document.querySelector('.lista-empleados');
+    if (listaContainer) {
+      listaContainer.scrollTop = 0;
+    }
+  }, [paginaActual]);
 
   // Función para mostrar detalles del empleado en modal
   const mostrarDetallesEmpleado = (empleado) => {
@@ -81,7 +171,7 @@ function Empleados({ usuario }) {
 
   // Obtener observaciones del empleado
   const obtenerObservaciones = (empleado) => {
-    return empleado.observaciones || empleado.info_adicional || 'No hay observaciones';
+    return empleado.descripcion || empleado.observaciones || empleado.info_adicional || 'No hay observaciones';
   };
 
   const handleCrearEmpleado = () => {
@@ -154,15 +244,11 @@ function Empleados({ usuario }) {
         domicilio_emp: datosEmpleado.domicilio_emp.trim(),
         tipo_usuario: datosEmpleado.tipo_usuario,
         email: datosEmpleado.email.trim(),
-        observaciones: datosEmpleado.observaciones?.trim() || '',
+        descripcion: datosEmpleado.descripcion?.trim() || '',
         ...(modoFormulario === 'crear' && { 
           password: datosEmpleado.password 
         })
       };
-
-      console.log('📤 Enviando datos al servidor:', datosParaEnviar);
-      console.log('🔗 URL:', url);
-      console.log('🔧 Método:', method);
 
       const response = await fetch(url, {
         method: method,
@@ -173,22 +259,17 @@ function Empleados({ usuario }) {
         body: JSON.stringify(datosParaEnviar)
       });
 
-      console.log('📥 Respuesta del servidor - Status:', response.status);
-
       if (!response.ok) {
-        // Obtener el error detallado del servidor
         let errorData;
         try {
           errorData = await response.json();
         } catch (e) {
           errorData = { error: 'Error desconocido del servidor' };
         }
-        console.error('❌ Error del servidor:', errorData);
         throw new Error(`Error ${response.status}: ${JSON.stringify(errorData)}`);
       }
 
       const responseData = await response.json();
-      console.log('✅ Respuesta exitosa:', responseData);
 
       setMostrarFormulario(false);
       await cargarEmpleados();
@@ -210,12 +291,9 @@ function Empleados({ usuario }) {
     setBusqueda('');
   };
 
-  // Efecto para resetear mostrarTodos cuando se realiza una búsqueda
-  useEffect(() => {
-    if (busqueda) {
-      setMostrarTodos(false);
-    }
-  }, [busqueda]);
+  const hayFiltrosActivos = busqueda !== '';
+  const hayResultados = empleados.length > 0;
+  const empleadosMostrar = obtenerEmpleadosPaginaActual();
 
   if (mostrarFormulario) {
     return (
@@ -265,100 +343,168 @@ function Empleados({ usuario }) {
             </button>
           )}
         </div>
-        <div className="estado-busqueda">
-          {busqueda && (
-            <span>
-              {empleadosFiltrados.length} resultado{empleadosFiltrados.length !== 1 ? 's' : ''} encontrado{empleadosFiltrados.length !== 1 ? 's' : ''}
-              {empleadosFiltrados.length === 0 && ' - No se encontraron empleados'}
-            </span>
-          )}
-        </div>
-      </div>
+        
+        {hayFiltrosActivos && (
+          <div className="mensaje-busqueda">
+            {empleados.length === 0 ? 
+              `No se encontraron empleados con "${busqueda}"` : 
+              `Mostrando ${empleados.length} empleado(s) con "${busqueda}"`
+            }
+          </div>
+        )}
 
-      {/* Controles de visualización */}
-      {!busqueda && (
-        <div className="controles-visualizacion">
-          <button 
-            className="btn-mostrar-todos"
-            onClick={() => setMostrarTodos(!mostrarTodos)}
-            disabled={empleadosFiltrados.length === 0 || cargando}
-          >
-            {mostrarTodos ? 'Mostrar menos' : `Mostrar todos los empleados (${empleadosFiltrados.length})`}
-          </button>
-        </div>
-      )}
+        {!hayFiltrosActivos && (
+          <div className="mensaje-busqueda">
+            Mostrando {empleados.length} empleados en total
+          </div>
+        )}
+      </div>
 
       {/* Lista de empleados */}
       <div className="lista-empleados">
-        {cargando && !mostrarFormulario ? (
+        {cargando ? (
           <div className="cargando-empleados">
             <div className="loading-spinner"></div>
             Cargando empleados...
           </div>
-        ) : !mostrarEmpleados ? (
+        ) : hayFiltrosActivos && empleados.length === 0 ? (
           <div className="sin-resultados">
-            {!busqueda && "Presiona 'Mostrar todos los empleados' para ver la lista completa"}
+            <p>No se encontraron empleados con los criterios de búsqueda</p>
+            <button className="btn-limpiar-busqueda" onClick={limpiarBusqueda}>
+              Limpiar búsqueda
+            </button>
           </div>
-        ) : empleadosAMostrar.length === 0 ? (
-          <div className="sin-resultados">
-            {busqueda ? 'No se encontraron empleados que coincidan con la búsqueda.' : 'No hay empleados registrados.'}
-          </div>
-        ) : (
-          empleadosAMostrar.map(empleado => {
-            const email = obtenerEmail(empleado);
-            
-            return (
-              <div key={empleado.id} className="tarjeta-empleado">
-                <div className="empleado-header">
-                  <h2>{empleado.nombre_emp} {empleado.apellido_emp}</h2>
-                  <div className="empleado-acciones">
-                    <button 
-                      className="btn-ver-detalles"
-                      onClick={() => mostrarDetallesEmpleado(empleado)}
-                      title="Ver detalles completos"
-                      disabled={cargando}
-                    >
-                      <FaEye />
-                    </button>
-                    <button 
-                      className="btn-editar"
-                      onClick={() => handleEditarEmpleado(empleado)}
-                      title="Editar empleado"
-                      disabled={cargando}
-                    >
-                      <FaEdit />
-                    </button>
-                    <button 
-                      className="btn-eliminar"
-                      onClick={() => handleEliminarEmpleado(empleado)}
-                      title="Eliminar empleado"
-                      disabled={cargando}
-                    >
-                      <FaTrash />
-                    </button>
+        ) : hayResultados ? (
+          <>
+            <div className="grid-empleados">
+              {empleadosMostrar.map(empleado => {
+                const email = obtenerEmail(empleado);
+                
+                return (
+                  <div key={empleado.id} className="tarjeta-empleado">
+                    <div className="empleado-header">
+                      <h2>{empleado.nombre_emp} {empleado.apellido_emp}</h2>
+                      <div className="empleado-acciones">
+                        <button 
+                          className="btn-ver-detalles"
+                          onClick={() => mostrarDetallesEmpleado(empleado)}
+                          title="Ver detalles completos"
+                          disabled={cargando}
+                        >
+                          <FaEye />
+                        </button>
+                        <button 
+                          className="btn-editar"
+                          onClick={() => handleEditarEmpleado(empleado)}
+                          title="Editar empleado"
+                          disabled={cargando}
+                        >
+                          <FaEdit />
+                        </button>
+                        <button 
+                          className="btn-eliminar"
+                          onClick={() => handleEliminarEmpleado(empleado)}
+                          title="Eliminar empleado"
+                          disabled={cargando}
+                        >
+                          <FaTrash />
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="empleado-info">
+                      <div className="info-basica">
+                        <div className="info-item">
+                          <strong>Cargo:</strong> 
+                          <span className={`badge-cargo ${empleado.tipo_usuario}`}>
+                            {empleado.tipo_usuario === 'jefa' ? 'Jefa/Encargada' : 'Empleada'}
+                          </span>
+                        </div>
+                        <div className="info-item">
+                          <strong>Teléfono:</strong> {empleado.telefono_emp || 'No especificado'}
+                        </div>
+                        <div className="info-item">
+                          <strong>Email:</strong> {email}
+                        </div>
+                        <div className="info-item">
+                          <strong>DNI:</strong> {empleado.dni_emp || 'No especificado'}
+                        </div>
+                      </div>
+                    </div>
                   </div>
+                );
+              })}
+            </div>
+
+            {/* ✅ PAGINACIÓN */}
+            {empleados.length > 0 && (
+              <div className="paginacion-container">
+                <div className="paginacion-info">
+                  Mostrando {((paginaActual - 1) * empleadosPorPagina) + 1} - {Math.min(paginaActual * empleadosPorPagina, empleados.length)} de {empleados.length} empleados
                 </div>
                 
-                <div className="empleado-info">
-                  {/* Información básica - siempre visible */}
-                  <div className="info-basica">
-                    <div className="info-item">
-                      <strong>Cargo:</strong> 
-                      <span className={`badge-cargo ${empleado.tipo_usuario}`}>
-                        {empleado.tipo_usuario === 'jefa' ? 'Jefa/Encargada' : 'Empleada'}
-                      </span>
-                    </div>
-                    <div className="info-item">
-                      <strong>Teléfono:</strong> {empleado.telefono_emp || 'No especificado'}
-                    </div>
-                    <div className="info-item">
-                      <strong>Email:</strong> {email}
-                    </div>
+                <div className="paginacion-controles">
+                  <button 
+                    className="btn-paginacion" 
+                    onClick={irAPrimeraPagina}
+                    disabled={paginaActual === 1}
+                    title="Primera página"
+                  >
+                    <FaStepBackward />
+                  </button>
+                  
+                  <button 
+                    className="btn-paginacion" 
+                    onClick={paginaAnterior}
+                    disabled={paginaActual === 1}
+                    title="Página anterior"
+                  >
+                    <FaChevronLeft />
+                  </button>
+
+                  <div className="numeros-pagina">
+                    {obtenerRangoPaginas().map(numero => (
+                      <button
+                        key={numero}
+                        className={`numero-pagina ${numero === paginaActual ? 'activa' : ''}`}
+                        onClick={() => irAPagina(numero)}
+                      >
+                        {numero}
+                      </button>
+                    ))}
                   </div>
+
+                  <button 
+                    className="btn-paginacion" 
+                    onClick={paginaSiguiente}
+                    disabled={paginaActual === totalPaginas}
+                    title="Página siguiente"
+                  >
+                    <FaChevronRight />
+                  </button>
+                  
+                  <button 
+                    className="btn-paginacion" 
+                    onClick={irAUltimaPagina}
+                    disabled={paginaActual === totalPaginas}
+                    title="Última página"
+                  >
+                    <FaStepForward />
+                  </button>
                 </div>
               </div>
-            );
-          })
+            )}
+          </>
+        ) : (
+          <div className="sin-resultados">
+            <div className="mensaje-inicial">
+              <h3>No hay empleados registrados</h3>
+              <p>Comience agregando un nuevo empleado</p>
+              <button className="btn-nuevo-empleado" onClick={handleCrearEmpleado} style={{marginTop: '10px'}}>
+                <FaPlus /> Agregar primer empleado
+              </button>
+            </div>
+          </div>
         )}
       </div>
 
@@ -418,7 +564,6 @@ function Empleados({ usuario }) {
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       )}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal';
+import ModalConfirmacionUniversal from '../ModalConfirmacion.Universal/ModalConfirmacionUniversal';
 import './IngresosEgresos.css';
 
 function IngresosEgresos({ cajaId, onRegistroAgregado }) {
