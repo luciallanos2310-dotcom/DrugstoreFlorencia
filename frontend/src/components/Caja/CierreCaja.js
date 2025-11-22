@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import ModalConfirmacionUniversal from '../ModalConfirmacion.Universal/ModalConfirmacionUniversal'; // ✅ Cambiado a modal universal
+import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal/ModalConfirmacionUniversal';
+import { useNavigate } from 'react-router-dom';
 import './CierreCaja.css';
 
 function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
@@ -20,10 +21,36 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
   const [procesando, setProcesando] = useState(false);
   const [cargando, setCargando] = useState(true);
   
-  // ✅ NUEVOS ESTADOS PARA MODALES
   const [mostrarModalConfirmar, setMostrarModalConfirmar] = useState(false);
   const [mostrarModalExito, setMostrarModalExito] = useState(false);
   const [mostrarModalCancelar, setMostrarModalCancelar] = useState(false);
+
+  const navigate = useNavigate();
+
+  // ✅ FUNCIÓN MEJORADA: Manejar cancelación
+  const handleCancelarConConfirmacion = () => {
+    setMostrarModalCancelar(true);
+  };
+
+  // ✅ FUNCIÓN MEJORADA: Confirmar cancelación
+  const handleConfirmarCancelacion = () => {
+    setMostrarModalCancelar(false);
+    if (onCancelar) {
+      onCancelar();
+    } else {
+      navigate('/dashboard');
+    }
+  };
+
+  // ✅ FUNCIÓN MEJORADA: Cuando se completa el cierre
+  const handleCierreCompletado = () => {
+    console.log('✅ Cierre de caja completado exitosamente');
+    if (onCierreConfirmado) {
+      onCierreConfirmado();
+    } else {
+      navigate('/dashboard');
+    }
+  };
 
   // Cargar datos de la caja y ventas
   const cargarDatosCierre = async () => {
@@ -35,8 +62,6 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
       console.log('🔑 Caja ID:', cajaId);
       console.log('🔑 Token disponible:', !!token);
 
-      // 1. Obtener datos de la caja ACTUAL
-      console.log('📦 Obteniendo datos de caja...');
       const responseCaja = await fetch(`http://localhost:8000/api/cajas/${cajaId}/`, {
         headers: { 'Authorization': `Token ${token}` }
       });
@@ -50,7 +75,6 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
       console.log('✅ Datos de caja actual:', caja);
       console.log('📅 Fecha apertura caja:', caja.fecha_hs_apertura);
 
-      // 2. Obtener SOLO las ventas de ESTA caja específica
       const urlVentas = `http://localhost:8000/api/ventas/?caja=${cajaId}`;
       console.log('🔗 URL de ventas:', urlVentas);
       
@@ -64,7 +88,6 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
         console.log('💰 VENTAS ENCONTRADAS - Cantidad:', ventas.length);
         console.log('📋 Detalle completo de ventas:', ventas);
         
-        // Log detallado de cada venta
         ventas.forEach((venta, index) => {
           console.log(`   ${index + 1}. Venta ID: ${venta.id}, Total: $${venta.total_venta}, Método: ${venta.tipo_pago_venta}, Descripción: ${venta.descripcion}`);
         });
@@ -72,10 +95,8 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
         console.log('❌ Error obteniendo ventas:', responseVentas.status, responseVentas.statusText);
       }
 
-      // 3. Obtener ventas Saeta - FILTRAR MANUALMENTE por ventas de esta caja
       let ventasSaeta = [];
       try {
-        // Obtener TODAS las ventas Saeta primero
         const responseSaeta = await fetch(`http://localhost:8000/api/ventas_saeta/`, {
           headers: { 'Authorization': `Token ${token}` }
         });
@@ -84,20 +105,17 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
           const todasSaeta = await responseSaeta.json();
           console.log('📱 TODAS las ventas Saeta (sin filtrar):', todasSaeta.length);
           
-          // FILTRAR: solo ventas Saeta que están asociadas a ventas de ESTA caja
           ventasSaeta = todasSaeta.filter(saeta => {
             if (saeta.venta) {
-              // Verificar si la venta asociada pertenece a esta caja
               const ventaAsociada = ventas.find(v => v.id === saeta.venta);
               return ventaAsociada !== undefined;
             }
-            return false; // Si no tiene venta asociada, no contar
+            return false;
           });
           
           console.log('🎯 VENTAS SAETA FILTRADAS (solo de esta caja):', ventasSaeta.length);
           console.log('📋 Detalle de ventas Saeta filtradas:', ventasSaeta);
           
-          // Log detallado de cada venta Saeta filtrada
           ventasSaeta.forEach((saeta, index) => {
             console.log(`   ${index + 1}. Saeta ID: ${saeta.id}, Monto: $${saeta.monto_saeta}, Venta ID: ${saeta.venta}, Fecha: ${saeta.fecha_pago_saeta}`);
           });
@@ -108,12 +126,10 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
         console.log('❌ Error cargando ventas Saeta:', error);
       }
 
-      // Resumen final de lo encontrado
       console.log('📊 ===== RESUMEN DE DATOS ENCONTRADOS =====');
       console.log('📍 Ventas normales:', ventas.length);
       console.log('📍 Ventas Saeta (filtradas):', ventasSaeta.length);
 
-      // Calcular resumen
       calcularResumen(ventas, ventasSaeta, caja);
 
     } catch (error) {
@@ -132,11 +148,9 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
       cajaId: caja.id
     });
     
-    // ✅ CORRECCIÓN: IDENTIFICAR qué ventas normales son realmente ventas Saeta
     const ventasIdsConSaeta = ventasSaeta.map(saeta => saeta.venta);
     console.log('🔍 IDs de ventas que tienen Saeta asociada:', ventasIdsConSaeta);
     
-    // ✅ FILTRAR: Separar ventas normales REALES de ventas Saeta Y de ingresos/egresos
     const ventasReales = ventas.filter(venta => 
       !ventasIdsConSaeta.includes(venta.id) && 
       !venta.descripcion?.toLowerCase().includes('ingreso') &&
@@ -147,7 +161,6 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
       ventasIdsConSaeta.includes(venta.id)
     );
     
-    // ✅ NUEVO: Filtrar ingresos y egresos
     const ingresosExtra = ventas.filter(venta => 
       venta.descripcion?.toLowerCase().includes('ingreso')
     );
@@ -162,7 +175,6 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
     console.log('   - Ingresos extra:', ingresosExtra.length);
     console.log('   - Egresos extra:', egresosExtra.length);
     
-    // Log detallado de ingresos y egresos encontrados
     ingresosExtra.forEach(ingreso => {
       console.log(`   💰 INGRESO: ID ${ingreso.id}, Monto: $${ingreso.total_venta}, Desc: ${ingreso.descripcion}`);
     });
@@ -171,7 +183,6 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
       console.log(`   💰 EGRESO: ID ${egreso.id}, Monto: $${egreso.total_venta}, Desc: ${egreso.descripcion}`);
     });
 
-    // Calcular total de ingresos y egresos
     const totalIngresosExtra = ingresosExtra.reduce((sum, ingreso) => {
       const monto = parseFloat(ingreso.total_venta || 0);
       console.log(`   💰 Ingreso extra ${ingreso.id}: $${monto}`);
@@ -184,7 +195,6 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
       return sum + monto;
     }, 0);
 
-    // Ventas normales REALES - SOLO de esta caja
     const ventasEfectivoReales = ventasReales.filter(v => v.tipo_pago_venta === 'efectivo');
     const ventasTransferenciaReales = ventasReales.filter(v => v.tipo_pago_venta === 'transferencia');
     
@@ -206,7 +216,6 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
 
     const totalVentas = totalVentasEfectivo + totalVentasTransferencia;
 
-    // Ventas Saeta - TODAS las que están en esta caja
     const totalSaeta = ventasSaeta.reduce((sum, s) => {
       const monto = parseFloat(s.monto_saeta || 0);
       console.log(`   📱 Saeta ${s.id}: $${monto}`);
@@ -230,7 +239,6 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
     console.log('   - Ingresos extra:', totalIngresosExtra);
     console.log('   - Egresos extra:', totalEgresosExtra);
 
-    // ✅ CORRECCIÓN: CALCULAR OPERACIONES - Solo ventas reales + ventas Saeta únicas
     const totalOperaciones = ventasReales.length;
     console.log('🔢 CÁLCULO DE OPERACIONES:');
     console.log(`   - Ventas reales: ${ventasReales.length}`);
@@ -243,8 +251,8 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
       ventasTransferencia: totalVentasTransferencia,
       totalSaeta: totalSaeta,
       comisionSaeta: comisionSaeta,
-      ingresosExtra: totalIngresosExtra, // ✅ Usar los calculados de las ventas
-      egresos: totalEgresosExtra // ✅ Usar los calculados de las ventas
+      ingresosExtra: totalIngresosExtra,
+      egresos: totalEgresosExtra
     });
 
     console.log('✅ ===== RESUMEN GUARDADO EN ESTADO =====');
@@ -277,7 +285,6 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
     }));
   };
 
-  // ✅ CORREGIDO: Cálculo del TOTAL TEÓRICO (lo que debería haber en caja)
   const calcularTotalTeorico = () => {
     const montoInicial = parseFloat(datosCaja?.saldo_inicial) || 0;
     
@@ -290,7 +297,6 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
     return Math.min(resultado, 99999999.99);
   };
 
-  // ✅ NUEVO: Cálculo de la diferencia
   const calcularDiferencia = () => {
     const montoContado = parseFloat(datosCierre.monto_contado) || 0;
     const totalTeorico = calcularTotalTeorico();
@@ -299,13 +305,11 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
     return Math.min(Math.max(resultado, -99999999.99), 99999999.99);
   };
 
-  // FUNCIÓN PARA VALIDAR Y FORMATEAR NÚMEROS
   const validarYFormatearNumero = (numero) => {
     const numeroRedondeado = Math.round(numero * 100) / 100;
     return Math.min(numeroRedondeado, 99999999.99);
   };
 
-  // ✅ NUEVA FUNCIÓN: Validar antes de mostrar modal de confirmación
   const handleValidarYMostrarConfirmacion = () => {
     if (!datosCierre.monto_contado) {
       alert('Por favor ingrese el monto contado');
@@ -321,17 +325,15 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
     setMostrarModalConfirmar(true);
   };
 
-  // ✅ FUNCIÓN MEJORADA: Confirmar cierre (llamada desde el modal)
   const handleConfirmarCierre = async () => {
     console.log('🔄 ===== INICIANDO CONFIRMACIÓN DE CIERRE =====');
     
     try {
       setProcesando(true);
-      setMostrarModalConfirmar(false); // Cerrar modal de confirmación
+      setMostrarModalConfirmar(false);
       
       const token = localStorage.getItem('token');
 
-      // CALCULAR Y VALIDAR TODOS LOS MONTOS
       const saldoFinal = validarYFormatearNumero(calcularTotalTeorico());
       const montoContadoValidado = validarYFormatearNumero(parseFloat(datosCierre.monto_contado));
 
@@ -366,19 +368,14 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
         const cajaActualizada = await response.json();
         console.log('✅ Caja cerrada exitosamente:', cajaActualizada);
         
-        // VERIFICAR que realmente se cerró
         if (cajaActualizada.estado === 'cerrada') {
           console.log('✅ Estado confirmado: CERRADA');
           
-          // ✅ MOSTRAR MODAL DE ÉXITO
           setMostrarModalExito(true);
           
-          // Cerrar automáticamente después de 2 segundos y redirigir
           setTimeout(() => {
             setMostrarModalExito(false);
-            if (onCierreConfirmado) {
-              onCierreConfirmado();
-            }
+            handleCierreCompletado();
           }, 2000);
           
         } else {
@@ -399,19 +396,6 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
     }
   };
 
-  // ✅ NUEVA FUNCIÓN: Manejar cancelación con modal
-  const handleCancelarConConfirmacion = () => {
-    setMostrarModalCancelar(true);
-  };
-
-  // ✅ NUEVA FUNCIÓN: Confirmar cancelación
-  const handleConfirmarCancelacion = () => {
-    setMostrarModalCancelar(false);
-    if (onCancelar) {
-      onCancelar();
-    }
-  };
-
   if (cargando) {
     return (
       <div className="cierre-caja-container">
@@ -423,7 +407,6 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
   const totalTeorico = calcularTotalTeorico();
   const diferencia = calcularDiferencia();
 
-  // ✅ DATOS PARA EL MODAL DE CONFIRMACIÓN
   const datosParaModalConfirmacion = {
     totalTeorico: totalTeorico,
     montoContado: parseFloat(datosCierre.monto_contado) || 0,
@@ -438,7 +421,6 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
         <h2>Usuario: {datosCaja?.empleadoNombre || 'No especificado'}</h2>
       </div>
     
-      {/* Información de fecha y hora */}
       <div className="info-fecha">
         <div className="fecha-actual">
           <strong>Fecha:</strong> {new Date().toLocaleDateString('es-AR')}
@@ -450,7 +432,6 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
         </div>
       </div>
       <div className="cierre-caja-content">
-        {/* Columna izquierda - Resumen de ventas */}
         <div className="columna-resumen">
           <h2>Resumen de ventas</h2>         
           <div className="card-resumen">
@@ -486,7 +467,6 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
           </div>
         </div>
 
-        {/* Columna derecha - Arqueo de caja */}
         <div className="columna-arqueo">
           <h2>ARQUEO DE CAJA</h2>
           
@@ -530,9 +510,8 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
                   name="monto_contado"
                   value={datosCierre.monto_contado}
                   onChange={handleChange}
-                  onWheel={(e) => e.target.blur()} // ✅ Desactiva scroll del mouse
+                  onWheel={(e) => e.target.blur()}
                   onKeyDown={(e) => {
-                    // ✅ Previene cambiar el valor con flechas arriba/abajo
                     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
                       e.preventDefault();
                     }
@@ -557,7 +536,6 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
         </div>
       </div>
 
-      {/* Sección de observaciones */}
       <div className="seccion-observaciones">
         <h3>Observaciones:</h3>
         <textarea
@@ -569,13 +547,11 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
         />
       </div>
 
-      {/* Botones de acción */}
       <div className="acciones-cierre">
-        {/* Botón Cancelar - SOLO si se proporciona onCancelar */}
         {onCancelar && (
           <button 
             className="btn-cancelar-cierre"
-            onClick={handleCancelarConConfirmacion} // ✅ Cambiado para usar modal
+            onClick={handleCancelarConConfirmacion}
             disabled={procesando}
           >
             Cancelar
@@ -584,14 +560,13 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
   
         <button 
           className="btn-confirmar-cierre"
-          onClick={handleValidarYMostrarConfirmacion} // ✅ Cambiado para usar modal
+          onClick={handleValidarYMostrarConfirmacion}
           disabled={procesando || !datosCierre.monto_contado}
         > 
           {procesando ? 'Procesando...' : 'Confirmar Cierre'}
         </button>
       </div>
 
-      {/* ✅ MODAL DE CONFIRMACIÓN DE CIERRE - VERSIÓN UNIVERSAL */}
       <ModalConfirmacionUniversal
         mostrar={mostrarModalConfirmar}
         tipo="confirmar"
@@ -603,27 +578,15 @@ function CierreCaja({ cajaId, datosCaja, onCierreConfirmado, onCancelar }) {
         modo="caja"
       />
 
-      {/* ✅ MODAL DE ÉXITO - VERSIÓN UNIVERSAL */}
       <ModalConfirmacionUniversal
         mostrar={mostrarModalExito}
         tipo="exito"
         mensaje="¡Cierre de caja registrado exitosamente!"
-        onConfirmar={() => {
-          setMostrarModalExito(false);
-          if (onCierreConfirmado) {
-            onCierreConfirmado();
-          }
-        }}
-        onCancelar={() => {
-          setMostrarModalExito(false);
-          if (onCierreConfirmado) {
-            onCierreConfirmado();
-          }
-        }}
+        onConfirmar={handleCierreCompletado}
+        onCancelar={handleCierreCompletado}
         modo="caja"
       />
 
-      {/* ✅ MODAL DE CONFIRMACIÓN DE CANCELACIÓN - VERSIÓN UNIVERSAL */}
       <ModalConfirmacionUniversal
         mostrar={mostrarModalCancelar}
         tipo="cancelar"

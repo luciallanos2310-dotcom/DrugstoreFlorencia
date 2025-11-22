@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaSearch, FaPlus, FaMinus, FaTimes } from 'react-icons/fa';
-import ModalConfirmacionUniversal from '../ModalConfirmacion.Universal/ModalConfirmacionUniversal';
+import { useNavigate } from 'react-router-dom';
+import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal/ModalConfirmacionUniversal';
 import VentasSaeta from './VentasSaeta';
 import IngresosEgresos from '../Caja/IngresosEgresos';
 import CierreCaja from '../Caja/CierreCaja';
@@ -19,12 +20,41 @@ function Ventas({ datosCaja, onCerrarCaja }) {
   const [mostrarModalCerrarCaja, setMostrarModalCerrarCaja] = useState(false);
   const [mostrarCierreCaja, setMostrarCierreCaja] = useState(false);
 
+  const navigate = useNavigate();
+
   const fechaActual = new Date().toLocaleDateString('es-ES', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric'
   });
+
+  const handleNavegarACierreCaja = () => {
+    console.log('🔄 Navegando a cierre de caja...');
+    setMostrarModalCerrarCaja(true);
+  };
+
+  const handleConfirmarNavegacionCierreCaja = () => {
+    console.log('✅ Confirmando navegación a cierre de caja...');
+    setMostrarModalCerrarCaja(false);
+    setMostrarCierreCaja(true);
+  };
+
+  const handleCierreCompletado = () => {
+    console.log('🏁 Cierre de caja completado...');
+    setMostrarCierreCaja(false);
+    
+    if (onCerrarCaja) {
+      onCerrarCaja();
+    } else {
+      navigate('/dashboard');
+    }
+  };
+
+  const handleCancelarCierreCaja = () => {
+    console.log('❌ Cancelando cierre de caja...');
+    setMostrarCierreCaja(false);
+  };
 
   const handleRegistroAgregado = () => {
     console.log('✅ Ingreso/Egreso registrado exitosamente');
@@ -64,7 +94,6 @@ function Ventas({ datosCaja, onCerrarCaja }) {
     cargarProductos();
   }, []);
 
-  // Función para agregar venta Saeta a productos seleccionados
   const handleVentaSaetaCreada = (ventaSaeta) => {
     const productoSaeta = {
       id: `saeta-${ventaSaeta.id}`,
@@ -92,7 +121,6 @@ function Ventas({ datosCaja, onCerrarCaja }) {
       return;
     }
 
-    // Para productos Saeta, no permitir cambiar cantidad
     const productoSeleccionado = productosSeleccionados.find(p => p.id === id);
     if (productoSeleccionado?.esSaeta) {
       alert('❌ No se puede modificar la cantidad de recargas Saeta');
@@ -171,121 +199,104 @@ function Ventas({ datosCaja, onCerrarCaja }) {
     }
   };
 
-  // ✅ Función para manejar el cierre de caja - CORREGIDA
-  const handleCerrarCaja = () => {
-    console.log('🔄 Iniciando proceso de cierre de caja...');
-    setMostrarModalCerrarCaja(true);
-  };
+  // ✅ NUEVA FUNCIÓN MEJORADA PARA ACTUALIZAR STOCK
+  const actualizarStockProductos = async (productosVendidos) => {
+    try {
+      const token = localStorage.getItem('token');
+      const actualizaciones = [];
 
-  // ✅ Función para confirmar el cierre de caja - CORREGIDA
-  const handleConfirmarCierreCaja = () => {
-    console.log('✅ Confirmando cierre de caja, mostrando componente...');
-    setMostrarModalCerrarCaja(false);
-    setMostrarCierreCaja(true);
-  };
-
-  // ✅ Función cuando se completa el cierre de caja - MODIFICADA PARA REDIRIGIR A CAJA
-  const handleCierreCompletado = () => {
-    console.log('🏁 Cierre de caja completado, redirigiendo a módulo caja...');
-    setMostrarCierreCaja(false);
-    
-    // 🔥 REDIRIGIR AL MÓDULO DE CAJA
-    if (window.setModuloActivo) {
-      window.setModuloActivo('caja');
-    }
-    
-    if (onCerrarCaja) {
-      onCerrarCaja();
-    }
-  };
-
-  const productosIniciales = productos.slice(0, 8);
-  
-  const productosFiltrados = busqueda 
-    ? productos.filter(producto => {
-        const nombre = producto.nombre_prod || '';
-        const codigo = producto.codigo_prod || '';
-        
-        return (
-          nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-          codigo.toLowerCase().includes(busqueda.toLowerCase())
-        );
-      })
-    : productosIniciales;
-
-  const formatearPrecio = (precio) => {
-    const precioNumero = parseFloat(precio) || 0;
-    return precioNumero.toFixed(2);
-  };
-
-  // ✅ FUNCIÓN MEJORADA: Actualizar stock de productos (solo productos normales, no Saeta)
-  // ✅ FUNCIÓN MEJORADA: Actualizar stock de productos
-const actualizarStockProductos = async (productosVendidos) => {
-  try {
-    const token = localStorage.getItem('token');
-    const actualizaciones = [];
-
-    for (const producto of productosVendidos) {
-      // Saltar productos Saeta (no tienen stock)
-      if (producto.esSaeta) {
-        console.log('⏭️ Saltando actualización de stock para producto Saeta');
-        continue;
-      }
-
-      console.log(`🔄 Actualizando stock producto ${producto.id}: ${producto.cantidad} unidades vendidas`);
-
-      // Obtener producto actual para verificar stock
-      const response = await fetch(`http://localhost:8000/api/productos/${producto.id}/`, {
-        headers: { 'Authorization': `Token ${token}` }
-      });
-
-      if (response.ok) {
-        const productoActual = await response.json();
-        const nuevaCantidad = Math.max(productoActual.cantidad - producto.cantidad, 0);
-
-        console.log(`📊 Producto: ${productoActual.nombre_prod}, Stock actual: ${productoActual.cantidad}, Vendido: ${producto.cantidad}, Nuevo stock: ${nuevaCantidad}`);
-
-        // ✅ USAR PUT EN LUGAR DE PATCH - enviar todos los campos requeridos
-        const updateResponse = await fetch(`http://localhost:8000/api/productos/${producto.id}/`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Token ${token}`
-          },
-          body: JSON.stringify({ 
-            nombre_prod: productoActual.nombre_prod,
-            categoria_prod: productoActual.categoria_prod,
-            descripcion_prod: productoActual.descripcion_prod || '',
-            codigo_prod: productoActual.codigo_prod || '',
-            precio_venta: parseFloat(productoActual.precio_venta),
-            cantidad: nuevaCantidad,
-            stock_minimo: productoActual.stock_minimo || 5
-          })
-        });
-
-        if (updateResponse.ok) {
-          console.log(`✅ Stock actualizado: ${productoActual.nombre_prod} - ${nuevaCantidad} unidades`);
-          actualizaciones.push({ success: true, producto: productoActual.nombre_prod });
-        } else {
-          const errorText = await updateResponse.text();
-          console.error(`❌ Error actualizando ${productoActual.nombre_prod}:`, errorText);
-          actualizaciones.push({ success: false, producto: productoActual.nombre_prod, error: errorText });
+      for (const producto of productosVendidos) {
+        if (producto.esSaeta) {
+          console.log('⏭️ Saltando actualización de stock para producto Saeta');
+          actualizaciones.push({ 
+            success: true, 
+            producto: producto.nombre, 
+            mensaje: 'Producto Saeta - sin stock' 
+          });
+          continue;
         }
-      } else {
-        console.error(`❌ Error obteniendo producto ${producto.id}`);
-        actualizaciones.push({ success: false, producto: producto.nombre, error: 'No se pudo obtener el producto' });
+
+        console.log(`🔄 Actualizando stock producto ${producto.id}: ${producto.cantidad} unidades vendidas`);
+
+        try {
+          // Obtener producto actual
+          const response = await fetch(`http://localhost:8000/api/productos/${producto.id}/`, {
+            headers: { 'Authorization': `Token ${token}` }
+          });
+
+          if (!response.ok) {
+            throw new Error(`Error obteniendo producto: ${response.status}`);
+          }
+
+          const productoActual = await response.json();
+          const nuevaCantidad = productoActual.cantidad - producto.cantidad;
+
+          console.log(`📊 Producto: ${productoActual.nombre_prod}, Stock actual: ${productoActual.cantidad}, Vendido: ${producto.cantidad}, Nuevo stock: ${nuevaCantidad}`);
+
+          // ✅ USAR PATCH Y SOLO ENVIAR CANTIDAD
+          const updateResponse = await fetch(`http://localhost:8000/api/productos/${producto.id}/`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Token ${token}`
+            },
+            body: JSON.stringify({ 
+              cantidad: nuevaCantidad
+            })
+          });
+
+          if (updateResponse.ok) {
+            console.log(`✅ Stock actualizado: ${productoActual.nombre_prod} - ${nuevaCantidad} unidades`);
+            actualizaciones.push({ 
+              success: true, 
+              producto: productoActual.nombre_prod,
+              stockAnterior: productoActual.cantidad,
+              stockNuevo: nuevaCantidad
+            });
+          } else {
+            const errorText = await updateResponse.text();
+            console.error(`❌ Error actualizando ${productoActual.nombre_prod}:`, errorText);
+            
+            // ✅ MEJOR MANEJO DE ERRORES
+            let mensajeError = 'Error al actualizar stock';
+            try {
+              const errorData = JSON.parse(errorText);
+              mensajeError = errorData.error || errorData.detail || mensajeError;
+            } catch (e) {
+              if (errorText.includes('You do not have permission')) {
+                mensajeError = 'Sin permisos para actualizar stock';
+              }
+            }
+            
+            actualizaciones.push({ 
+              success: false, 
+              producto: productoActual.nombre_prod, 
+              error: mensajeError 
+            });
+          }
+        } catch (error) {
+          console.error(`❌ Error procesando producto ${producto.id}:`, error);
+          actualizaciones.push({ 
+            success: false, 
+            producto: producto.nombre, 
+            error: error.message 
+          });
+        }
       }
+
+      // Recargar productos solo si no hay errores
+      const hayErrores = actualizaciones.some(r => !r.success);
+      if (!hayErrores) {
+        await cargarProductos();
+      }
+
+      return actualizaciones;
+
+    } catch (error) {
+      console.error('❌ Error en actualizarStockProductos:', error);
+      throw error;
     }
-
-    // Actualizar lista de productos en el estado
-    await cargarProductos();
-    return actualizaciones;
-
-  } catch (error) {
-    console.error('❌ Error en actualizarStockProductos:', error);
-    throw error;
-  }
-};
+  };
 
   const calcularTotal = () => {
     return productosSeleccionados.reduce((total, producto) => {
@@ -308,7 +319,6 @@ const actualizarStockProductos = async (productosVendidos) => {
       return;
     }
 
-    // Validar que haya productos seleccionados
     if (productosSeleccionados.length === 0) {
       alert('❌ No hay productos seleccionados para vender');
       return;
@@ -317,7 +327,6 @@ const actualizarStockProductos = async (productosVendidos) => {
     try {
       const token = localStorage.getItem('token');
       
-      // ✅ 1. PRIMERO ACTUALIZAR STOCK (solo productos normales)
       console.log('🔄 Actualizando stock de productos...');
       const productosNormales = productosSeleccionados.filter(p => !p.esSaeta);
       
@@ -328,7 +337,13 @@ const actualizarStockProductos = async (productosVendidos) => {
         
         if (erroresStock.length > 0) {
           console.error('❌ Errores en actualización de stock:', erroresStock);
-          alert('❌ Error al actualizar stock. Venta cancelada.');
+          
+          // ✅ MEJOR MANEJO DE ERRORES EN LA ALERTA
+          const mensajeError = erroresStock.map(e => 
+            `• ${e.producto}: ${e.error || 'Error desconocido'}`
+          ).join('\n');
+          
+          alert(`❌ Error al actualizar stock:\n${mensajeError}\n\nVenta cancelada.`);
           return;
         }
         console.log('✅ Stock actualizado correctamente');
@@ -336,7 +351,6 @@ const actualizarStockProductos = async (productosVendidos) => {
         console.log('📦 No hay productos normales para actualizar stock');
       }
 
-      // ✅ 2. CREAR VENTA PRINCIPAL (para todos los productos)
       const ventaData = {
         caja: datosCaja?.id,
         total_venta: total,
@@ -366,7 +380,6 @@ const actualizarStockProductos = async (productosVendidos) => {
       const ventaCreada = await responseVenta.json();
       console.log('✅ Venta principal creada:', ventaCreada);
       
-      // ✅ 3. CREAR DETALLES PARA PRODUCTOS NORMALES
       for (const producto of productosNormales) {
         const detalleData = {
           venta: ventaCreada.id,
@@ -389,22 +402,17 @@ const actualizarStockProductos = async (productosVendidos) => {
 
         if (!responseDetalle.ok) {
           console.error(`❌ Error creando detalle para ${producto.nombre}`);
-          const errorDetalle = await responseDetalle.text();
-          console.error('Error detalle:', errorDetalle);
         } else {
           console.log(`✅ Detalle creado para ${producto.nombre}`);
         }
       }
 
-      // ✅ 4. ACTUALIZAR VENTAS SAETA CON LA VENTA CREADA
       const productosSaeta = productosSeleccionados.filter(p => p.esSaeta);
       for (const productoSaeta of productosSaeta) {
         if (productoSaeta.datosSaeta) {
           const saetaUpdateData = {
             venta: ventaCreada.id
           };
-
-          console.log(`🔄 Actualizando venta Saeta ${productoSaeta.datosSaeta.id} con venta principal`);
 
           const responseSaeta = await fetch(`http://localhost:8000/api/ventas_saeta/${productoSaeta.datosSaeta.id}/`, {
             method: 'PATCH',
@@ -417,13 +425,10 @@ const actualizarStockProductos = async (productosVendidos) => {
 
           if (responseSaeta.ok) {
             console.log('✅ Venta Saeta actualizada con venta principal');
-          } else {
-            console.error('❌ Error actualizando venta Saeta');
           }
         }
       }
       
-      // ✅ ÉXITO - LIMPIAR TODO
       setMostrarModalConfirmar(false);
       setMostrarModalExito(true);
       
@@ -455,9 +460,7 @@ const actualizarStockProductos = async (productosVendidos) => {
     vuelto: calcularVuelto(),
     cantidadProductos: productosSeleccionados.length
   };
-  
 
-  // ✅ Componente DetalleVenta integrado
   const DetalleVenta = () => {
     return (
       <div className="seccion-resumen">
@@ -471,6 +474,7 @@ const actualizarStockProductos = async (productosVendidos) => {
                   <th>Precio Unit.</th>
                   <th>Cantidad</th>
                   <th>Sub total</th>
+                  <th>Acción</th>
                 </tr>
               </thead>
               <tbody>
@@ -479,9 +483,7 @@ const actualizarStockProductos = async (productosVendidos) => {
                     <td>
                       <div className="producto-info">
                         <span className="nombre-producto">{producto.nombre}</span>
-                        
                       </div>
-                      
                     </td>
                     <td className="precio-unitario">${producto.precio.toFixed(2)}</td>
                     <td>
@@ -502,13 +504,15 @@ const actualizarStockProductos = async (productosVendidos) => {
                       </div>
                     </td>
                     <td className="subtotal">${producto.subtotal.toFixed(2)}</td>
-                    <button 
-                          className="btn-eliminar-producto"
-                          onClick={() => eliminarProducto(producto.id)}
-                          title="Eliminar producto"
-                        >
-                          <FaTimes />
-                        </button>
+                    <td>
+                      <button 
+                        className="btn-eliminar-producto"
+                        onClick={() => eliminarProducto(producto.id)}
+                        title="Eliminar producto"
+                      >
+                        <FaTimes />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -574,7 +578,25 @@ const actualizarStockProductos = async (productosVendidos) => {
     );
   };
 
-  // ✅ Si estamos mostrando el cierre de caja, mostrar ese componente
+  const productosIniciales = productos.slice(0, 8);
+  
+  const productosFiltrados = busqueda 
+    ? productos.filter(producto => {
+        const nombre = producto.nombre_prod || '';
+        const codigo = producto.codigo_prod || '';
+        
+        return (
+          nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+          codigo.toLowerCase().includes(busqueda.toLowerCase())
+        );
+      })
+    : productosIniciales;
+
+  const formatearPrecio = (precio) => {
+    const precioNumero = parseFloat(precio) || 0;
+    return precioNumero.toFixed(2);
+  };
+
   if (mostrarCierreCaja) {
     console.log('📊 Mostrando componente CierreCaja con datos:', datosCaja);
     return (
@@ -582,7 +604,7 @@ const actualizarStockProductos = async (productosVendidos) => {
         cajaId={datosCaja?.id}
         datosCaja={datosCaja}
         onCierreConfirmado={handleCierreCompletado}
-        onCancelar={() => setMostrarCierreCaja(false)}
+        onCancelar={handleCancelarCierreCaja}
       />
     );
   }
@@ -677,7 +699,6 @@ const actualizarStockProductos = async (productosVendidos) => {
             )}
           </div>
 
-          {/* SECCIÓN MONTO RECIBIDO - AHORA DENTRO DE .seccion-productos */}
           {metodoPago === 'efectivo' && (
             <div className="monto-recibido-section">
               <div className="monto-recibido-horizontal">
@@ -711,7 +732,7 @@ const actualizarStockProductos = async (productosVendidos) => {
           )}
            <button 
             className="btn-cerrar-caja"
-            onClick={handleCerrarCaja}
+            onClick={handleNavegarACierreCaja}
           >
             Ir a cierre de caja
           </button>
@@ -720,7 +741,6 @@ const actualizarStockProductos = async (productosVendidos) => {
         <DetalleVenta />
       </div>
 
-      {/* Modales de venta normal - VERSIÓN UNIVERSAL */}
       <ModalConfirmacionUniversal
         mostrar={mostrarModalConfirmar}
         tipo="confirmar"
@@ -750,12 +770,11 @@ const actualizarStockProductos = async (productosVendidos) => {
         modo="venta"
       />
 
-      {/* ✅ Modal de confirmación para cerrar caja - VERSIÓN UNIVERSAL */}
       <ModalConfirmacionUniversal
         mostrar={mostrarModalCerrarCaja}
         tipo="confirmar"
         mensaje="¿Está seguro que desea cerrar la caja?"
-        onConfirmar={handleConfirmarCierreCaja}
+        onConfirmar={handleConfirmarNavegacionCierreCaja}
         onCancelar={() => {
           console.log('❌ Cierre de caja cancelado');
           setMostrarModalCerrarCaja(false);
@@ -768,7 +787,6 @@ const actualizarStockProductos = async (productosVendidos) => {
         modo="caja"
       />
 
-      {/* Modal de Ventas Saeta */}
       <VentasSaeta
         mostrar={mostrarModalSaeta}
         onCerrar={() => setMostrarModalSaeta(false)}

@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './Proveedores.css';
-import ModalConfirmacionUniversal from '../ModalConfirmacion.Universal/ModalConfirmacionUniversal';
-import FormularioProveedor from './FormularioProveedor';
-import { FaEdit, FaEye, FaArrowLeft, FaTimes, FaPhone, FaEnvelope, FaStickyNote, FaMapMarkerAlt, FaIdCard, FaUser, FaCheck, FaChevronLeft, FaChevronRight, FaStepBackward, FaStepForward } from 'react-icons/fa';
+import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal/ModalConfirmacionUniversal';
+import { FaEdit, FaEye, FaArrowLeft, FaTimes, FaPhone, FaEnvelope, FaStickyNote, FaMapMarkerAlt, FaIdCard, FaUser, FaCheck, FaChevronLeft, FaChevronRight, FaStepBackward, FaStepForward, FaPlus } from 'react-icons/fa';
 import { BsBan } from 'react-icons/bs';
+import { useNavigate } from 'react-router-dom'; // ✅ AGREGADO
 
-function Proveedores({ esJefa = true, modoLectura = false }) {
+function Proveedores({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
   const [proveedores, setProveedores] = useState([]);
   const [todosProveedores, setTodosProveedores] = useState([]);
-  const [vista, setVista] = useState('lista');
-  const [proveedorEditar, setProveedorEditar] = useState(null);
   const [busqueda, setBusqueda] = useState('');
   const [filtroRubro, setFiltroRubro] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,6 +30,8 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
     onConfirmar: null
   });
 
+  const navigate = useNavigate(); // ✅ AGREGADO
+
   const rubros = [
     'Bebidas',
     'Lácteos', 
@@ -47,6 +47,28 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
     'Distribuidora',
     'Otros'
   ];
+
+  // ✅ FUNCIÓN MEJORADA: Manejar nuevo proveedor
+  const handleNuevoProveedor = () => {
+    console.log('➕ Nuevo proveedor - navegando a formulario...');
+    if (onNavegarAFormulario) {
+      onNavegarAFormulario('crear', null);
+    } else {
+      // Fallback: navegar directamente
+      navigate('/dashboard/proveedores/nuevo');
+    }
+  };
+
+  // ✅ FUNCIÓN MEJORADA: Manejar edición de proveedor
+  const handleEditarProveedor = (proveedor) => {
+    console.log('✏️ Editar proveedor - navegando a formulario...');
+    if (onNavegarAFormulario) {
+      onNavegarAFormulario('editar', proveedor);
+    } else {
+      // Fallback: navegar directamente
+      navigate(`/dashboard/proveedores/editar/${proveedor.id}`);
+    }
+  };
 
   useEffect(() => {
     cargarTodosProveedores();
@@ -173,7 +195,7 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
         correo_prov: proveedor.correo_prov || '',
         direccion_prov: proveedor.direccion_prov || '',
         descripcion: proveedor.descripcion || '',
-        codigo_proveedor: proveedor.codigo_proveedor || '', // ✅ CAMBIADO
+        codigo_proveedor: proveedor.codigo_proveedor || '',
         estado: nuevoEstado
       };
       
@@ -266,14 +288,6 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
     calcularPaginacion(todosProveedores);
   };
 
-  const handleGuardadoExitoso = () => {
-    setVista('lista');
-    setProveedorEditar(null);
-    cargarTodosProveedores();
-    setMensajeExito(vista === 'crear' ? 'Proveedor creado correctamente' : 'Proveedor actualizado correctamente');
-    setTimeout(() => setMensajeExito(''), 3000);
-  };
-
   const hayFiltrosActivos = busqueda || filtroRubro;
   const hayResultados = proveedores.length > 0;
   const proveedoresMostrar = obtenerProveedoresPaginaActual();
@@ -282,27 +296,14 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
     return proveedor.estado !== false;
   };
 
-  if (vista === 'crear' || vista === 'editar') {
-    return (
-      <FormularioProveedor
-        modo={vista}
-        proveedorEditar={proveedorEditar}
-        onCancelar={() => {
-          setVista('lista');
-          setProveedorEditar(null);
-        }}
-        onGuardado={handleGuardadoExitoso}
-      />
-    );
-  }
-
   return (
     <div className="proveedores-container">
       <div className="header-proveedores">
         <h2>Proveedores</h2>
         {!modoLectura && (
-          <button className="btn-agregar" onClick={() => setVista('crear')}>
-            + Agregar proveedor
+          <button className="btn-agregar" onClick={handleNuevoProveedor}>
+            <FaPlus style={{marginRight: '8px'}} />
+            Agregar proveedor
           </button>
         )}
       </div>
@@ -391,7 +392,7 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
             <table className="tabla-proveedores">
               <thead>
                 <tr>
-                  <th className="columna-codigo">CÓDIGO</th> {/* ✅ CAMBIADO */}
+                  <th className="columna-codigo">CÓDIGO</th>
                   <th className="columna-nombre">Nombre</th>
                   <th className="columna-rubro">Rubro</th>
                   <th className="columna-estado">Estado</th>
@@ -403,8 +404,8 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
               <tbody>
                 {proveedoresMostrar.map(p => (
                   <tr key={p.id} className={!estaActivo(p) ? 'proveedor-inactivo' : ''}>
-                    <td className="codigo-proveedor centered"> {/* ✅ CAMBIADO */}
-                      {p.codigo_proveedor || 'No especificado'} {/* ✅ CAMBIADO */}
+                    <td className="codigo-proveedor centered">
+                      {p.codigo_proveedor || 'No especificado'}
                     </td>
                     <td className="nombre-proveedor centered">{p.nombre_prov}</td>
                     <td className="rubro-proveedor centered">{p.tipo_prov}</td>
@@ -419,10 +420,7 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
                       <td className="acciones-proveedor centered">
                         <button
                           className="btn-icon editar"
-                          onClick={() => {
-                            setProveedorEditar(p);
-                            setVista('editar');
-                          }}
+                          onClick={() => handleEditarProveedor(p)}
                           title="Editar proveedor"
                         >
                           <FaEdit />
@@ -528,8 +526,9 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
             <h3>No hay proveedores registrados</h3>
             <p>Comience agregando un nuevo proveedor</p>
             {!modoLectura && (
-              <button className="btn-agregar" onClick={() => setVista('crear')} style={{marginTop: '10px'}}>
-                + Agregar primer proveedor
+              <button className="btn-agregar" onClick={handleNuevoProveedor} style={{marginTop: '10px'}}>
+                <FaPlus style={{marginRight: '8px'}} />
+                Agregar primer proveedor
               </button>
             )}
           </div>
@@ -578,8 +577,8 @@ function Proveedores({ esJefa = true, modoLectura = false }) {
                     <FaIdCard />
                   </div>
                   <div className="contenido-detalle-grande">
-                    <label>CÓDIGO</label> {/* ✅ CAMBIADO */}
-                    <span>{proveedorDetalles.codigo_proveedor || 'No especificado'}</span> {/* ✅ CAMBIADO */}
+                    <label>CÓDIGO</label>
+                    <span>{proveedorDetalles.codigo_proveedor || 'No especificado'}</span>
                   </div>
                 </div>
 

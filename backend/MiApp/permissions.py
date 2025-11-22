@@ -46,3 +46,4 @@ class IsJefaOrEmpleado(permissions.BasePermission):
             return hasattr(request.user, 'empleado')
         except:
             return False
+

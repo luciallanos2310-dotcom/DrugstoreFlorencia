@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './Compras.css';
-import ModalConfirmacionUniversal from '../ModalConfirmacion.Universal/ModalConfirmacionUniversal';
-import FormularioCompra from './FormularioCompra';
-import { FaEye, FaArrowLeft, FaTimes, FaCalendarAlt, FaBox, FaDollarSign, FaUserTie, FaStickyNote, FaHashtag, FaClipboardList, FaExclamationTriangle, FaBan, FaChevronLeft, FaChevronRight, FaStepBackward, FaStepForward } from 'react-icons/fa';
+import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal/ModalConfirmacionUniversal';
+import { FaEye, FaArrowLeft, FaTimes, FaCalendarAlt, FaBox, FaDollarSign, FaUserTie, FaStickyNote, FaHashtag, FaClipboardList, FaExclamationTriangle, FaBan, FaChevronLeft, FaChevronRight, FaStepBackward, FaStepForward, FaPlus } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 
-function Compras({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
+function Compras({ esJefa = true, modoLectura = false }) {
   const [compras, setCompras] = useState([]);
   const [todasCompras, setTodasCompras] = useState([]);
   const [productos, setProductos] = useState([]);
   const [proveedores, setProveedores] = useState([]);
-  const [vista, setVista] = useState('lista');
   const [compraAAnular, setCompraAAnular] = useState(null);
   const [busqueda, setBusqueda] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('');
@@ -26,6 +25,8 @@ function Compras({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
   // Estados para modal universal
   const [modalConfig, setModalConfig] = useState({});
   const [mostrarModalConfirmacion, setMostrarModalConfirmacion] = useState(false);
+
+  const navigate = useNavigate();
 
   // Lista de categorías para el filtro
   const categorias = [
@@ -205,6 +206,12 @@ function Compras({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
     return compra.proveedores.some(proveedor => !estaActivo(proveedor));
   };
 
+  // ✅ FUNCIÓN MEJORADA: Manejar nueva compra
+  const handleNuevaCompra = () => {
+    console.log('➕ Nueva compra - navegando a formulario...');
+    navigate('/dashboard/compras/nueva');
+  };
+
   // Filtrar compras en el frontend
   const filtrarCompras = () => {
     if (busqueda === '' && filtroCategoria === '') {
@@ -243,14 +250,6 @@ function Compras({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
     
     // ✅ CALCULAR PAGINACIÓN PARA LOS RESULTADOS FILTRADOS
     calcularPaginacion(filtradas);
-  };
-
-  const ocultarCompras = () => {
-    setCompras(todasCompras); // ✅ VOLVEMOS A MOSTRAR TODAS CON PAGINACIÓN
-    setHaBuscado(true);
-    setCompraDetalles(null);
-    setPaginaActual(1);
-    calcularPaginacion(todasCompras);
   };
 
   // Efecto para filtrar cuando cambian los criterios
@@ -341,31 +340,6 @@ function Compras({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
     }
   };
 
-  const handleGuardadoExitoso = () => {
-    console.log('✅ Guardado exitoso, volviendo a lista...');
-    setVista('lista');
-    cargarTodosDatos(); // Recargar los datos
-    
-    // Mostrar mensaje de éxito
-    setModalConfig({
-      tipo: 'exito',
-      modo: 'compra',
-      mensaje: '✅ Compra registrada correctamente'
-    });
-    setMostrarModalConfirmacion(true);
-  };
-
-  // Función para manejar nueva compra
-  const handleNuevaCompra = () => {
-    console.log('➕ Nueva compra');
-    if (onNavegarAFormulario) {
-      onNavegarAFormulario('nueva', null);
-    } else {
-      // Fallback si no se pasa la prop
-      setVista('crear');
-    }
-  };
-
   // ✅ NUEVA FUNCIÓN: Confirmar anulación
   const confirmarAnulacion = (compra) => {
     setCompraAAnular(compra);
@@ -378,11 +352,6 @@ function Compras({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
     });
     setMostrarModalConfirmacion(true);
   };
-
-  // Verificar si hay filtros activos
-  const hayFiltrosActivos = busqueda || filtroCategoria;
-  const hayResultados = compras.length > 0;
-  const comprasMostrar = obtenerComprasPaginaActual();
 
   // Formatear fecha para mostrar
   const formatearFecha = (fecha) => {
@@ -456,25 +425,11 @@ function Compras({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
     }
   };
 
-  // SI ESTAMOS EN MODO CREAR, MOSTRAR EL FORMULARIO
-  if (vista === 'crear') {
-    return (
-      <FormularioCompra
-        modo="nueva"
-        onCancelar={() => {
-          console.log('❌ Cancelando, volviendo a lista...');
-          setVista('lista');
-        }}
-        onGuardado={() => {
-          console.log('✅ Guardado completado, volviendo a lista...');
-          setVista('lista');
-          cargarTodosDatos(); // Recargar datos
-        }}
-      />
-    );
-  }
+  // ✅ CORREGIDO: Declarar estas variables solo una vez
+  const hayFiltrosActivos = busqueda || filtroCategoria;
+  const hayResultados = compras.length > 0;
+  const comprasMostrar = obtenerComprasPaginaActual();
 
-  // SI ESTAMOS EN MODO LISTA, MOSTRAR LA TABLA
   return (
     <div className="compras-container">
       <div className="header-compras">
@@ -482,7 +437,8 @@ function Compras({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
         <div className="header-actions">
           {!modoLectura && (
             <button className="btn-agregar" onClick={handleNuevaCompra}>
-              + Registrar Compra
+              <FaPlus style={{marginRight: '8px'}} />
+              Nueva Compra
             </button>
           )}
         </div>
@@ -678,28 +634,6 @@ function Compras({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
                   <FaStepForward />
                 </button>
               </div>
-
-              {/* ✅ SELECTOR DE COMPRAS POR PÁGINA */}
-              {/*<div className="paginacion-selector">
-                <label>Compras por página:</label>
-                <select 
-                  value={comprasPorPagina} 
-                  onChange={(e) => {
-                    const nuevoValor = Number(e.target.value);
-                    setComprasPorPagina(nuevoValor);
-                    setPaginaActual(1);
-                    calcularPaginacion(compras);
-                  }}
-                  className="select-compras-pagina"
-                >
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
-              </div>
-              */}
             </div>
           )}
         </>
@@ -710,7 +644,8 @@ function Compras({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
             <p>Comience registrando una nueva compra</p>
             {!modoLectura && (
               <button className="btn-agregar" onClick={handleNuevaCompra} style={{marginTop: '10px'}}>
-                + Registrar primera compra
+                <FaPlus style={{marginRight: '8px'}} />
+                Registrar primera compra
               </button>
             )}
           </div>

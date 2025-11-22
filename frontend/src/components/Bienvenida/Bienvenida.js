@@ -1,12 +1,19 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import "./Bienvenida.css";
 
-function Bienvenida({ onIniciarSesion }) {
+function Bienvenida() {
+  const navigate = useNavigate();
+
+  const handleIniciarSesion = () => {
+    navigate('/login');
+  };
+
   return (
     <div className="bienvenida-page">
       {/* Imagen de fondo que ocupa toda la pantalla */}
       <img 
-        src="/images/bienvenida-canva.png"  // Cambia esta ruta por la de tu imagen
+        src="/images/bienvenida-canva.png"
         alt="Bienvenida Florencia Drugstore" 
         className="imagen-fondo"
       />
@@ -27,7 +34,7 @@ function Bienvenida({ onIniciarSesion }) {
 
       {/* Solo el botón funcional */}
       <div className="contenedor-boton">
-        <button className="btn-iniciar" onClick={onIniciarSesion}>
+        <button className="btn-iniciar" onClick={handleIniciarSesion}>
           Iniciar sesión
         </button>
       </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaSave, FaTimes, FaLock, FaCheck, FaTimes as FaClose, FaEye, FaEyeSlash, FaKey } from 'react-icons/fa';
-import ModalConfirmacionUniversal from '../ModalConfirmacion.Universal/ModalConfirmacionUniversal';
+import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal/ModalConfirmacionUniversal';
 import '../Empleados/FormularioEmpleado.css';
 
 function FormularioEmpleado({ modo, empleado, onGuardar, onCancelar }) {

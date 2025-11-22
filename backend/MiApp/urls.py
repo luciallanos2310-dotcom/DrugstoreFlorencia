@@ -6,7 +6,7 @@ from .views import (
     ProductoViewSet, ProveedorViewSet, CompraViewSet,
     register, login_view, empleados_list, empleado_detail, 
     CajaViewSet, VentaViewSet, DetalleVentaViewSet,
-    verificar_password_actual, cambiar_password
+    verificar_password_actual, cambiar_password, actualizar_stock_venta
 )
 from .views import VentaSaetaViewSet
 
@@ -27,6 +27,7 @@ urlpatterns = [
     path('verificar-password/', verificar_password_actual, name='verificar_password'),
     path('cambiar-password/', cambiar_password, name='cambiar_password'),
     path('empleados/verificar-campos/', views.verificar_campos_empleado, name='verificar-campos'),
+    path('api/actualizar-stock-venta/', actualizar_stock_venta, name='actualizar-stock-venta'),
     path('', include(router.urls)),
 ]
 

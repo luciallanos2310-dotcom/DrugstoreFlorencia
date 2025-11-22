@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { 
   FaTachometerAlt, 
   FaBox, 
@@ -15,37 +16,107 @@ import "./BarraLateral.css";
 
 function BarraLateral({ 
   onCerrarSesion, 
-  usuario, 
-  moduloActivo, 
-  setModuloActivo,
+  usuario,
   cajaAbierta,
   datosCaja,
-  onNavegarAVentas,
   esJefa,
   esModuloEditable 
 }) {
-  
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const handleModuloClick = (modulo) => {
-    if (!esModuloEditable(modulo)) return; // No hacer nada si no es editable
+    if (!esModuloEditable(modulo)) return;
     
-    if (modulo === 'ventas') {
-      onNavegarAVentas();
+    console.log('📍 Click en módulo:', modulo);
+    
+    // ✅ CORREGIDO: Lógica especial para ventas cuando la caja no está abierta
+    if (modulo === 'ventas' && !cajaAbierta) {
+      console.log('📍 Caja cerrada, navegando a /dashboard/caja');
+      navigate('/dashboard/caja');
     } else {
-      setModuloActivo(modulo);
+      // Navegación normal para otros casos
+      navigate(`/dashboard/${modulo}`);
     }
   };
 
+  const handleCerrarSesion = () => {
+    onCerrarSesion();
+    navigate('/bienvenida');
+  };
+
   const menuItems = [
-    { id: 'inicio', icon: FaTachometerAlt, label: 'Inicio' },
-    { id: 'ventas', icon: FaShoppingCart, label: 'Ventas' },
-    { id: 'compras', icon: FaShoppingBag, label: 'Compras' },
-    { id: 'inventario', icon: FaBox, label: 'Productos' },
-    { id: 'caja', icon: FaCashRegister, label: 'Caja' },
-    { id: 'reportes', icon: FaChartLine, label: 'Reportes' },
-    { id: 'empleados', icon: FaUsers, label: 'Empleados' },
-    { id: 'proveedores', icon: FaTruck, label: 'Proveedores' }
-    // ✅ CONFIGURACIÓN ELIMINADA
+    { id: 'dashboard', icon: FaTachometerAlt, label: 'Inicio', path: '/dashboard' },
+    { id: 'ventas', icon: FaShoppingCart, label: 'Ventas', path: '/dashboard/ventas' },
+    { id: 'compras', icon: FaShoppingBag, label: 'Compras', path: '/dashboard/compras' },
+    { id: 'productos', icon: FaBox, label: 'Productos', path: '/dashboard/productos' },
+    { id: 'caja', icon: FaCashRegister, label: 'Caja', path: '/dashboard/caja' },
+    { id: 'reportes', icon: FaChartLine, label: 'Reportes', path: '/dashboard/reportes' },
+    { id: 'empleados', icon: FaUsers, label: 'Empleados', path: '/dashboard/empleados' },
+    { id: 'proveedores', icon: FaTruck, label: 'Proveedores', path: '/dashboard/proveedores' }
   ];
+
+  // ✅ CORREGIDO: Determinar qué módulo está activo basado en la ruta actual - VERSIÓN MEJORADA
+  const getModuloActivo = () => {
+    const currentPath = location.pathname;
+    console.log('📍 Ruta actual en BarraLateral:', currentPath);
+    
+    // ✅ DETECCIÓN MEJORADA: Incluir rutas de formularios
+    const routeToModuleMap = {
+      '/dashboard': 'dashboard',
+      '/dashboard/': 'dashboard',
+      
+      '/dashboard/ventas': 'ventas',
+      '/dashboard/ventas/': 'ventas',
+      
+      '/dashboard/compras': 'compras',
+      '/dashboard/compras/': 'compras',
+      '/dashboard/compras/nueva': 'compras', // ✅ NUEVO: Ruta de formulario
+      '/dashboard/compras/editar': 'compras', // ✅ NUEVO: Ruta de edición
+      
+      '/dashboard/caja': 'caja',
+      '/dashboard/caja/': 'caja',
+      
+      '/dashboard/productos': 'productos',
+      '/dashboard/productos/': 'productos',
+      
+      '/dashboard/reportes': 'reportes',
+      '/dashboard/reportes/': 'reportes',
+      
+      '/dashboard/empleados': 'empleados',
+      '/dashboard/empleados/': 'empleados',
+      
+      '/dashboard/proveedores': 'proveedores',
+      '/dashboard/proveedores/': 'proveedores'
+    };
+    
+    // Buscar coincidencia exacta primero
+    if (routeToModuleMap[currentPath]) {
+      return routeToModuleMap[currentPath];
+    }
+    
+    // ✅ DETECCIÓN POR PREFIJO PARA RUTAS DINÁMICAS (como /compras/editar/:id)
+    if (currentPath.startsWith('/dashboard/compras/')) {
+      return 'compras';
+    }
+    if (currentPath.startsWith('/dashboard/ventas/')) {
+      return 'ventas';
+    }
+    if (currentPath.startsWith('/dashboard/productos/')) {
+      return 'productos';
+    }
+    if (currentPath.startsWith('/dashboard/empleados/')) {
+      return 'empleados';
+    }
+    if (currentPath.startsWith('/dashboard/proveedores/')) {
+      return 'proveedores';
+    }
+    
+    return 'dashboard';
+  };
+
+  const moduloActivo = getModuloActivo();
+  console.log('📍 Módulo activo detectado:', moduloActivo);
 
   return (
     <div className="barra-lateral">
@@ -111,7 +182,7 @@ function BarraLateral({
 
       {/* Cerrar sesión en la parte inferior */}
       <div className="cerrar-sesion-contenedor">
-        <div className="cerrar-sesion" onClick={onCerrarSesion}>
+        <div className="cerrar-sesion" onClick={handleCerrarSesion}>
           <FaSignOutAlt className="icono-menu" />
           <span>Cerrar Sesión</span>
         </div>

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './Productos.css';
-import ModalConfirmacionUniversal from '../ModalConfirmacion.Universal/ModalConfirmacionUniversal';
-import { FaEdit, FaTrash, FaEye, FaArrowLeft, FaTimes, FaBox, FaDollarSign, FaHashtag, FaClipboardList, FaExclamationTriangle, FaChevronLeft, FaChevronRight, FaStepBackward, FaStepForward, FaUserTie } from 'react-icons/fa';
+import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal/ModalConfirmacionUniversal';
+import { FaEdit, FaTrash, FaEye, FaArrowLeft, FaTimes, FaBox, FaDollarSign, FaHashtag, FaClipboardList, FaExclamationTriangle, FaChevronLeft, FaChevronRight, FaStepBackward, FaStepForward, FaUserTie, FaPlus } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom'; // ✅ AGREGADO
 
 function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario }) {
   const [productos, setProductos] = useState([]);
@@ -23,6 +24,8 @@ function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario })
   const [paginaActual, setPaginaActual] = useState(1);
   const [productosPorPagina] = useState(6);
   const [totalPaginas, setTotalPaginas] = useState(1);
+
+  const navigate = useNavigate(); // ✅ AGREGADO
 
   const categorias = [
     'Bebidas', 'Lácteos', 'Golosinas', 'Limpieza', 'Verduras', 
@@ -64,6 +67,28 @@ function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario })
     }
   };
 
+  // ✅ FUNCIÓN MEJORADA: Manejar nuevo producto
+  const handleNuevoProducto = () => {
+    console.log('➕ Nuevo producto - navegando a formulario...');
+    if (onNavegarAFormulario) {
+      onNavegarAFormulario('crear', null);
+    } else {
+      // Fallback: navegar directamente
+      navigate('/dashboard/productos/nuevo');
+    }
+  };
+
+  // ✅ FUNCIÓN MEJORADA: Manejar edición de producto
+  const handleEditarProducto = (producto) => {
+    console.log('✏️ Editar producto - navegando a formulario...');
+    if (onNavegarAFormulario) {
+      onNavegarAFormulario('editar', producto);
+    } else {
+      // Fallback: navegar directamente
+      navigate(`/dashboard/productos/editar/${producto.id}`);
+    }
+  };
+
   // ✅ FUNCIÓN CORREGIDA: Manejar eliminación de producto
   const handleEliminarProducto = (producto) => {
     // Mostrar modal de confirmación directamente
@@ -75,8 +100,7 @@ function Productos({ esJefa = true, modoLectura = false, onNavegarAFormulario })
   };
 
   // ✅ FUNCIÓN CORREGIDA: Ejecutar eliminación después de confirmación
-  // En productos.js - modificar la función handleEliminarConfirmado
-const handleEliminarConfirmado = async () => {
+  const handleEliminarConfirmado = async () => {
     if (!productoAEliminar) return;
     
     try {
@@ -117,6 +141,7 @@ const handleEliminarConfirmado = async () => {
       setProductoAEliminar(null);
     }
   };
+
   // Obtener proveedores de un producto
   const obtenerProveedoresDelProducto = (productoId) => {
     if (!productoId || !compras.length || !proveedores.length) return [];
@@ -272,18 +297,6 @@ const handleEliminarConfirmado = async () => {
     calcularPaginacion(todosProductos);
   };
 
-  const handleNuevoProducto = () => {
-    if (onNavegarAFormulario) {
-      onNavegarAFormulario('crear', null);
-    }
-  };
-
-  const handleEditarProducto = (producto) => {
-    if (onNavegarAFormulario) {
-      onNavegarAFormulario('editar', producto);
-    }
-  };
-
   const hayFiltrosActivos = busqueda || filtroCategoria;
   const hayResultados = productos.length > 0;
   const productosMostrar = obtenerProductosPaginaActual();
@@ -332,7 +345,8 @@ const handleEliminarConfirmado = async () => {
         <div className="header-actions">
           {!modoLectura && (
             <button className="btn-agregar" onClick={handleNuevoProducto}>
-              + Nuevo Producto
+              <FaPlus style={{marginRight: '8px'}} />
+              Nuevo Producto
             </button>
           )}
         </div>
@@ -542,7 +556,8 @@ const handleEliminarConfirmado = async () => {
             <p>Comience agregando un nuevo producto</p>
             {!modoLectura && (
               <button className="btn-agregar" onClick={handleNuevoProducto} style={{marginTop: '10px'}}>
-                + Agregar primer producto
+                <FaPlus style={{marginRight: '8px'}} />
+                Agregar primer producto
               </button>
             )}
           </div>

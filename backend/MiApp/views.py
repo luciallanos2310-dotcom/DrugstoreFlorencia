@@ -373,6 +373,39 @@ def cambiar_password(request):
     except Exception as e:
         return Response({'error': f'Error interno: {str(e)}'}, status=500)
 
+# En views.py - Agregar esta función
+@api_view(['POST'])
+@permission_classes([IsJefaOrEmpleado])
+def actualizar_stock_venta(request):
+    try:
+        data = request.data
+        producto_id = data.get('producto_id')
+        cantidad_vendida = data.get('cantidad_vendida')
+        
+        if not producto_id or not cantidad_vendida:
+            return Response({'error': 'Datos incompletos'}, status=400)
+        
+        producto = Producto.objects.get(id=producto_id)
+        nueva_cantidad = producto.cantidad - int(cantidad_vendida)
+        
+        if nueva_cantidad < 0:
+            return Response({'error': 'Stock insuficiente'}, status=400)
+        
+        producto.cantidad = nueva_cantidad
+        producto.save()
+        
+        return Response({
+            'success': True,
+            'producto': producto.nombre_prod,
+            'stock_anterior': producto.cantidad + int(cantidad_vendida),
+            'stock_nuevo': producto.cantidad
+        })
+        
+    except Producto.DoesNotExist:
+        return Response({'error': 'Producto no encontrado'}, status=404)
+    except Exception as e:
+        return Response({'error': str(e)}, status=400)
+
 # =======================================================
 # ===== VIEWSETS =====
 # =======================================================
@@ -380,7 +413,22 @@ def cambiar_password(request):
 class ProductoViewSet(viewsets.ModelViewSet):
     queryset = Producto.objects.all().order_by('id')
     serializer_class = ProductoSerializer
-    permission_classes = [IsJefaOrReadOnly]
+    
+    def get_permissions(self):
+        """
+        Permisos personalizados:
+        - Jefa: Todas las operaciones
+        - Empleada: Solo lectura en general, pero puede actualizar stock
+        """
+        if self.action in ['update', 'partial_update']:
+            # Para actualizaciones, permitir a empleadas
+            return [IsJefaOrEmpleado()]
+        elif self.action == 'destroy':
+            # Solo jefas pueden eliminar
+            return [IsJefa()]
+        else:
+            # Para listar y ver, ambos pueden
+            return [IsJefaOrReadOnly()]
 
     def get_queryset(self):
         queryset = Producto.objects.all().order_by('id')
@@ -399,52 +447,38 @@ class ProductoViewSet(viewsets.ModelViewSet):
             
         return queryset
 
-    # ✅ MÉTODO DESTROY CORREGIDO - VERIFICANDO DETALLEVENTA
-    def destroy(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            
-            # Verificar si tiene ventas asociadas a través de DetalleVenta
-            if instance.detalleventa_set.exists():
-                return Response(
-                    {"error": "No se puede eliminar el producto porque tiene ventas asociadas registradas en el sistema."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-                
-            # Si no tiene ventas, proceder con la eliminación
-            self.perform_destroy(instance)
-            return Response(status=status.HTTP_204_NO_CONTENT)
-            
-        except Exception as e:
-            print(f"❌ Error al eliminar producto: {str(e)}")
-            return Response(
-                {"error": "Error al eliminar el producto. Por favor, intente nuevamente."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-        
     def update(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
             data = request.data.copy()
             
-            print(f"🔄 Actualizando producto {instance.id} con datos:", data)
+            print(f"🔄 Actualizando producto {instance.id}")
+            print(f"👤 Usuario: {request.user}, Tipo: {request.user.empleado.tipo_usuario}")
             
-            # Permitir actualización de cantidad desde ventas
+            # ✅ PERMITIR A EMPLEADAS ACTUALIZAR SOLO CANTIDAD
+            user_profile = request.user.empleado
+            if user_profile.tipo_usuario == 'empleada':
+                # Empleada solo puede actualizar cantidad
+                allowed_fields = {'cantidad'}
+                extra_fields = [field for field in data.keys() if field not in allowed_fields]
+                
+                if extra_fields:
+                    print(f"⚠️ Empleada intentó modificar campos no permitidos: {extra_fields}")
+                    # Remover campos no permitidos para empleadas
+                    for field in extra_fields:
+                        if field != 'cantidad':
+                            data.pop(field, None)
+            
+            # Procesar campos
             if 'cantidad' in data:
                 data['cantidad'] = int(data['cantidad'])
                 print(f"📦 Actualizando cantidad a: {data['cantidad']}")
             
-            # Procesar otros campos
-            if 'precio_venta' in data:
-                data['precio_venta'] = float(data['precio_venta'])
-            if 'stock_minimo' in data:
-                data['stock_minimo'] = int(data['stock_minimo'])
-            
-            serializer = self.get_serializer(instance, data=data, partial=False)  # ✅ Cambiado a partial=False
+            serializer = self.get_serializer(instance, data=data, partial=True)
             serializer.is_valid(raise_exception=True)
             self.perform_update(serializer)
             
-            print(f"✅ Producto actualizado: {instance.nombre_prod}, Nueva cantidad: {instance.cantidad}")
+            print(f"✅ Producto actualizado: {instance.nombre_prod}")
             
             return Response(serializer.data)
             
@@ -453,6 +487,27 @@ class ProductoViewSet(viewsets.ModelViewSet):
             return Response(
                 {'error': f'Error al actualizar producto: {str(e)}'}, 
                 status=status.HTTP_400_BAD_REQUEST
+            )
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            
+            # Verificar si tiene ventas asociadas
+            if instance.detalleventa_set.exists():
+                return Response(
+                    {"error": "No se puede eliminar el producto porque tiene ventas asociadas."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
+            # Solo jefas pueden eliminar
+            self.perform_destroy(instance)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+            
+        except Exception as e:
+            return Response(
+                {"error": "Error al eliminar el producto."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
 class ProveedorViewSet(viewsets.ModelViewSet):

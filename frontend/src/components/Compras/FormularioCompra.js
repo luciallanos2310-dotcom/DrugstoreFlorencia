@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import ModalConfirmacionUniversal from '../ModalConfirmacion.Universal/ModalConfirmacionUniversal';
+import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal/ModalConfirmacionUniversal';
 import FormularioProducto from '../Productos/FormularioProducto';
 import './FormularioCompra.css';
 import { 
@@ -18,6 +18,7 @@ import {
   FaLock,
   FaExclamationTriangle
 } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom'; // ✅ AGREGADO
 
 function FormularioCompra({ modo, compraEditar, onCancelar, onGuardado }) {
   const [form, setForm] = useState({
@@ -51,6 +52,18 @@ function FormularioCompra({ modo, compraEditar, onCancelar, onGuardado }) {
 
   // Controlar si mostrar formulario de producto
   const [mostrarFormularioProducto, setMostrarFormularioProducto] = useState(false);
+
+  const navigate = useNavigate(); // ✅ AGREGADO
+
+  // ✅ FUNCIÓN MEJORADA: Manejar cancelación
+  const handleCancelar = () => {
+    if (onCancelar) {
+      onCancelar();
+    } else {
+      // Fallback: navegar a compras
+      navigate('/dashboard/compras');
+    }
+  };
 
   // Generar código de compra
   const generarCodigoCompra = () => {
@@ -320,7 +333,6 @@ function FormularioCompra({ modo, compraEditar, onCancelar, onGuardado }) {
     setMostrarModalConfirmacion(true);
   };
 
-  // Guardar compra
   const handleGuardarReal = async () => {
     setMostrarModalConfirmacion(false);
     setGuardando(true);
@@ -355,7 +367,12 @@ function FormularioCompra({ modo, compraEditar, onCancelar, onGuardado }) {
           setMostrarModalConfirmacion(false);
           // Llamar onGuardado después de cerrar el modal
           setTimeout(() => {
-            onGuardado?.();
+            if (onGuardado) {
+              onGuardado();
+            } else {
+              // Fallback: navegar a compras
+              navigate('/dashboard/compras');
+            }
           }, 100);
         },
         onCancelar: () => {
@@ -363,7 +380,12 @@ function FormularioCompra({ modo, compraEditar, onCancelar, onGuardado }) {
           setMostrarModalConfirmacion(false);
           // También llamar onGuardado si cancelan el modal
           setTimeout(() => {
-            onGuardado?.();
+            if (onGuardado) {
+              onGuardado();
+            } else {
+              // Fallback: navegar a compras
+              navigate('/dashboard/compras');
+            }
           }, 100);
         }
       });
@@ -383,6 +405,7 @@ function FormularioCompra({ modo, compraEditar, onCancelar, onGuardado }) {
       setGuardando(false);
     }
   };
+
 
   // SI estamos mostrando el formulario de producto, renderizarlo
   if (mostrarFormularioProducto) {
@@ -635,7 +658,7 @@ function FormularioCompra({ modo, compraEditar, onCancelar, onGuardado }) {
             >
               {guardando ? 'Guardando...' : 'Registrar Compra'}
             </button>
-            <button type="button" className="btn-cancelar" onClick={onCancelar}>
+            <button type="button" className="btn-cancelar" onClick={handleCancelar}>
               Cancelar
             </button>
           </div>

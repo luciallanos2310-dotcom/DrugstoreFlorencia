@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import ModalConfirmacionUniversal from '../ModalConfirmacion.Universal/ModalConfirmacionUniversal'; // ✅ Cambiado a modal universal
+import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal/ModalConfirmacionUniversal';
 import './VentasSaeta.css';
 
 function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
@@ -17,7 +17,24 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
   const [mostrarModalError, setMostrarModalError] = useState(false);
   const [mensajeError, setMensajeError] = useState('');
 
-  // Calcular ganancias cuando cambien monto o porcentaje
+  // ✅ MOVER la función calcularGanancias ANTES del useEffect que la usa
+  const calcularGanancias = () => {
+    const montoTotal = parseFloat(formData.monto_saeta) || 0;
+    const porcentajeSaeta = parseFloat(formData.porcentaje_ganancia_saeta) || 0;
+    
+    if (montoTotal > 0 && porcentajeSaeta > 0) {
+      const montoSaeta = (montoTotal * porcentajeSaeta) / 100;
+      const gananciaDrugstoreCalc = montoTotal - montoSaeta;
+      
+      setMontoParaSaeta(montoSaeta);
+      setGananciaDrugstore(gananciaDrugstoreCalc);
+    } else {
+      setMontoParaSaeta(0);
+      setGananciaDrugstore(0);
+    }
+  };
+
+  // ✅ Ahora calcularGanancias está definida antes de ser usada
   useEffect(() => {
     calcularGanancias();
   }, [formData.monto_saeta, formData.porcentaje_ganancia_saeta]);
@@ -76,22 +93,6 @@ function VentasSaeta({ mostrar, onCerrar, cajaId, onVentaSaetaCreada }) {
       }));
     } else {
       alert('No se pueden seleccionar fechas futuras');
-    }
-  };
-
-  const calcularGanancias = () => {
-    const montoTotal = parseFloat(formData.monto_saeta) || 0;
-    const porcentajeSaeta = parseFloat(formData.porcentaje_ganancia_saeta) || 0;
-    
-    if (montoTotal > 0 && porcentajeSaeta > 0) {
-      const montoSaeta = (montoTotal * porcentajeSaeta) / 100;
-      const gananciaDrugstoreCalc = montoTotal - montoSaeta;
-      
-      setMontoParaSaeta(montoSaeta);
-      setGananciaDrugstore(gananciaDrugstoreCalc);
-    } else {
-      setMontoParaSaeta(0);
-      setGananciaDrugstore(0);
     }
   };
 

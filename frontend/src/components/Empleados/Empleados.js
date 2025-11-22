@@ -1,21 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaSearch, FaEye, FaChevronLeft, FaChevronRight, FaStepBackward, FaStepForward } from 'react-icons/fa';
-import FormularioEmpleado from './FormularioEmpleado';
-import ModalConfirmacionUniversal from '../ModalConfirmacion.Universal/ModalConfirmacionUniversal';
+import ModalConfirmacionUniversal from '../ModalConfirmacionUniversal/ModalConfirmacionUniversal';
 import './Empleados.css';
+import { useNavigate } from 'react-router-dom'; // ✅ AGREGADO
 
-function Empleados({ usuario }) {
+function Empleados({ usuario, modoLectura = false, onNavegarAFormulario }) {
   const [empleados, setEmpleados] = useState([]);
   const [todosEmpleados, setTodosEmpleados] = useState([]);
-  const [mostrarFormulario, setMostrarFormulario] = useState(false);
-  const [modoFormulario, setModoFormulario] = useState('crear');
-  const [empleadoEditando, setEmpleadoEditando] = useState(null);
   const [busqueda, setBusqueda] = useState('');
   const [cargando, setCargando] = useState(false);
   
   // ✅ ESTADOS PARA PAGINACIÓN
   const [paginaActual, setPaginaActual] = useState(1);
-  const [empleadosPorPagina, setEmpleadosPorPagina] = useState(6); // 6 tarjetas por página
+  const [empleadosPorPagina, setEmpleadosPorPagina] = useState(6);
   const [totalPaginas, setTotalPaginas] = useState(1);
 
   // Estados para modales
@@ -26,6 +23,30 @@ function Empleados({ usuario }) {
   const [empleadoSeleccionado, setEmpleadoSeleccionado] = useState(null);
   const [empleadoAEliminar, setEmpleadoAEliminar] = useState(null);
   const [mensajeModal, setMensajeModal] = useState('');
+
+  const navigate = useNavigate(); // ✅ AGREGADO
+
+  // ✅ FUNCIÓN MEJORADA: Manejar nuevo empleado
+  const handleCrearEmpleado = () => {
+    console.log('➕ Nuevo empleado - navegando a formulario...');
+    if (onNavegarAFormulario) {
+      onNavegarAFormulario('crear', null);
+    } else {
+      // Fallback: navegar directamente
+      navigate('/dashboard/empleados/nuevo');
+    }
+  };
+
+  // ✅ FUNCIÓN MEJORADA: Manejar edición de empleado
+  const handleEditarEmpleado = (empleado) => {
+    console.log('✏️ Editar empleado - navegando a formulario...');
+    if (onNavegarAFormulario) {
+      onNavegarAFormulario('editar', empleado);
+    } else {
+      // Fallback: navegar directamente
+      navigate(`/dashboard/empleados/editar/${empleado.id}`);
+    }
+  };
 
   // Cargar empleados desde la API
   const cargarEmpleados = async () => {
@@ -174,18 +195,6 @@ function Empleados({ usuario }) {
     return empleado.descripcion || empleado.observaciones || empleado.info_adicional || 'No hay observaciones';
   };
 
-  const handleCrearEmpleado = () => {
-    setModoFormulario('crear');
-    setEmpleadoEditando(null);
-    setMostrarFormulario(true);
-  };
-
-  const handleEditarEmpleado = (empleado) => {
-    setModoFormulario('editar');
-    setEmpleadoEditando(empleado);
-    setMostrarFormulario(true);
-  };
-
   const handleEliminarEmpleado = (empleado) => {
     setEmpleadoAEliminar(empleado);
     setMensajeModal(`¿Está seguro que desea eliminar al empleado ${empleado.nombre_emp} ${empleado.apellido_emp}? Esta acción no se puede deshacer.`);
@@ -225,68 +234,6 @@ function Empleados({ usuario }) {
     }
   };
 
-  const handleGuardarEmpleado = async (datosEmpleado) => {
-    try {
-      setCargando(true);
-      const token = localStorage.getItem('token');
-      const url = modoFormulario === 'crear' 
-        ? '/api/empleados/' 
-        : `/api/empleados/${empleadoEditando.id}/`;
-      
-      const method = modoFormulario === 'crear' ? 'POST' : 'PUT';
-      
-      // Preparar datos para enviar
-      const datosParaEnviar = {
-        nombre_emp: datosEmpleado.nombre_emp.trim(),
-        apellido_emp: datosEmpleado.apellido_emp.trim(),
-        dni_emp: parseInt(datosEmpleado.dni_emp),
-        telefono_emp: datosEmpleado.telefono_emp.trim(),
-        domicilio_emp: datosEmpleado.domicilio_emp.trim(),
-        tipo_usuario: datosEmpleado.tipo_usuario,
-        email: datosEmpleado.email.trim(),
-        descripcion: datosEmpleado.descripcion?.trim() || '',
-        ...(modoFormulario === 'crear' && { 
-          password: datosEmpleado.password 
-        })
-      };
-
-      const response = await fetch(url, {
-        method: method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Token ${token}`
-        },
-        body: JSON.stringify(datosParaEnviar)
-      });
-
-      if (!response.ok) {
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch (e) {
-          errorData = { error: 'Error desconocido del servidor' };
-        }
-        throw new Error(`Error ${response.status}: ${JSON.stringify(errorData)}`);
-      }
-
-      const responseData = await response.json();
-
-      setMostrarFormulario(false);
-      await cargarEmpleados();
-      setMensajeModal(modoFormulario === 'crear' 
-        ? 'Empleado creado exitosamente' 
-        : 'Empleado actualizado exitosamente');
-      setMostrarModalExito(true);
-
-    } catch (error) {
-      console.error('❌ Error guardando empleado:', error);
-      setMensajeModal(`Error: ${error.message}`);
-      setMostrarModalError(true);
-    } finally {
-      setCargando(false);
-    }
-  };
-
   const limpiarBusqueda = () => {
     setBusqueda('');
   };
@@ -295,29 +242,20 @@ function Empleados({ usuario }) {
   const hayResultados = empleados.length > 0;
   const empleadosMostrar = obtenerEmpleadosPaginaActual();
 
-  if (mostrarFormulario) {
-    return (
-      <FormularioEmpleado
-        modo={modoFormulario}
-        empleado={empleadoEditando}
-        onGuardar={handleGuardarEmpleado}
-        onCancelar={() => setMostrarFormulario(false)}
-      />
-    );
-  }
-
   return (
     <div className="empleados-container">
       <div className="empleados-header">
         <h1>Empleados</h1>
         <div className="empleados-acciones">
-          <button 
-            className="btn-nuevo-empleado"
-            onClick={handleCrearEmpleado}
-            disabled={cargando}
-          >
-            <FaPlus /> {cargando ? 'Cargando...' : 'Agregar nuevo empleado'}
-          </button>
+          {!modoLectura && (
+            <button 
+              className="btn-nuevo-empleado"
+              onClick={handleCrearEmpleado}
+              disabled={cargando}
+            >
+              <FaPlus /> {cargando ? 'Cargando...' : 'Agregar nuevo empleado'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -393,22 +331,26 @@ function Empleados({ usuario }) {
                         >
                           <FaEye />
                         </button>
-                        <button 
-                          className="btn-editar"
-                          onClick={() => handleEditarEmpleado(empleado)}
-                          title="Editar empleado"
-                          disabled={cargando}
-                        >
-                          <FaEdit />
-                        </button>
-                        <button 
-                          className="btn-eliminar"
-                          onClick={() => handleEliminarEmpleado(empleado)}
-                          title="Eliminar empleado"
-                          disabled={cargando}
-                        >
-                          <FaTrash />
-                        </button>
+                        {!modoLectura && (
+                          <>
+                            <button 
+                              className="btn-editar"
+                              onClick={() => handleEditarEmpleado(empleado)}
+                              title="Editar empleado"
+                              disabled={cargando}
+                            >
+                              <FaEdit />
+                            </button>
+                            <button 
+                              className="btn-eliminar"
+                              onClick={() => handleEliminarEmpleado(empleado)}
+                              title="Eliminar empleado"
+                              disabled={cargando}
+                            >
+                              <FaTrash />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                     
@@ -500,9 +442,11 @@ function Empleados({ usuario }) {
             <div className="mensaje-inicial">
               <h3>No hay empleados registrados</h3>
               <p>Comience agregando un nuevo empleado</p>
-              <button className="btn-nuevo-empleado" onClick={handleCrearEmpleado} style={{marginTop: '10px'}}>
-                <FaPlus /> Agregar primer empleado
-              </button>
+              {!modoLectura && (
+                <button className="btn-nuevo-empleado" onClick={handleCrearEmpleado} style={{marginTop: '10px'}}>
+                  <FaPlus /> Agregar primer empleado
+                </button>
+              )}
             </div>
           </div>
         )}

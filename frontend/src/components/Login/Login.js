@@ -1,20 +1,26 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { FaEnvelope, FaLock, FaArrowLeft } from "react-icons/fa";
 import "./Login.css";
 
-function Login({ onLoginExitoso, onVolverABienvenida }) {
+function Login({ onLoginExitoso }) {
   const [formData, setFormData] = useState({
     email: "",
     password: ""
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
+  };
+
+  const handleVolverABienvenida = () => {
+    navigate('/bienvenida');
   };
 
   const handleSubmit = async (e) => {
@@ -34,18 +40,22 @@ function Login({ onLoginExitoso, onVolverABienvenida }) {
         }),
       });
 
-      console.log("Status de respuesta:", respuesta.status);
-
       const datos = await respuesta.json();
 
       if (respuesta.ok) {
+        console.log('🔑 Datos de login recibidos:', datos); // AGREGAR ESTE CONSOLE.LOG
+        
         localStorage.setItem('token', datos.token);
-        onLoginExitoso({
+        const usuario = {
           nombre: datos.nombre,
           email: datos.email,
           tipo_usuario: datos.tipo_usuario,
-          token: datos.token
-        });
+          token: datos.token,
+          empleado_id: datos.empleado_id // ✅ Asegurar que esto viene
+        };
+        localStorage.setItem('user', JSON.stringify(usuario));
+        onLoginExitoso(usuario);
+        navigate('/dashboard');
       } else {
         setError(datos.error || "Error al iniciar sesión");
       }
@@ -59,7 +69,7 @@ function Login({ onLoginExitoso, onVolverABienvenida }) {
 
   return (
     <div className="login-page">
-      <button onClick={onVolverABienvenida} className="btn-volver">
+      <button onClick={handleVolverABienvenida} className="btn-volver">
         <FaArrowLeft /> Volver al Inicio
       </button>
 
@@ -114,8 +124,6 @@ function Login({ onLoginExitoso, onVolverABienvenida }) {
               {loading ? "Conectando..." : "Iniciar Sesión"}
             </button>
           </form>
-
-          {/* Eliminada la sección de registro */}
         </div>
       </div>
     </div>

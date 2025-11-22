@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './FormularioProducto.css';
-import ModalConfirmacionUniversal from '../ModalConfirmacion.Universal/ModalConfirmacionUniversal';
-import { FaSave, FaTimes, FaBox, FaDollarSign, FaHashtag, FaClipboardList, FaCube } from 'react-icons/fa';
+import 
+ModalConfirmacionUniversal from '../ModalConfirmacionUniversal/ModalConfirmacionUniversal';import { FaSave, FaTimes, FaBox, FaDollarSign, FaHashtag, FaClipboardList, FaCube } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom'; // ✅ AGREGADO
 
 function FormularioProducto({ modo = 'crear', producto = null, onGuardadoExitoso, onCancelar }) {
   const [formData, setFormData] = useState({
@@ -24,18 +25,18 @@ function FormularioProducto({ modo = 'crear', producto = null, onGuardadoExitoso
     onCancelar: null
   });
 
+  const navigate = useNavigate(); // ✅ AGREGADO
+
   const categorias = [
     'Bebidas', 'Lácteos', 'Golosinas', 'Limpieza', 'Verduras', 
     'Carnes', 'Panificados', 'Fiambres', 'Perfumería', 
     'Electrodomésticos', 'Papelería', 'Otros'
   ];
 
-  // ✅ CORREGIDO: Mejor useEffect para cargar datos
   useEffect(() => {
     if (modo === 'editar' && producto) {
       console.log('📝 Cargando datos del producto para edición:', producto);
       
-      // ✅ Asegurar que los datos se carguen correctamente
       setFormData({
         nombre_prod: producto.nombre_prod || '',
         categoria_prod: producto.categoria_prod || '',
@@ -47,7 +48,7 @@ function FormularioProducto({ modo = 'crear', producto = null, onGuardadoExitoso
     } else if (modo === 'crear') {
       generarCodigoAutomatico();
     }
-  }, [modo, producto]); // ✅ AGREGAR producto como dependencia
+  }, [modo, producto]);
 
   const generarCodigoAutomatico = () => {
     const prefijo = 'PROD';
@@ -77,7 +78,16 @@ function FormularioProducto({ modo = 'crear', producto = null, onGuardadoExitoso
     }
   };
 
-  // ✅ FUNCIÓN PARA CERRAR MODAL
+  // ✅ FUNCIÓN MEJORADA: Manejar cancelación
+  const handleCancelar = () => {
+    if (onCancelar) {
+      onCancelar();
+    } else {
+      // Fallback: navegar a productos
+      navigate('/dashboard/productos');
+    }
+  };
+
   const cerrarModal = () => {
     setModalConfig({
       mostrar: false,
@@ -136,7 +146,6 @@ function FormularioProducto({ modo = 'crear', producto = null, onGuardadoExitoso
       nuevosErrores.codigo_prod = 'El código del producto es obligatorio';
     }
 
-    // ✅ EN MODO EDICIÓN, NO VALIDAR CANTIDAD (se maneja desde compras)
     if (modo === 'crear') {
       if (!formData.cantidad && formData.cantidad !== '0') {
         nuevosErrores.cantidad = 'La cantidad inicial es obligatoria';
@@ -167,7 +176,6 @@ function FormularioProducto({ modo = 'crear', producto = null, onGuardadoExitoso
     });
   };
 
-  // ✅ FUNCIÓN CORREGIDA: Manejar guardado
   const handleGuardarConfirmado = async () => {
     cerrarModal();
     setLoading(true);
@@ -175,7 +183,6 @@ function FormularioProducto({ modo = 'crear', producto = null, onGuardadoExitoso
     try {
       const token = localStorage.getItem('token');
       
-      // ✅ PREPARAR DATOS CORRECTAMENTE
       const dataEnvio = {
         nombre_prod: formData.nombre_prod.trim(),
         categoria_prod: formData.categoria_prod,
@@ -185,7 +192,6 @@ function FormularioProducto({ modo = 'crear', producto = null, onGuardadoExitoso
         stock_minimo: 5
       };
 
-      // ✅ EN MODO CREAR AGREGAR CANTIDAD, EN EDICIÓN NO
       if (modo === 'crear') {
         dataEnvio.cantidad = parseInt(formData.cantidad) || 0;
       }
@@ -205,7 +211,6 @@ function FormularioProducto({ modo = 'crear', producto = null, onGuardadoExitoso
 
       const productoCompleto = response.data;
       
-      // ✅ MOSTRAR MODAL DE ÉXITO
       setModalConfig({
         mostrar: true,
         tipo: 'exito',
@@ -283,7 +288,7 @@ function FormularioProducto({ modo = 'crear', producto = null, onGuardadoExitoso
         </h2>
         <button 
           className="btn-cerrar-formulario"
-          onClick={onCancelar}
+          onClick={handleCancelar} // ✅ CAMBIADO A handleCancelar
           disabled={loading}
         >
           <FaTimes />
@@ -309,7 +314,7 @@ function FormularioProducto({ modo = 'crear', producto = null, onGuardadoExitoso
                   value={formData.codigo_prod}
                   onChange={handleChange}
                   placeholder="Se generará automáticamente"
-                  disabled={loading || modo === 'editar'} // ✅ Código no editable en edición
+                  disabled={loading || modo === 'editar'}
                   className="input-codigo"
                 />
               </div>
@@ -372,7 +377,6 @@ function FormularioProducto({ modo = 'crear', producto = null, onGuardadoExitoso
             </div>
           </div>
 
-          // ✅ CANTIDAD SOLO EN MODO CREAR - NO EDITABLE EN EDICIÓN
           {modo === 'crear' && (
             <div className="campos-grid">
               <div className={`campo-formulario ${errores.cantidad ? 'campo-error' : ''}`}>
@@ -419,7 +423,7 @@ function FormularioProducto({ modo = 'crear', producto = null, onGuardadoExitoso
         </div>
 
         <div className="formulario-acciones">
-          <button type="button" className="btn-cancelar" onClick={onCancelar} disabled={loading}>
+          <button type="button" className="btn-cancelar" onClick={handleCancelar} disabled={loading}>
             <FaTimes /> Cancelar
           </button>
           <button type="submit" className="btn-guardar" disabled={loading}>
@@ -429,7 +433,6 @@ function FormularioProducto({ modo = 'crear', producto = null, onGuardadoExitoso
         </div>
       </form>
 
-      {/* ✅ MODAL UNIVERSAL */}
       <ModalConfirmacionUniversal
         mostrar={modalConfig.mostrar}
         tipo={modalConfig.tipo}
